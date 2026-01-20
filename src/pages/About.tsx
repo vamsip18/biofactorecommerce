@@ -94,7 +94,7 @@ const About = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F694C3] to-[#F694C3] py-12 rounded-b-[60px]">
+      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div

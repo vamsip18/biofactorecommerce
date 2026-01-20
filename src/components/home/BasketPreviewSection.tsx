@@ -190,7 +190,8 @@ export const HeroSection = () => {
         ))}
       </div>
 
-      <div className="container mx-auto px-4 py-12 lg:py-24 relative z-10">
+      <div className="container mx-auto px-4 py-6 lg:py-14 relative z-10">
+
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <motion.div
@@ -343,7 +344,7 @@ export const FarmingEvolutionSection = () => {
               className="relative"
             >
               <div className={`p-8 rounded-3xl ${card.bgColor} border ${card.borderColor} shadow-lg h-full relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-2`}>
-                <div className="text-4xl mb-4 animate-float">{card.icon}</div>
+                
                 
                 <h3 className={`text-xl font-bold mb-4 bg-gradient-to-r ${card.color} bg-clip-text text-transparent`}>
                   {card.title}
@@ -364,15 +365,7 @@ export const FarmingEvolutionSection = () => {
               {card.highlight && (
                 <motion.div
                   className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-10"
-                  animate={{ 
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, 0, -5, 0]
-                  }}
-                  transition={{ 
-                    duration: 3, 
-                    repeat: Infinity,
-                    ease: "easeInOut" 
-                  }}
+                  
                 >
                   A Journey Beyond Ordinary
                 </motion.div>
@@ -396,11 +389,17 @@ export const EditorialSection = () => {
             className="space-y-8"
           >
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900">
-              Food,{" "}
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Reimagined
-              </span>
-            </h2>
+  Food,{" "}
+  <span className="text-[#F9A825]">
+    Reimagined
+  </span>
+</h2>
+
+
+
+
+
+            
             
             <div className="space-y-4 text-gray-700 leading-relaxed text-lg">
               <p>
@@ -737,9 +736,10 @@ export const ValuePropsSection = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6">
             Why This Is{" "}
-            <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-              Different
-            </span>
+            <span className="text-orange-600">
+  Different
+</span>
+
           </h2>
           <p className="text-gray-700 text-lg max-w-2xl mx-auto">
             Discover what sets ADD LIFE apart—where every aspect of our produce 
@@ -832,16 +832,17 @@ export const ValuePropsSection = () => {
               Join families who have transformed their approach to nutrition and wellness.
             </p>
             <Button 
-              variant="default" 
-              size="lg" 
-              asChild
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg"
-            >
-              <Link to="/baskets" className="flex items-center gap-3">
-                <Sparkles className="w-5 h-5" />
-                Start Your Journey
-              </Link>
-            </Button>
+  variant="default" 
+  size="lg" 
+  asChild
+  className="bg-[#F9A825] hover:bg-[#F57F17] text-white shadow-lg transition-colors duration-300"
+>
+  <Link to="/baskets" className="flex items-center gap-3 text-lg font-semibold">
+    <Sparkles className="w-5 h-5" />
+    Start Your Journey
+  </Link>
+</Button>
+
           </div>
         </motion.div>
       </div>
@@ -862,21 +863,24 @@ export const FooterSection = () => {
           <h2 className="text-3xl md:text-4xl font-serif font-bold">
             Your food should nourish more than hunger.
             <br />
-            <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-orange-300 bg-clip-text text-transparent">
-              It should nourish life itself.
-            </span>
+            <span className="text-[#F9A825]">
+  It should nourish life itself.
+</span>
+
           </h2>
           
-          <Button 
-            variant="default" 
-            size="lg" 
-            asChild
-            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-xl transition-all duration-300"
-          >
-            <Link to="/baskets" className="text-lg font-semibold">
-              Choose ADD LIFE
-            </Link>
-          </Button>
+          <Button
+  variant="default"
+  size="lg"
+  asChild
+  className="bg-[#F9A825] hover:bg-[#F57F17] text-white shadow-xl transition-all duration-300"
+>
+  <Link to="/baskets" className="text-lg font-semibold text-white tracking-wide">
+    Choose ADD LIFE
+  </Link>
+</Button>
+
+
         </motion.div>
       </div>
     </footer>

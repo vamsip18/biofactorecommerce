@@ -3,15 +3,27 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Clock, Send, MessageCircle, User, Home, Building, Globe, ChevronRight, CheckCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, User, Building, ChevronRight, CheckCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = 'https://ekfqurdhdfdfqatvgwwf.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZnF1cmRoZGZkZnFhdHZnd3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMzkzNDMsImV4cCI6MjA4MDkxNTM0M30.KiRAEyJvyxXlQgQ_5VD8yc0LCV2rXesl2mLV3h1YNF0';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// FormSubmit configuration
+const FORM_SUBMIT_CONFIG = {
+  endpoint: "https://formsubmit.co/ajax/sanjaykrishnachinna@gmail.com",
+  subject: "New Contact Form Submission - ADD LIFE",
+};
 
 const contactInfo = [
   {
     icon: Mail,
     title: "Email",
-    value: "info@bioorganics.ch",
-    link: "mailto:info@bioorganics.ch",
+    value: "sanjaykrishnachinna@gmail.com",
+    link: "mailto:sanjaykrishnachinna@gmail.com",
     description: "General inquiries & support",
     color: "from-blue-400 to-cyan-500"
   },
@@ -41,21 +53,6 @@ const contactInfo = [
   },
 ];
 
-const faqs = [
-  {
-    question: "How quickly do you respond to inquiries?",
-    answer: "We typically respond within 2-4 hours during business days, and within 24 hours on weekends.",
-  },
-  {
-    question: "Can I visit your farm?",
-    answer: "Yes! We offer farm tours by appointment. Contact us to schedule a visit.",
-  },
-  {
-    question: "Do you offer corporate partnerships?",
-    answer: "Absolutely! We work with businesses for corporate gifting, wellness programs, and sustainable initiatives.",
-  },
-];
-
 const Contact = () => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -66,16 +63,139 @@ const Contact = () => {
     subject: "",
     message: "",
   });
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  
+  const [formState, setFormState] = useState({
+    submitted: false,
+    loading: false,
+    error: null as string | null,
+    successMessage: "",
+    submissionId: null as string | null,
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const sendEmailViaFormSubmit = async (submissionData: any) => {
+    try {
+      const emailData = {
+        firstName: submissionData.first_name,
+        lastName: submissionData.last_name,
+        fullName: `${submissionData.first_name} ${submissionData.last_name}`,
+        email: submissionData.email,
+        phone: submissionData.phone || 'Not provided',
+        company: submissionData.company || 'Not provided',
+        subject: submissionData.subject,
+        message: submissionData.message,
+        _subject: `${FORM_SUBMIT_CONFIG.subject}: ${submissionData.subject}`,
+        _template: "table",
+        _captcha: "false",
+        _honey: "",
+        submissionId: submissionData.id,
+        submittedAt: new Date().toLocaleString(),
+      };
+
+      const response = await fetch(FORM_SUBMIT_CONFIG.endpoint, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(emailData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('FormSubmit error:', error);
+      throw error;
+    }
+  };
+
+  const saveToSupabase = async (data: any) => {
+    try {
+      const { data: result, error } = await supabase
+        .from('contact_submissions')
+        .insert([
+          {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            email: data.email,
+            phone: data.phone || null,
+            company: data.company || null,
+            subject: data.subject,
+            message: data.message,
+            status: 'pending'
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        // If table doesn't exist, provide helpful error
+        if (error.message.includes('relation "contact_submissions" does not exist')) {
+          throw new Error('Database table not configured. Please create the contact_submissions table first.');
+        }
+        throw error;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend
-    console.log('Form submitted:', formData);
-    setFormSubmitted(true);
-    // Reset form after submission
-    setTimeout(() => {
-      setFormSubmitted(false);
+    setFormState({ 
+      submitted: false, 
+      loading: true, 
+      error: null, 
+      successMessage: "",
+      submissionId: null 
+    });
+
+    try {
+      // Validate form data
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.subject || !formData.message) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      // Step 1: Save to Supabase database
+      const dbResult = await saveToSupabase(formData);
+      console.log('Saved to database:', dbResult);
+
+      // Step 2: Send email via FormSubmit (non-blocking, don't fail if email fails)
+      let emailSuccess = false;
+      let emailError = null;
+      
+      try {
+        await sendEmailViaFormSubmit(dbResult);
+        emailSuccess = true;
+        console.log('Email sent via FormSubmit');
+      } catch (emailErr) {
+        emailError = emailErr;
+        console.warn('Email sending failed, but form was saved to database:', emailErr);
+        // Continue even if email fails - database save is primary
+      }
+
+      // Success - update state
+      setFormState({ 
+        submitted: true, 
+        loading: false, 
+        error: null,
+        successMessage: `Your message has been saved successfully! ${emailSuccess ? 'Email notification sent.' : 'Email notification failed, but your message is saved in our system.'}`,
+        submissionId: dbResult.id
+      });
+      
+      // Reset form
       setFormData({
         firstName: "",
         lastName: "",
@@ -85,19 +205,48 @@ const Contact = () => {
         subject: "",
         message: "",
       });
-    }, 3000);
+
+      // Reset success message after 8 seconds
+      setTimeout(() => {
+        setFormState(prev => ({ ...prev, submitted: false }));
+      }, 8000);
+
+    } catch (error) {
+      console.error('Form submission error:', error);
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Provide specific guidance for database setup issues
+        if (error.message.includes('Database table not configured')) {
+          errorMessage = `Database setup required: ${error.message}. Please contact administrator to set up the contact_submissions table.`;
+        }
+      }
+      
+      setFormState({
+        submitted: false,
+        loading: false,
+        error: errorMessage,
+        successMessage: "",
+        submissionId: null
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (formState.error) {
+      setFormState(prev => ({ ...prev, error: null }));
+    }
   };
 
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F694C3] to-[#F694C3] py-12 rounded-b-[60px]">
-        {/* Animated background elements */}
+      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(15)].map((_, i) => (
             <motion.div
@@ -131,10 +280,7 @@ const Contact = () => {
             className="text-center max-w-3xl mx-auto"
           >
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-8">
-              Let's Connect
-              <span className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-8">
-                & Grow Together
-              </span>
+              Let's Connect & Grow Together
             </h1>
             
             <motion.p
@@ -161,7 +307,23 @@ const Contact = () => {
               viewport={{ once: true }}
               className="relative"
             >
-              {formSubmitted ? (
+              {formState.error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <div>
+                      <p className="text-red-700 font-medium mb-1">Submission Error</p>
+                      <p className="text-red-600 text-sm">{formState.error}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {formState.submitted ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -172,7 +334,7 @@ const Contact = () => {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", bounce: 0.5 }}
-                      className="inline-flex p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl mb-6"
+                      className="inline-flex p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-6"
                     >
                       <CheckCircle className="w-12 h-12 text-white" />
                     </motion.div>
@@ -181,16 +343,37 @@ const Contact = () => {
                       Message Sent Successfully!
                     </h3>
                     
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+                      <p className="text-green-800 text-lg mb-3">
+                        ✓ Saved to secure database
+                      </p>
+                      <p className="text-green-800 text-lg mb-3">
+                        ✓ Email sent to sanjaykrishnachinna@gmail.com
+                      </p>
+                      <p className="text-green-800 text-lg">
+                        ✓ We'll respond within 24 hours
+                      </p>
+                      
+                    </div>
+                    
                     <p className="text-gray-600 text-lg mb-8">
-                      Thank you for reaching out. We'll get back to you within 24 hours.
+                      {formState.successMessage}
                     </p>
                     
-                    <Button
-                      onClick={() => setFormSubmitted(false)}
-                      className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                    >
-                      Send Another Message
-                    </Button>
+                    <div className="flex gap-4 justify-center">
+                      <Button
+                        onClick={() => setFormState(prev => ({ ...prev, submitted: false }))}
+                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                      >
+                        Send Another Message
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.location.href = "mailto:sanjaykrishnachinna@gmail.com"}
+                      >
+                        Email Directly
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               ) : (
@@ -204,7 +387,7 @@ const Contact = () => {
                         Send us a Message
                       </h2>
                       <p className="text-gray-600">
-                        We typically respond within 24 hours
+                        We'll respond within 24 hours
                       </p>
                     </div>
                   </div>
@@ -224,6 +407,7 @@ const Contact = () => {
                             placeholder="First name" 
                             className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                             required
+                            disabled={formState.loading}
                           />
                         </div>
                       </div>
@@ -240,6 +424,7 @@ const Contact = () => {
                             placeholder="Last name" 
                             className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                             required
+                            disabled={formState.loading}
                           />
                         </div>
                       </div>
@@ -257,11 +442,15 @@ const Contact = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            placeholder="john@example.com" 
+                            placeholder="your.email@example.com" 
                             className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                             required
+                            disabled={formState.loading}
                           />
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          We'll reply to this address
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -276,6 +465,7 @@ const Contact = () => {
                             onChange={handleInputChange}
                             placeholder="+41 32 123 45 67" 
                             className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            disabled={formState.loading}
                           />
                         </div>
                       </div>
@@ -291,8 +481,9 @@ const Contact = () => {
                           name="company"
                           value={formData.company}
                           onChange={handleInputChange}
-                          placeholder="Company name" 
+                          placeholder="Your company name" 
                           className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          disabled={formState.loading}
                         />
                       </div>
                     </div>
@@ -308,6 +499,7 @@ const Contact = () => {
                         placeholder="How can we help you?" 
                         className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
+                        disabled={formState.loading}
                       />
                     </div>
 
@@ -323,16 +515,29 @@ const Contact = () => {
                         rows={6}
                         className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
+                        disabled={formState.loading}
                       />
                     </div>
+
+                
 
                     <Button 
                       type="submit"
                       size="lg" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg"
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg disabled:opacity-50"
+                      disabled={formState.loading}
                     >
-                      <Send className="w-5 h-5 mr-2" />
-                      Send Message
+                      {formState.loading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          Sending Message...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5 mr-2" />
+                          Send Message
+                        </>
+                      )}
                     </Button>
                   </form>
                 </div>
@@ -383,6 +588,8 @@ const Contact = () => {
                               <a
                                 href={item.link}
                                 className="text-gray-700 hover:text-blue-700 transition-colors block group-hover:underline"
+                                target={item.link.startsWith('http') ? '_blank' : '_self'}
+                                rel={item.link.startsWith('http') ? 'noopener noreferrer' : ''}
                               >
                                 {item.value}
                               </a>
@@ -449,99 +656,6 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Departments Section */}
-      <section className="py-20 bg-gradient-to-b from-blue-50 to-white">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <div className="inline-flex items-center gap-3 mb-4">
-              <Building className="w-6 h-6 text-blue-500" />
-              <span className="text-blue-600 font-semibold text-sm uppercase tracking-wider">
-                Departments
-              </span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6">
-              Reach the Right Team
-            </h2>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Connect with specific departments for faster assistance
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                title: "Customer Support",
-                email: "support@bioorganics.ch",
-                phone: "+41 32 123 45 68",
-                description: "Order issues, delivery questions, account help",
-                color: "from-blue-400 to-cyan-500"
-              },
-              {
-                title: "Farm Partnerships",
-                email: "farmers@bioorganics.ch",
-                phone: "+41 32 123 45 69",
-                description: "Joining our network, supply inquiries",
-                color: "from-cyan-500 to-blue-600"
-              },
-              {
-                title: "Business & Corporate",
-                email: "b2b@bioorganics.ch",
-                phone: "+41 32 123 45 70",
-                description: "Corporate gifting, bulk orders, partnerships",
-                color: "from-sky-400 to-blue-500"
-              },
-            ].map((dept, index) => (
-              <motion.div
-                key={dept.title}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -10 }}
-                className="bg-gradient-to-b from-white to-blue-50 rounded-3xl p-8 shadow-lg border-2 border-gray-200/50 hover:border-blue-300 hover:shadow-xl transition-all"
-              >
-                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${dept.color} text-white mb-6`}>
-                  <Mail className="w-6 h-6" />
-                </div>
-                
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  {dept.title}
-                </h3>
-                
-                <p className="text-gray-600 text-sm mb-6">
-                  {dept.description}
-                </p>
-                
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">Email</div>
-                    <a 
-                      href={`mailto:${dept.email}`}
-                      className="text-gray-700 hover:text-blue-700 font-medium"
-                    >
-                      {dept.email}
-                    </a>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600 mb-1">Phone</div>
-                    <a 
-                      href={`tel:${dept.phone.replace(/\s+/g, '')}`}
-                      className="text-gray-700 hover:text-blue-700 font-medium"
-                    >
-                      {dept.phone}
-                    </a>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
     </Layout>
   );
 };

@@ -57,7 +57,7 @@ const BasketPage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F694C3] to-[#F694C3] py-12 rounded-b-[60px]">
+      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
         
         <div className="container mx-auto px-4 relative z-10">

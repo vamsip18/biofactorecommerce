@@ -19,7 +19,7 @@ const Account = () => {
     street: "Chemin des Cevins 4",
     postalCode: "2096",
     city: "Cressier",
-    company: "BioOrganics SA"
+    company: "ADD LIFE SA"
   });
 
   const handleSave = () => {

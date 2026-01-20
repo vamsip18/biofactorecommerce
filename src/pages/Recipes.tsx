@@ -630,27 +630,7 @@ const Recipes = () => {
                   ))}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-4">
-                  <Button className="flex-1 bg-gradient-to-r from-[#2F7D32] to-[#1B5E20] hover:from-[#1B5E20] hover:to-[#0D3D12] text-white">
-  Print Recipe
-</Button>
-
-                  <Button
-                    variant="outline"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                    onClick={() => toggleFavorite(selectedRecipe.id)}
-                  >
-                    <Heart 
-                      className={`w-4 h-4 mr-2 ${
-                        favorites.includes(selectedRecipe.id) 
-                          ? "fill-red-500 text-red-500" 
-                          : ""
-                      }`}
-                    />
-                    {favorites.includes(selectedRecipe.id) ? "Saved" : "Save"}
-                  </Button>
-                </div>
+               
               </div>
             </motion.div>
           </>
@@ -662,7 +642,7 @@ const Recipes = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F694C3] to-[#F694C3] py-12 rounded-b-[60px]">
+      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             {/* Quote Section */}

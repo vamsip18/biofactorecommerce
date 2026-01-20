@@ -32,17 +32,17 @@ export const Header = () => {
   return (
     <header
       className={`sticky top-0 z-50 backdrop-blur-sm bg-opacity-95 transition-colors duration-500 ${
-        isHomePage ? "bg-[#F9DD58]" : "bg-[#F694C3]"
+        isHomePage ? "bg-[#F9DD58]" : "bg-[#F9DD58]"
       }`}
     >
-      {/* Top bar */}
+      {/* Top bar - Reduced padding */}
       <div
         className={`border-b ${
-          isHomePage ? "border-yellow-600/20" : "border-pink-300/40"
+          isHomePage ? "border-yellow-600/20" : "border-yellow-600/20"
         }`}
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between py-2 text-sm">
+          <div className="flex items-center justify-between py-1 text-sm"> {/* Reduced from py-2 */}
             <div className="flex items-center gap-6">
               <Link
                 to="/"
@@ -70,18 +70,19 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Main nav */}
-      <div className="container mx-auto px-4">
-        <nav className="flex items-center justify-between py-4">
-          {/* Logo */}
+      {/* Main nav - Reduced padding */}
+      <div className="container mx-auto px-1">
+        <nav className="flex items-center justify-between py-0.5">
+ {/* Reduced from py-4 */}
+          {/* Logo - Increased size */}
           <Link to="/" className="flex items-center gap-4 group">
-  <img
-    src={logo}
-    alt="ADD LIFE Logo"
-    className="h-28 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
-  />
-</Link>
-
+            <img
+              src={logo}
+              alt="ADD LIFE Logo"
+              className="h-24 md:h-28 w-auto object-contain"
+ 
+            />
+          </Link>
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-2">
@@ -168,7 +169,7 @@ export const Header = () => {
         </nav>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Reduced padding */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -177,12 +178,12 @@ export const Header = () => {
             exit={{ height: 0, opacity: 0 }}
             className="lg:hidden bg-white border-t"
           >
-            <div className="container mx-auto px-4 py-6 space-y-4">
+            <div className="container mx-auto px-4 py-4 space-y-3"> 
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   to={link.href}
-                  className="block text-gray-800 font-medium"
+                  className="block text-gray-800 font-medium py-2" 
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.name}

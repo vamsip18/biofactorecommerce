@@ -57,13 +57,13 @@ const testimonials = [
   {
     name: "Thomas Weber",
     role: "Corporate Gifting",
-    content: "We gifted our entire team BioOrganics baskets. It was a huge hit and aligned perfectly with our wellness values.",
+    content: "We gifted our entire team Add Life baskets. It was a huge hit and aligned perfectly with our wellness values.",
     rating: 5,
   },
   {
     name: "Elena Rossi",
     role: "Repeat Gifter",
-    content: "I've gifted BioOrganics to family and friends for three years now. It's my go-to for meaningful presents.",
+    content: "I've gifted Add Life to family and friends for three years now. It's my go-to for meaningful presents.",
     rating: 5,
   },
 ];
@@ -114,7 +114,7 @@ const Gift = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F694C3] to-[#F694C3] py-12 rounded-b-[60px]">
+      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         {/* Removed animated background elements */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
 
