@@ -1,25 +1,21 @@
 // src/pages/Index.tsx
 import { Layout } from "@/components/layout/Layout";
 import {
-  AddLifeHeroSection as HeroSection,
-  FarmingEvolutionSection,
-  EditorialSection,
-  StatementDivider,
-  BasketPreviewSection,
-  AddLifeValuePropsSection as ValuePropsSection,
-  FooterSection
-} from "@/components/home";
+  AquaCultureSection,
+  BestSellingProducts,
+  HeroSection,
+  TrendingTopics,
+ 
+ 
+} from "@/components/home/BasketPreviewSection";
 
 const Index = () => {
   return (
     <Layout>
       <HeroSection />
-      <FarmingEvolutionSection />
-      <EditorialSection />
-      <StatementDivider />
-      <BasketPreviewSection />
-      <ValuePropsSection />
-      <FooterSection />
+      <BestSellingProducts />
+            <TrendingTopics />
+            <AquaCultureSection />
     </Layout>
   );
 };

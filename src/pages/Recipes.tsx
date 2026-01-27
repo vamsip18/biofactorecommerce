@@ -1,456 +1,488 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { Clock, Users, ChefHat, Search, Filter, Heart, Star, Flame, Share2, Leaf, X } from "lucide-react";
-import { useState } from "react";
+import { Clock, Users, Leaf, Search, Filter, Heart, Star, Flame, Share2, ShoppingCart, TrendingUp, Award, Droplets, Shield, Sprout, ThermometerSun, CloudRain, TreePine, Wheat, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
-// Enhanced recipes data with full details
-const recipes = [
+// Enhanced BioFact products data with agricultural focus
+const products = [
   {
     id: 1,
-    title: "Mango Lassi",
-    description: "Refreshing yogurt-based drink with ripe mangoes and cardamom",
-    time: "10 min",
-    servings: 2,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1567095761054-7a02e69e5c43?w=800&h=600&fit=crop&q=80",
-    category: "Beverage",
+    name: "Bio-Organic Super Fertilizer",
+    description: "Complete NPK fertilizer enriched with beneficial microbes for all crops",
+    formulation: "Liquid",
+    coverage: "1 acre",
+    category: "Fertilizer",
     rating: 4.9,
-    favorites: 167,
-    ingredients: [
-      "2 ripe mangoes, peeled and chopped",
-      "2 cups plain yogurt",
-      "1/2 cup milk or water",
-      "2-3 tablespoons honey or sugar",
-      "1/2 teaspoon cardamom powder",
-      "Ice cubes",
-      "Mint leaves for garnish"
+    favorites: 267,
+    image: "https://images.unsplash.com/photo-1597848212624-e82769e2d4f2?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Increases yield by 30-40%",
+      "Improves soil fertility naturally",
+      "Reduces chemical fertilizer dependency",
+      "Enhances water retention capacity"
     ],
-    steps: [
-      "Peel and chop the mangoes into chunks",
-      "In a blender, combine mangoes, yogurt, milk, and honey",
-      "Add cardamom powder and blend until smooth",
-      "Taste and adjust sweetness if needed",
-      "Add ice cubes and blend briefly",
-      "Pour into glasses, garnish with mint",
-      "Serve chilled immediately"
+    usage: [
+      "Mix 5ml per liter of water",
+      "Apply during sowing or transplanting",
+      "Use every 15 days during growth period",
+      "Can be used with drip irrigation"
     ],
-    tips: [
-      "Use ripe, sweet mangoes for best flavor",
-      "For vegan version, use coconut yogurt",
-      "Add a pinch of saffron for extra richness",
-      "Chill glasses before serving"
-    ],
-    tags: ["Refreshing", "Summer", "Dairy"],
-    color: "from-amber-400 to-yellow-500",
-    calories: 180
+    specs: {
+      npk: "8:3:6",
+      organicContent: "85%",
+      microbialCount: "10^8 CFU/g",
+      shelfLife: "24 months",
+      packaging: "1L, 5L, 20L"
+    },
+    tags: ["Organic", "Microbial", "Complete"],
+    color: "from-green-500 to-emerald-600",
+    price: "₹1,299"
   },
   {
     id: 2,
-    title: "Masala Papaya Salad",
-    description: "Spicy salad with ripe papaya, chaat masala, and fresh herbs",
-    time: "15 min",
-    servings: 2,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=600&fit=crop&q=80",
-    category: "Salad",
-    rating: 4.6,
-    favorites: 98,
-    ingredients: [
-      "1 medium ripe papaya, peeled and cubed",
-      "1 cucumber, diced",
-      "1 red onion, thinly sliced",
-      "1 green chili, finely chopped",
-      "1/4 cup fresh cilantro, chopped",
-      "2 tablespoons lemon juice",
-      "1 teaspoon chaat masala",
-      "1/2 teaspoon roasted cumin powder",
-      "Salt to taste",
-      "Pomegranate seeds for garnish"
+    name: "Plant Growth Promoter",
+    description: "Concentrated plant growth hormones with micronutrients for vigorous growth",
+    formulation: "Powder",
+    coverage: "2 acres",
+    category: "Growth Promoter",
+    rating: 4.7,
+    favorites: 198,
+    image: "https://images.unsplash.com/photo-1589923186741-b7d59d6b2c4a?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Stimulates root development",
+      "Enhances flowering and fruiting",
+      "Improves stress tolerance",
+      "Boosts nutrient uptake"
     ],
-    steps: [
-      "Prepare all vegetables - cube papaya, dice cucumber, slice onion",
-      "In a large bowl, combine papaya, cucumber, and onion",
-      "Add green chili and cilantro",
-      "In a small bowl, mix lemon juice, chaat masala, cumin powder, and salt",
-      "Pour dressing over salad and toss gently",
-      "Let it marinate for 5 minutes",
-      "Garnish with pomegranate seeds",
-      "Serve immediately"
+    usage: [
+      "Dissolve 10g in 10 liters of water",
+      "Apply as foliar spray or soil drench",
+      "Use during vegetative and flowering stages",
+      "Avoid application in direct sunlight"
     ],
-    tips: [
-      "Use slightly firm papaya for better texture",
-      "Adjust chili according to your spice preference",
-      "Add roasted peanuts for crunch",
-      "Best served fresh, don't make ahead"
-    ],
-    tags: ["Spicy", "Tropical", "Quick"],
-    color: "from-orange-400 to-red-400",
-    calories: 120
+    specs: {
+      composition: "Auxins, Cytokinins, Gibberellins",
+      micronutrients: "Zn, Fe, Cu, Mn, B",
+      solubility: "100% water soluble",
+      shelfLife: "18 months",
+      packaging: "250g, 500g, 1kg"
+    },
+    tags: ["Hormone", "Micronutrients", "Flowering"],
+    color: "from-blue-500 to-cyan-600",
+    price: "₹899"
   },
   {
     id: 3,
-    title: "Jackfruit Biryani",
-    description: "Aromatic rice dish with young jackfruit and whole spices",
-    time: "60 min",
-    servings: 4,
-    difficulty: "Medium",
-    image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&h=600&fit=crop&q=80",
-    category: "Main",
+    name: "Bio-Pesticide Concentrate",
+    description: "Natural pesticide derived from neem and other botanical extracts",
+    formulation: "Liquid",
+    coverage: "0.5 acre",
+    category: "Pesticide",
     rating: 4.8,
-    favorites: 212,
-    ingredients: [
-      "2 cups basmati rice, soaked for 30 minutes",
-      "500g young jackfruit, chopped",
-      "2 large onions, thinly sliced",
-      "2 tomatoes, chopped",
-      "1/2 cup yogurt",
-      "2 tablespoons ginger-garlic paste",
-      "1 teaspoon turmeric powder",
-      "2 teaspoons biryani masala",
-      "Whole spices (2 bay leaves, 4 cloves, 2 cinnamon sticks, 4 cardamom)",
-      "1/4 cup mint leaves",
-      "1/4 cup cilantro",
-      "Saffron milk (few saffron strands soaked in 2 tbsp warm milk)",
-      "4 tablespoons ghee or oil",
-      "Salt to taste"
+    favorites: 312,
+    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Controls 50+ insect pests",
+      "Safe for beneficial insects",
+      "No chemical residue",
+      "Zero waiting period for harvest"
     ],
-    steps: [
-      "Cook rice with whole spices until 70% done, drain",
-      "Marinate jackfruit with yogurt, turmeric, and salt for 15 minutes",
-      "In a heavy-bottomed pan, fry onions until golden brown",
-      "Add ginger-garlic paste, sauté until fragrant",
-      "Add tomatoes and cook until soft",
-      "Add marinated jackfruit, biryani masala, and cook for 10 minutes",
-      "Layer cooked rice over jackfruit mixture",
-      "Sprinkle mint, cilantro, and saffron milk",
-      "Cover and cook on low heat for 20 minutes",
-      "Let it rest for 10 minutes before serving"
+    usage: [
+      "Mix 3ml per liter of water",
+      "Spray thoroughly on both leaf surfaces",
+      "Apply early morning or late evening",
+      "Repeat every 7-10 days as needed"
     ],
-    tips: [
-      "Use canned young jackfruit for convenience",
-      "Soak saffron in warm milk for better color release",
-      "Don't skip the resting time - it allows flavors to meld",
-      "Serve with raita and pickle"
-    ],
-    tags: ["Festive", "Spicy", "Rice"],
-    color: "from-emerald-500 to-teal-600",
-    calories: 420
+    specs: {
+      activeIngredients: "Azadirachtin 0.3%",
+      otherIngredients: "Neem oil, Garlic extract",
+      toxicity: "Non-toxic to humans & animals",
+      shelfLife: "12 months",
+      packaging: "250ml, 500ml, 1L"
+    },
+    tags: ["Organic", "Neem", "Safe"],
+    color: "from-purple-500 to-violet-600",
+    price: "₹749"
   },
   {
     id: 4,
-    title: "Stuffed Bell Peppers",
-    description: "Bell peppers filled with spiced potatoes and paneer",
-    time: "45 min",
-    servings: 4,
-    difficulty: "Medium",
-    image: "https://images.unsplash.com/photo-1598866594230-a7c12756260f?w=800&h=600&fit=crop&q=80",
-    category: "Main",
-    rating: 4.7,
+    name: "Soil Conditioner Pro",
+    description: "Advanced soil amendment to improve structure and fertility",
+    formulation: "Granular",
+    coverage: "1 acre",
+    category: "Soil Amendment",
+    rating: 4.6,
     favorites: 145,
-    ingredients: [
-      "4 large bell peppers (mixed colors)",
-      "2 medium potatoes, boiled and mashed",
-      "200g paneer, crumbled",
-      "1 onion, finely chopped",
-      "1 teaspoon ginger-garlic paste",
-      "1 teaspoon garam masala",
-      "1/2 teaspoon turmeric powder",
-      "1/2 teaspoon red chili powder",
-      "2 tablespoons oil",
-      "Salt to taste",
-      "Fresh coriander for garnish",
-      "Grated cheese for topping (optional)"
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Improves soil pH balance",
+      "Increases organic matter content",
+      "Enhances microbial activity",
+      "Reduces soil compaction"
     ],
-    steps: [
-      "Cut the tops off bell peppers and remove seeds",
-      "Heat oil, sauté onions until golden",
-      "Add ginger-garlic paste and spices, cook for 2 minutes",
-      "Add mashed potatoes and crumbled paneer, mix well",
-      "Stuff the mixture into bell peppers",
-      "Arrange in baking dish, add 1/2 cup water",
-      "Bake at 180°C for 25-30 minutes",
-      "Garnish with fresh coriander and serve hot"
+    usage: [
+      "Apply 50kg per acre",
+      "Mix thoroughly with top soil",
+      "Best applied before sowing",
+      "Can be used with existing fertilizers"
     ],
-    tips: [
-      "Choose firm, symmetrical bell peppers for even cooking",
-      "Parboil bell peppers for 3 minutes for faster baking",
-      "Add raisins or cashews for extra texture",
-      "Can be air-fried for crispier texture"
-    ],
-    tags: ["Stuffed", "Colorful", "Baked"],
-    color: "from-red-400 to-orange-500",
-    calories: 280
+    specs: {
+      organicMatter: "60%",
+      moistureContent: "15%",
+      ph: "6.5-7.5",
+      shelfLife: "36 months",
+      packaging: "5kg, 25kg, 50kg"
+    },
+    tags: ["Soil Health", "pH Balance", "Amendment"],
+    color: "from-amber-500 to-orange-600",
+    price: "₹1,899"
   },
   {
     id: 5,
-    title: "Watermelon Feta Salad",
-    description: "Sweet watermelon with salty feta and mint dressing",
-    time: "15 min",
-    servings: 2,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1625943917485-df256bc1368b?w=800&h=600&fit=crop&q=80",
-    category: "Salad",
-    rating: 4.5,
-    favorites: 123,
-    ingredients: [
-      "4 cups watermelon, cubed",
-      "200g feta cheese, crumbled",
-      "1/4 cup fresh mint leaves",
-      "1/4 cup fresh basil leaves",
-      "2 tablespoons extra virgin olive oil",
-      "1 tablespoon lemon juice",
-      "1 teaspoon honey",
-      "Salt and black pepper to taste",
-      "1/4 cup toasted pumpkin seeds"
+    name: "Crop-Specific Nutrient Mix",
+    description: "Customized nutrient formulation for different crop requirements",
+    formulation: "Powder",
+    coverage: "1 acre",
+    category: "Specialty Fertilizer",
+    rating: 4.9,
+    favorites: 289,
+    image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Tailored for specific crop needs",
+      "Balanced nutrient delivery",
+      "Improves crop quality",
+      "Reduces nutrient wastage"
     ],
-    steps: [
-      "Cube watermelon and crumble feta cheese",
-      "Chop mint and basil leaves",
-      "In a small bowl, whisk olive oil, lemon juice, honey, salt and pepper",
-      "In a large bowl, gently toss watermelon with half the dressing",
-      "Add feta cheese and fresh herbs",
-      "Drizzle remaining dressing and toss gently",
-      "Sprinkle toasted pumpkin seeds on top",
-      "Serve immediately"
+    usage: [
+      "Available for 20+ major crops",
+      "Follow crop-specific dosage",
+      "Apply as basal and top dressing",
+      "Consult agronomist for best results"
     ],
-    tips: [
-      "Use seedless watermelon for convenience",
-      "Toast pumpkin seeds for extra flavor",
-      "Add arugula for peppery notes",
-      "Don't dress salad too early to prevent sogginess"
-    ],
-    tags: ["Sweet", "Savory", "Quick"],
-    color: "from-pink-400 to-rose-500",
-    calories: 210
+    specs: {
+      variants: "Cereals, Pulses, Vegetables, Fruits",
+      npkRange: "Customized per crop",
+      solubility: "95% water soluble",
+      shelfLife: "24 months",
+      packaging: "5kg, 10kg, 25kg"
+    },
+    tags: ["Custom", "Balanced", "Crop-Specific"],
+    color: "from-teal-500 to-green-600",
+    price: "₹1,599"
   },
   {
     id: 6,
-    title: "Banana Flower Curry",
-    description: "Traditional South Indian curry with banana flower and coconut",
-    time: "50 min",
-    servings: 4,
-    difficulty: "Difficult",
-    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop&q=80",
-    category: "Main",
-    rating: 4.9,
-    favorites: 178,
-    ingredients: [
-      "1 banana flower, cleaned and chopped",
-      "1 cup grated coconut",
-      "1 teaspoon turmeric powder",
-      "2 teaspoons sambar powder",
-      "1 teaspoon mustard seeds",
-      "2 dry red chilies",
-      "Few curry leaves",
-      "2 tablespoons coconut oil",
-      "1/2 teaspoon asafoetida",
-      "Salt to taste",
-      "1 cup cooked toor dal (pigeon peas)",
-      "Tamarind pulp (size of small lime)"
+    name: "Microbial Inoculant",
+    description: "Concentrated beneficial bacteria for nitrogen fixation and phosphorus solubilization",
+    formulation: "Carrier-based",
+    coverage: "2 acres",
+    category: "Microbial",
+    rating: 4.7,
+    favorites: 167,
+    image: "https://images.unsplash.com/photo-1592982537447-7444dc31f8e8?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Fixes atmospheric nitrogen",
+      "Solubilizes locked phosphorus",
+      "Produces growth hormones",
+      "Suppresses soil pathogens"
     ],
-    steps: [
-      "Clean banana flower thoroughly and soak in buttermilk to prevent discoloration",
-      "Pressure cook banana flower with turmeric and salt for 3 whistles",
-      "Grind coconut with sambar powder to fine paste",
-      "Heat oil, splutter mustard seeds, add red chilies and curry leaves",
-      "Add cooked banana flower and mix well",
-      "Add coconut paste and cooked toor dal",
-      "Add tamarind pulp and adjust consistency with water",
-      "Simmer for 10 minutes and serve hot with rice"
+    usage: [
+      "Mix with seeds before sowing",
+      "Can be used as soil application",
+      "Apply with organic manure",
+      "Store in cool, dry place"
     ],
-    tips: [
-      "Wear gloves while cleaning banana flower to avoid staining",
-      "Add a tsp of rice flour while grinding coconut for thickness",
-      "Soak chopped banana flower in buttermilk to prevent browning",
-      "Can add drumsticks for extra flavor"
-    ],
-    tags: ["Traditional", "Coconut", "Spicy"],
-    color: "from-purple-500 to-indigo-600",
-    calories: 320
+    specs: {
+      microbialCount: "10^9 CFU/g",
+      strains: "Rhizobium, Azotobacter, PSB",
+      carrier: "Lignite based",
+      shelfLife: "12 months",
+      packaging: "200g, 500g, 1kg"
+    },
+    tags: ["Microbes", "Nitrogen", "Phosphorus"],
+    color: "from-rose-500 to-pink-600",
+    price: "₹549"
   },
   {
     id: 7,
-    title: "Grilled Pineapple Raita",
-    description: "Cool yogurt dip with caramelized pineapple and cumin",
-    time: "20 min",
-    servings: 4,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1571575173700-afb9492e6a50?w=800&h=600&fit=crop&q=80",
-    category: "Side",
-    rating: 4.4,
-    favorites: 89,
-    ingredients: [
-      "2 cups thick yogurt",
-      "1 cup pineapple cubes",
-      "1 teaspoon cumin seeds, roasted and crushed",
-      "1/2 teaspoon black salt",
-      "1/4 teaspoon black pepper powder",
-      "1 green chili, finely chopped (optional)",
-      "1 tablespoon honey or sugar",
-      "1 tablespoon chopped mint leaves",
-      "1 tablespoon oil for grilling"
+    name: "Water-Saving Granules",
+    description: "Hydrogel granules that retain water and release it slowly to plants",
+    formulation: "Granular",
+    coverage: "0.25 acre",
+    category: "Water Management",
+    rating: 4.5,
+    favorites: 98,
+    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Reduces irrigation by 40-50%",
+      "Prevents water stress in plants",
+      "Improves nutrient availability",
+      "Works for 3-5 years"
     ],
-    steps: [
-      "Whisk yogurt until smooth",
-      "Grill pineapple cubes until caramelized (2-3 minutes per side)",
-      "Chop grilled pineapple into smaller pieces",
-      "Mix all ingredients except mint in a bowl",
-      "Add grilled pineapple and mix gently",
-      "Garnish with mint leaves",
-      "Chill for 30 minutes before serving",
-      "Serve as dip or side dish"
+    usage: [
+      "Apply 2-4kg per acre",
+      "Mix with soil near root zone",
+      "Suitable for all crops",
+      "Rehydrate before use in dry soils"
     ],
-    tips: [
-      "Use Greek yogurt for thicker consistency",
-      "Can use canned pineapple if fresh not available",
-      "Add roasted cumin powder for smoky flavor",
-      "Adjust sweetness according to pineapple sweetness"
-    ],
-    tags: ["Grilled", "Yogurt", "Tangy"],
-    color: "from-yellow-400 to-amber-500",
-    calories: 150
+    specs: {
+      waterRetention: "400 times its weight",
+      particleSize: "0.5-3mm",
+      composition: "Potassium polyacrylate",
+      shelfLife: "60 months",
+      packaging: "1kg, 5kg, 10kg"
+    },
+    tags: ["Water Saving", "Hydrogel", "Drought"],
+    color: "from-cyan-500 to-blue-600",
+    price: "₹2,499"
   },
   {
     id: 8,
-    title: "Lotus Stem Crisps",
-    description: "Crispy lotus stem chips with chaat masala",
-    time: "30 min",
-    servings: 4,
-    difficulty: "Medium",
-    image: "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=800&h=600&fit=crop&q=80",
-    category: "Snack",
-    rating: 4.7,
+    name: "Seed Treatment Formula",
+    description: "Organic coating for seeds to improve germination and early growth",
+    formulation: "Liquid",
+    coverage: "100kg seeds",
+    category: "Seed Treatment",
+    rating: 4.8,
     favorites: 134,
-    ingredients: [
-      "2 lotus stems, cleaned and sliced thinly",
-      "Oil for deep frying",
-      "2 teaspoons chaat masala",
-      "1 teaspoon red chili powder",
-      "1/2 teaspoon black salt",
-      "1/2 teaspoon regular salt",
-      "1/4 teaspoon turmeric powder",
-      "1 tablespoon rice flour (optional for extra crispiness)"
+    image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Improves germination rate by 20%",
+      "Protects against soil-borne diseases",
+      "Enhances early root development",
+      "Safe for all seed types"
     ],
-    steps: [
-      "Clean lotus stems thoroughly and slice thinly (2mm thickness)",
-      "Soak slices in water with turmeric for 10 minutes",
-      "Pat dry completely with kitchen towel",
-      "Heat oil to medium heat (170°C)",
-      "Fry slices in batches until golden and crispy",
-      "Drain on paper towels to remove excess oil",
-      "Mix all spices in a bowl",
-      "Sprinkle spice mix over hot chips and toss gently",
-      "Serve immediately or store in airtight container"
+    usage: [
+      "Mix 10ml per kg of seeds",
+      "Coat seeds evenly and dry in shade",
+      "Sow within 24 hours of treatment",
+      "Use with all planting methods"
     ],
-    tips: [
-      "Slice uniformly for even cooking",
-      "Ensure lotus stems are completely dry before frying",
-      "Fry on medium heat to prevent burning",
-      "Add spice mix while chips are hot for better adherence"
-    ],
-    tags: ["Crispy", "Snack", "Spicy"],
-    color: "from-rose-500 to-pink-600",
-    calories: 190
+    specs: {
+      activeIngredients: "Trichoderma, Pseudomonas",
+      coatingMaterial: "Organic polymers",
+      dryingTime: "2-3 hours",
+      shelfLife: "18 months",
+      packaging: "100ml, 250ml, 500ml"
+    },
+    tags: ["Seed", "Germination", "Protection"],
+    color: "from-indigo-500 to-purple-600",
+    price: "₹399"
   },
   {
     id: 9,
-    title: "Coconut Avocado Chutney",
-    description: "Creamy chutney with coconut, avocado, and green chilies",
-    time: "10 min",
-    servings: 4,
-    difficulty: "Easy",
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop&q=80",
-    category: "Condiment",
-    rating: 4.8,
-    favorites: 156,
-    ingredients: [
-      "1 ripe avocado",
-      "1 cup grated coconut (fresh or frozen)",
-      "2-3 green chilies",
-      "1/2 inch ginger",
-      "1/4 cup fresh coriander leaves",
-      "1 tablespoon lemon juice",
-      "Salt to taste",
-      "1 teaspoon oil",
-      "1/2 teaspoon mustard seeds",
-      "Few curry leaves"
+    name: "Compost Booster",
+    description: "Microbial accelerator for faster composting of organic waste",
+    formulation: "Powder",
+    coverage: "1 ton compost",
+    category: "Composting",
+    rating: 4.4,
+    favorites: 89,
+    image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=600&fit=crop&q=80",
+    benefits: [
+      "Reduces composting time by 50%",
+      "Eliminates foul odor",
+      "Produces nutrient-rich compost",
+      "Kills pathogens and weed seeds"
     ],
-    steps: [
-      "Scoop out avocado flesh into blender",
-      "Add grated coconut, green chilies, ginger, coriander",
-      "Add lemon juice and salt",
-      "Grind to smooth paste adding little water if needed",
-      "Transfer to serving bowl",
-      "Heat oil, splutter mustard seeds",
-      "Add curry leaves and pour tempering over chutney",
-      "Mix gently and serve immediately"
+    usage: [
+      "Sprinkle 100g per layer of compost",
+      "Maintain proper moisture (40-50%)",
+      "Turn compost pile every 7 days",
+      "Ready in 30-45 days"
     ],
-    tips: [
-      "Use immediately as avocado oxidizes quickly",
-      "Add lemon juice to prevent browning",
-      "Can add yogurt for tangier version",
-      "Adjust chili quantity according to spice preference"
-    ],
-    tags: ["Creamy", "Spicy", "Quick"],
-    color: "from-green-500 to-emerald-600",
-    calories: 160
+    specs: {
+      microbialCount: "10^8 CFU/g",
+      temperature: "Raises to 60-70°C",
+      composition: "Cellulolytic & lignolytic microbes",
+      shelfLife: "24 months",
+      packaging: "250g, 500g, 1kg"
+    },
+    tags: ["Compost", "Waste Management", "Microbial"],
+    color: "from-brown-500 to-amber-700",
+    price: "₹299"
   },
 ];
 
-const categories = ["All", "Main", "Salad", "Beverage", "Side", "Snack", "Condiment"];
-const difficulties = ["All", "Easy", "Medium", "Difficult"];
-const timeRanges = ["All", "Quick (<20min)", "Medium (20-45min)", "Long (>45min)"];
+const categories = ["All", "Fertilizer", "Growth Promoter", "Pesticide", "Soil Amendment", "Specialty Fertilizer", "Microbial", "Water Management", "Seed Treatment", "Composting"];
+const formulations = ["All", "Liquid", "Powder", "Granular", "Carrier-based"];
+const coverageRanges = ["All", "Small (<1 acre)", "Medium (1-2 acres)", "Large (>2 acres)"];
 
-const Recipes = () => {
+const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("All");
-  const [selectedTime, setSelectedTime] = useState("All");
+  const [selectedFormulation, setSelectedFormulation] = useState("All");
+  const [selectedCoverage, setSelectedCoverage] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
-  const [showRecipeModal, setShowRecipeModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
 
-  const filteredRecipes = recipes.filter(recipe => {
-    const matchesCategory = selectedCategory === "All" || recipe.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === "All" || recipe.difficulty === selectedDifficulty;
-    const matchesTime = selectedTime === "All" || 
-      (selectedTime === "Quick (<20min)" && parseInt(recipe.time) < 20) ||
-      (selectedTime === "Medium (20-45min)" && parseInt(recipe.time) >= 20 && parseInt(recipe.time) <= 45) ||
-      (selectedTime === "Long (>45min)" && parseInt(recipe.time) > 45);
+  // Load favorites from localStorage on component mount
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('productFavorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+  }, []);
+
+  // Save favorites to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('productFavorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+    const matchesFormulation = selectedFormulation === "All" || product.formulation === selectedFormulation;
+    const matchesCoverage = selectedCoverage === "All" || 
+      (selectedCoverage === "Small (<1 acre)" && (product.coverage.includes("0.5") || product.coverage.includes("0.25"))) ||
+      (selectedCoverage === "Medium (1-2 acres)" && (product.coverage === "1 acre" || product.coverage === "2 acres")) ||
+      (selectedCoverage === "Large (>2 acres)" && product.coverage.includes(">"));
     const matchesSearch = searchQuery === "" || 
-      recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    return matchesCategory && matchesDifficulty && matchesTime && matchesSearch;
+    return matchesCategory && matchesFormulation && matchesCoverage && matchesSearch;
   });
 
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]
-    );
+  const toggleFavorite = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const newFavorites = prev.includes(id) 
+        ? prev.filter(favId => favId !== id) 
+        : [...prev, id];
+      
+      // Show toast notification
+      const product = products.find(p => p.id === id);
+      if (product) {
+        if (newFavorites.includes(id)) {
+          toast.success(`${product.name} added to favorites!`);
+        } else {
+          toast.info(`${product.name} removed from favorites`);
+        }
+      }
+      
+      return newFavorites;
+    });
   };
 
-  const handleRecipeClick = (recipe: any) => {
-    setSelectedRecipe(recipe);
-    setShowRecipeModal(true);
+  const handleProductClick = (product: any) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
   };
 
-  const RecipeModal = () => {
-    if (!selectedRecipe) return null;
+  // Add to cart function
+  const addToCart = (product: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      // Get existing cart or initialize empty array
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      
+      // Parse price from string (₹1,299 -> 1299)
+      const price = parseFloat(product.price.replace('₹', '').replace(',', ''));
+      
+      // Check if product already exists in cart
+      const existingItemIndex = cart.findIndex((item: any) => item.id === product.id);
+      
+      if (existingItemIndex > -1) {
+        // Update quantity if item exists
+        cart[existingItemIndex].quantity += 1;
+      } else {
+        // Add new item to cart
+        cart.push({
+          id: product.id,
+          name: product.name,
+          price: price,
+          quantity: 1,
+          image: product.image,
+          category: product.category,
+          formulation: product.formulation,
+          coverage: product.coverage
+        });
+      }
+      
+      // Save updated cart to localStorage
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Dispatch custom event to update header cart count
+      const event = new CustomEvent('cartUpdated');
+      window.dispatchEvent(event);
+      
+      // Show success toast
+      toast.success(`${product.name} added to cart!`, {
+        action: {
+          label: "View Cart",
+          onClick: () => window.location.href = '/cart'
+        },
+      });
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart. Please try again.');
+    }
+  };
+
+  // Add to cart from modal
+  const addToCartFromModal = (product: any) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const price = parseFloat(product.price.replace('₹', '').replace(',', ''));
+      
+      const existingItemIndex = cart.findIndex((item: any) => item.id === product.id);
+      
+      if (existingItemIndex > -1) {
+        cart[existingItemIndex].quantity += 1;
+      } else {
+        cart.push({
+          id: product.id,
+          name: product.name,
+          price: price,
+          quantity: 1,
+          image: product.image,
+          category: product.category,
+          formulation: product.formulation,
+          coverage: product.coverage
+        });
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      const event = new CustomEvent('cartUpdated');
+      window.dispatchEvent(event);
+      
+      toast.success(`${product.name} added to cart!`, {
+        action: {
+          label: "View Cart",
+          onClick: () => {
+            setShowProductModal(false);
+            window.location.href = '/cart';
+          }
+        },
+      });
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart. Please try again.');
+    }
+  };
+
+  const ProductModal = () => {
+    if (!selectedProduct) return null;
 
     return (
       <AnimatePresence>
-        {showRecipeModal && (
+        {showProductModal && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowRecipeModal(false)}
+              onClick={() => setShowProductModal(false)}
               className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
             />
             <motion.div
@@ -464,17 +496,36 @@ const Recipes = () => {
               <div className="sticky top-0 bg-white z-10 border-b border-gray-200">
                 <div className="flex justify-between items-center p-6">
                   <div className="flex items-center gap-4">
-                    <div className={`w-3 h-10 rounded-full bg-gradient-to-b ${selectedRecipe.color}`} />
-                    <h2 className="text-2xl font-bold text-gray-900">{selectedRecipe.title}</h2>
+                    <div className={`w-3 h-10 rounded-full bg-gradient-to-b ${selectedProduct.color}`} />
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{selectedProduct.name}</h2>
+                      <p className="text-gray-600 text-sm">{selectedProduct.description}</p>
+                    </div>
                   </div>
-                  <Button
-                    onClick={() => setShowRecipeModal(false)}
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-full hover:bg-gray-100"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full hover:bg-gray-100"
+                      onClick={(e) => toggleFavorite(selectedProduct.id, e)}
+                    >
+                      <Heart 
+                        className={`h-5 w-5 ${
+                          favorites.includes(selectedProduct.id) 
+                            ? "fill-red-500 text-red-500" 
+                            : "text-gray-700"
+                        }`}
+                      />
+                    </Button>
+                    <Button
+                      onClick={() => setShowProductModal(false)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-full hover:bg-gray-100"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -485,48 +536,51 @@ const Recipes = () => {
                   <div className="md:col-span-2">
                     {/* Quote Section */}
                     <div className="mb-8">
-                      
+                      <div className="flex items-center gap-3 mb-4">
+                        <Shield className="w-6 h-6 text-green-600" />
+                        <span className="text-lg font-bold text-gray-900">Certified Organic & Sustainable</span>
+                      </div>
                       <p className="text-gray-600 text-lg">
-                        {selectedRecipe.description}
+                        {selectedProduct.description}
                       </p>
                     </div>
 
-                    {/* Recipe Details */}
+                    {/* Product Details */}
                     <div className="grid md:grid-cols-3 gap-6 mb-8">
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <Clock className="w-5 h-5 text-gray-700" />
-                          <span className="font-semibold text-gray-900">Prep time</span>
+                          <Droplets className="w-5 h-5 text-green-700" />
+                          <span className="font-semibold text-gray-900">Formulation</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{selectedRecipe.time}</div>
+                        <div className="text-2xl font-bold text-gray-900">{selectedProduct.formulation}</div>
                       </div>
                       
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <Users className="w-5 h-5 text-gray-700" />
-                          <span className="font-semibold text-gray-900">Servings</span>
+                          <TreePine className="w-5 h-5 text-green-700" />
+                          <span className="font-semibold text-gray-900">Coverage</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{selectedRecipe.servings}</div>
+                        <div className="text-2xl font-bold text-gray-900">{selectedProduct.coverage}</div>
                       </div>
                       
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <ChefHat className="w-5 h-5 text-gray-700" />
-                          <span className="font-semibold text-gray-900">Difficulty</span>
+                          <Award className="w-5 h-5 text-green-700" />
+                          <span className="font-semibold text-gray-900">Rating</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{selectedRecipe.difficulty}</div>
+                        <div className="text-2xl font-bold text-gray-900">{selectedProduct.rating}/5</div>
                       </div>
                     </div>
 
-                    {/* Ingredients */}
+                    {/* Key Benefits */}
                     <div className="mb-8">
                       <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                         <Leaf className="w-5 h-5 text-green-500" />
-                        Ingredients
+                        Key Benefits
                       </h3>
-                      <div className="bg-gray-50 rounded-2xl p-6">
+                      <div className="bg-green-50 rounded-2xl p-6">
                         <ul className="space-y-3">
-                          {selectedRecipe.ingredients.map((ingredient: string, index: number) => (
+                          {selectedProduct.benefits.map((benefit: string, index: number) => (
                             <motion.li
                               key={index}
                               initial={{ opacity: 0, x: -20 }}
@@ -535,9 +589,9 @@ const Recipes = () => {
                               className="flex items-start gap-3 p-3 bg-white rounded-xl shadow-sm"
                             >
                               <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                {index + 1}
+                                ✓
                               </div>
-                              <span className="text-gray-700">{ingredient}</span>
+                              <span className="text-gray-700">{benefit}</span>
                             </motion.li>
                           ))}
                         </ul>
@@ -550,49 +604,69 @@ const Recipes = () => {
                     <div className="sticky top-8">
                       <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl mb-6">
                         <img 
-                          src={selectedRecipe.image} 
-                          alt={selectedRecipe.title}
+                          src={selectedProduct.image} 
+                          alt={selectedProduct.name}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-4 right-4 flex flex-col gap-2">
-                          <span className={`bg-gradient-to-r ${selectedRecipe.color} text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg`}>
-                            {selectedRecipe.category}
+                          <span className={`bg-gradient-to-r ${selectedProduct.color} text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg`}>
+                            {selectedProduct.category}
                           </span>
                           <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg">
                             <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                            <span className="text-sm font-bold text-gray-900">{selectedRecipe.rating}</span>
+                            <span className="text-sm font-bold text-gray-900">{selectedProduct.rating}</span>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Nutrition Info */}
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 mb-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Flame className="w-5 h-5 text-orange-500" />
-                          <span className="font-semibold text-gray-900">Nutrition Info</span>
+                      {/* Price & Action */}
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-6 mb-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          <span className="font-semibold text-gray-900">Pricing</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{selectedRecipe.calories} <span className="text-sm font-normal text-gray-600">calories per serving</span></div>
+                        <div className="text-3xl font-bold text-gray-900 mb-6">{selectedProduct.price}</div>
+                        <div className="space-y-3">
+                          <Button 
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            onClick={() => addToCartFromModal(selectedProduct)}
+                          >
+                            <ShoppingCart className="w-5 h-5 mr-2" />
+                            Add to Cart
+                          </Button>
+                          <Button 
+                            className="w-full" 
+                            variant="outline"
+                            onClick={() => {
+                              setShowProductModal(false);
+                              window.location.href = '/cart';
+                            }}
+                          >
+                            <ShoppingCart className="w-5 h-5 mr-2" />
+                            Go to Cart
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Recipe Steps */}
+                {/* Usage Instructions */}
                 <div className="mb-8">
                   <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <ChefHat className="w-5 h-5 text-amber-500" />
-                    Recipe Steps
+                    <Sprout className="w-5 h-5 text-green-500" />
+                    Usage Instructions
                   </h3>
                   <div className="space-y-4">
-                    {selectedRecipe.steps.map((step: string, index: number) => (
+                    {selectedProduct.usage.map((step: string, index: number) => (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="flex gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl"
+                        className="flex gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl"
                       >
-                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold">
+                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold">
                           {index + 1}
                         </div>
                         <p className="text-gray-700 pt-1">{step}</p>
@@ -601,36 +675,38 @@ const Recipes = () => {
                   </div>
                 </div>
 
-                {/* Tips Section */}
+                {/* Technical Specifications */}
                 <div className="mb-8">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">♻️ Zero-Waste Tips</h3>
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6">
-                    <ul className="space-y-3">
-                      {selectedRecipe.tips.map((tip: string, index: number) => (
-                        <li key={index} className="flex items-start gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
-                            ✓
-                          </span>
-                          <span className="text-gray-700">{tip}</span>
-                        </li>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Technical Specifications</h3>
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {Object.entries(selectedProduct.specs).map(([key, value], index) => (
+                        <motion.div
+                          key={key}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="flex justify-between items-center p-3 bg-white rounded-xl"
+                        >
+                          <span className="font-medium text-gray-700">{key.replace(/([A-Z])/g, ' $1').toUpperCase()}</span>
+                          <span className="font-bold text-gray-900">{String(value)}</span>
+                        </motion.div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 </div>
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-8">
-                  {selectedRecipe.tags.map((tag: string) => (
+                  {selectedProduct.tags.map((tag: string) => (
                     <span 
                       key={tag}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-300 rounded-full text-sm"
+                      className="px-3 py-1 bg-green-100 text-green-700 border border-green-300 rounded-full text-sm font-medium"
                     >
-                      {tag}
+                      #{tag}
                     </span>
                   ))}
                 </div>
-
-               
               </div>
             </motion.div>
           </>
@@ -642,28 +718,54 @@ const Recipes = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-green-600 to-emerald-800 rounded-b-[60px]">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000')] opacity-10"></div>
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Quote Section */}
+          <div className="max-w-6xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center mb-12"
             >
-              <h1 className="pl-[300px] text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight grid justify-start">
-                <span className="text-[#3A0F2E]">From Farm</span>
-                <span className="text-white justify-self-end">To Table</span>
-              </h1>
               
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-6 leading-tight">
+                <span className="text-white">Premium Agricultural</span>
+                <span className="block text-emerald-200">Products</span>
+              </h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-gray-800 text-3xl md:text-4xl font-serif italic leading-tight mb-8"
+                className="text-white/90 text-xl md:text-2xl font-serif italic leading-tight mb-8 max-w-3xl mx-auto"
               >
-                "Zero-waste recipes with seasonal vegetables and fruits using every part with love"
+                "Sustainable solutions for higher yields, healthier soils, and prosperous farming"
               </motion.p>
+            </motion.div>
+
+            {/* Stats Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+            >
+              {[
+                { icon: Wheat, label: "Crops Covered", value: "50+" },
+                { icon: Users, label: "Happy Farmers", value: "10,000+" },
+                { icon: Shield, label: "Certified Organic", value: "100%" },
+                { icon: TrendingUp, label: "Yield Increase", value: "30-40%" },
+              ].map((stat, index) => (
+                <div
+                  key={stat.label}
+                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/20"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-white">{stat.value}</div>
+                  <div className="text-sm text-emerald-200">{stat.label}</div>
+                </div>
+              ))}
             </motion.div>
           </div>
         </div>
@@ -676,13 +778,13 @@ const Recipes = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 overflow-hidden"
+            className="bg-gradient-to-b from-green-50 to-white border-t border-green-200 overflow-hidden"
           >
             <div className="container mx-auto px-4 py-8">
               <div className="grid md:grid-cols-3 gap-6">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-                    Category
+                    Product Category
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {categories.map((category) => (
@@ -693,8 +795,8 @@ const Recipes = () => {
                         onClick={() => setSelectedCategory(category)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                           selectedCategory === category
-                            ? "bg-gradient-to-r from-[#F694C3] to-pink-500 text-white shadow-lg"
-                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm"
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-green-50 border border-green-300 shadow-sm"
                         }`}
                       >
                         {category}
@@ -705,22 +807,22 @@ const Recipes = () => {
 
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-                    Difficulty
+                    Formulation Type
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {difficulties.map((difficulty) => (
+                    {formulations.map((formulation) => (
                       <motion.button
-                        key={difficulty}
+                        key={formulation}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedDifficulty(difficulty)}
+                        onClick={() => setSelectedFormulation(formulation)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                          selectedDifficulty === difficulty
-                            ? "bg-gradient-to-r from-[#F694C3] to-pink-500 text-white shadow-lg"
-                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm"
+                          selectedFormulation === formulation
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-green-50 border border-green-300 shadow-sm"
                         }`}
                       >
-                        {difficulty}
+                        {formulation}
                       </motion.button>
                     ))}
                   </div>
@@ -728,22 +830,22 @@ const Recipes = () => {
 
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
-                    Time
+                    Coverage Area
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {timeRanges.map((time) => (
+                    {coverageRanges.map((coverage) => (
                       <motion.button
-                        key={time}
+                        key={coverage}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedTime(time)}
+                        onClick={() => setSelectedCoverage(coverage)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                          selectedTime === time
-                            ? "bg-gradient-to-r from-[#F694C3] to-pink-500 text-white shadow-lg"
-                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 shadow-sm"
+                          selectedCoverage === coverage
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-green-50 border border-green-300 shadow-sm"
                         }`}
                       >
-                        {time}
+                        {coverage}
                       </motion.button>
                     ))}
                   </div>
@@ -754,7 +856,7 @@ const Recipes = () => {
         )}
       </AnimatePresence>
 
-      {/* Recipe Grid */}
+      {/* Products Grid */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <motion.div
@@ -766,22 +868,22 @@ const Recipes = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {filteredRecipes.length} Recipe{filteredRecipes.length !== 1 ? 's' : ''} Found
+                  {filteredProducts.length} Product{filteredProducts.length !== 1 ? 's' : ''} Available
                 </h2>
                 <p className="text-gray-600">
-                  Zero-waste cooking with seasonal produce
+                  Organic solutions for sustainable agriculture
                 </p>
               </div>
               <div className="text-sm text-gray-600">
                 {selectedCategory !== "All" && (
-                  <span className="font-semibold text-[#F694C3]">Category: {selectedCategory}</span>
+                  <span className="font-semibold text-green-600">Category: {selectedCategory}</span>
                 )}
-                {selectedDifficulty !== "All" && ` • ${selectedDifficulty}`}
-                {selectedTime !== "All" && ` • ${selectedTime}`}
+                {selectedFormulation !== "All" && ` • ${selectedFormulation}`}
+                {selectedCoverage !== "All" && ` • ${selectedCoverage}`}
               </div>
             </div>
 
-            {/* Search Bar Section - Kept in same position */}
+            {/* Search Bar Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -792,14 +894,14 @@ const Recipes = () => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <Input
                   type="search"
-                  placeholder="Search recipes, ingredients, or tags..."
+                  placeholder="Search products, benefits, or crop types..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 pr-32 py-3 text-base rounded-full border-2 border-gray-300 bg-white shadow-sm focus:border-[#F694C3] focus:ring-2 focus:ring-[#F694C3]/20"
+                  className="pl-12 pr-32 py-3 text-base rounded-full border-2 border-gray-300 bg-white shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                 />
                 <Button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-[#CD98ED] to-purple-500 hover:from-[#CD98ED]/90 hover:to-purple-600 rounded-full"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-full"
                   size="sm"
                 >
                   <Filter className="w-4 h-4 mr-2" />
@@ -811,9 +913,9 @@ const Recipes = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <AnimatePresence mode="wait">
-              {filteredRecipes.map((recipe, index) => (
+              {filteredProducts.map((product, index) => (
                 <motion.article
-                  key={recipe.id}
+                  key={product.id}
                   layout
                   initial={{ opacity: 0, scale: 0.9, y: 30 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -829,14 +931,13 @@ const Recipes = () => {
                     transition: { duration: 0.3 }
                   }}
                   className="group relative"
-                  onClick={() => handleRecipeClick(recipe)}
                 >
-                  <div className="bg-white rounded-3xl overflow-hidden border-2 border-gray-200 shadow-lg group-hover:shadow-xl group-hover:border-gray-300 relative h-full cursor-pointer transition-all duration-300">
+                  <div className="bg-white rounded-3xl overflow-hidden border-2 border-gray-200 shadow-lg group-hover:shadow-xl group-hover:border-green-300 relative h-full cursor-pointer transition-all duration-300">
                     {/* Image Container */}
                     <div className="aspect-video overflow-hidden relative">
                       <img
-                        src={recipe.image}
-                        alt={recipe.title}
+                        src={product.image}
+                        alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                       
@@ -845,7 +946,7 @@ const Recipes = () => {
                       
                       {/* Category Badge */}
                       <motion.span 
-                        className={`absolute top-4 left-4 bg-gradient-to-r ${recipe.color} text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg`}
+                        className={`absolute top-4 left-4 bg-gradient-to-r ${product.color} text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg`}
                         animate={{ 
                           scale: [1, 1.1, 1],
                         }}
@@ -855,22 +956,19 @@ const Recipes = () => {
                           ease: "easeInOut" 
                         }}
                       >
-                        {recipe.category}
+                        {product.category}
                       </motion.span>
                       
                       {/* Favorite Button */}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(recipe.id);
-                        }}
+                        onClick={(e) => toggleFavorite(product.id, e)}
                         className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg hover:bg-white transition-colors"
                       >
                         <Heart 
                           className={`w-5 h-5 transition-colors ${
-                            favorites.includes(recipe.id) 
+                            favorites.includes(product.id) 
                               ? "fill-red-500 text-red-500" 
                               : "text-gray-700"
                           }`}
@@ -880,25 +978,25 @@ const Recipes = () => {
                       {/* Rating */}
                       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <span className="text-sm font-bold text-gray-900">{recipe.rating}</span>
+                        <span className="text-sm font-bold text-gray-900">{product.rating}</span>
                       </div>
                     </div>
 
                     {/* Content */}
                     <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors">
-                        {recipe.title}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-green-700 transition-colors">
+                        {product.name}
                       </h3>
                       <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                        {recipe.description}
+                        {product.description}
                       </p>
 
                       {/* Tags */}
                       <div className="flex flex-wrap gap-2 mb-6">
-                        {recipe.tags.map((tag: string) => (
+                        {product.tags.map((tag: string) => (
                           <span 
                             key={tag}
-                            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
+                            className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full border border-green-300"
                           >
                             {tag}
                           </span>
@@ -909,26 +1007,52 @@ const Recipes = () => {
                       <div className="grid grid-cols-3 gap-4 text-center border-t border-gray-200 pt-4">
                         <div>
                           <div className="flex items-center justify-center gap-1 text-gray-900 mb-1">
-                            <Clock className="w-4 h-4 text-gray-600" />
-                            <span className="text-sm font-semibold">{recipe.time}</span>
+                            <Droplets className="w-4 h-4 text-gray-600" />
+                            <span className="text-sm font-semibold">{product.formulation}</span>
                           </div>
-                          <div className="text-xs text-gray-600">Prep Time</div>
+                          <div className="text-xs text-gray-600">Formulation</div>
                         </div>
                         
                         <div>
                           <div className="flex items-center justify-center gap-1 text-gray-900 mb-1">
-                            <Users className="w-4 h-4 text-gray-600" />
-                            <span className="text-sm font-semibold">{recipe.servings}</span>
+                            <TreePine className="w-4 h-4 text-gray-600" />
+                            <span className="text-sm font-semibold">{product.coverage}</span>
                           </div>
-                          <div className="text-xs text-gray-600">Servings</div>
+                          <div className="text-xs text-gray-600">Coverage</div>
                         </div>
                         
                         <div>
                           <div className="flex items-center justify-center gap-1 text-gray-900 mb-1">
-                            <ChefHat className="w-4 h-4 text-gray-600" />
-                            <span className="text-sm font-semibold">{recipe.difficulty}</span>
+                            <Award className="w-4 h-4 text-gray-600" />
+                            <span className="text-sm font-semibold">{product.rating}</span>
                           </div>
-                          <div className="text-xs text-gray-600">Level</div>
+                          <div className="text-xs text-gray-600">Rating</div>
+                        </div>
+                      </div>
+
+                      {/* Price & Action */}
+                      <div className="mt-6 flex items-center justify-between">
+                        <div>
+                          <div className="text-2xl font-bold text-gray-900">{product.price}</div>
+                          <div className="text-sm text-gray-600">Starting price</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => addToCart(product, e)}
+                            className="border-green-300 hover:bg-green-50 hover:text-green-700"
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-1" />
+                            Add
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            onClick={() => handleProductClick(product)}
+                          >
+                            Details
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -940,38 +1064,38 @@ const Recipes = () => {
 
           {/* No Results */}
           <AnimatePresence>
-            {filteredRecipes.length === 0 && (
+            {filteredProducts.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 className="text-center py-16"
               >
-                <div className="inline-flex p-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mb-6">
-                  <Search className="w-12 h-12 text-gray-500" />
+                <div className="inline-flex p-4 bg-gradient-to-br from-green-100 to-emerald-200 rounded-2xl mb-6">
+                  <Search className="w-12 h-12 text-green-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  No recipes found
+                  No products found
                 </h3>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Try adjusting your search or filters to find what you're looking for.
+                  Try adjusting your search or filters to find the agricultural solution you need.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button
                     onClick={() => setSearchQuery("")}
                     variant="outline"
-                    className="rounded-full"
+                    className="rounded-full border-green-300 hover:bg-green-50"
                   >
                     Clear Search
                   </Button>
                   <Button
                     onClick={() => {
                       setSelectedCategory("All");
-                      setSelectedDifficulty("All");
-                      setSelectedTime("All");
+                      setSelectedFormulation("All");
+                      setSelectedCoverage("All");
                       setSearchQuery("");
                     }}
-                    className="rounded-full bg-gradient-to-r from-[#F694C3] to-pink-500 hover:from-pink-500 hover:to-[#F694C3]"
+                    className="rounded-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                   >
                     Reset All Filters
                   </Button>
@@ -982,10 +1106,10 @@ const Recipes = () => {
         </div>
       </section>
 
-      {/* Recipe Modal */}
-      <RecipeModal />
+      {/* Product Modal */}
+      <ProductModal />
     </Layout>
   );
 };
 
-export default Recipes;
+export default Products;

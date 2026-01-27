@@ -1,123 +1,160 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { Leaf, Heart, Users, Truck, Target, Globe, Award, Clock, TrendingUp, ChevronRight, Star, Target as MissionIcon, Eye as VisionIcon, Compass } from "lucide-react";
+import { Leaf, Users, Target, Globe, Award, ChevronRight, Star, Target as MissionIcon, Eye as VisionIcon, Compass, Shield, Recycle, FlaskConical, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
+// Import field application photo for the top section
+import fieldApplication from "@/assets/field-application.png";
+
 const values = [
   {
-    icon: Leaf,
-    title: "100% Organic",
-    description: "Every product is certified organic. No pesticides, no chemicals — just nature's best.",
-    color: "from-[#CD98ED] to-purple-500",
-    stat: "500+ Products"
+    icon: Shield,
+    title: "Scientific Precision",
+    description: "Every formulation is backed by rigorous research, third-party testing, and data-driven results.",
+    color: "from-emerald-500 to-green-500",
+    stat: "50+ Research Papers"
   },
   {
-    icon: Heart,
-    title: "Fighting Food Waste",
-    description: "We save produce that would otherwise go to waste, giving it the appreciation it deserves.",
-    color: "from-[#CD98ED]/80 to-purple-400",
-    stat: "30% Less Waste"
+    icon: Recycle,
+    title: "Sustainable Impact",
+    description: "We develop biofertilizers that improve soil health while reducing chemical dependency.",
+    color: "from-teal-500 to-emerald-500",
+    stat: "30% Higher Yield"
   },
   {
     icon: Users,
-    title: "Supporting Local Farmers",
-    description: "Fair prices for farmers, fresh produce for you. We build lasting partnerships.",
-    color: "from-[#CD98ED]/80 to-purple-400",
-    stat: "120+ Farmers"
+    title: "Farmer Partnership",
+    description: "Working directly with farmers to develop solutions that meet real-world agricultural challenges.",
+    color: "from-blue-500 to-cyan-500",
+    stat: "500+ Farm Partners"
   },
   {
-    icon: Truck,
-    title: "Carbon Neutral Delivery",
-    description: "Straight to your door, on your schedule. Our delivery fleet is 100% carbon neutral.",
-    color: "from-[#CD98ED]/70 to-purple-400",
-    stat: "Zero Emissions"
+    icon: Leaf,
+    title: "Regenerative Focus",
+    description: "Creating products that don't just sustain, but actively regenerate soil ecosystems.",
+    color: "from-lime-500 to-green-500",
+    stat: "Zero Chemical Runoff"
   },
 ];
 
 const timeline = [
   {
+    year: "2015",
+    title: "The Research Phase",
+    description: "Started with soil microbiome research at leading agricultural universities.",
+    icon: "🔬",
+    achievements: ["Microbial isolation", "Lab testing", "Initial formulations"]
+  },
+  {
     year: "2018",
-    title: "The Beginning",
-    description: "Started with a simple idea: save ugly produce and deliver organic food to doorsteps.",
-    icon: "🌱",
-    achievements: ["First 50 customers", "5 local farm partners", "Zurich pilot"]
+    title: "First Field Trials",
+    description: "Conducted large-scale trials with partner farms across Switzerland.",
+    icon: "🌾",
+    achievements: ["10 farm partners", "Field validation", "GMP certification"]
   },
   {
-    year: "2020",
-    title: "Growing Strong",
-    description: "Expanded to 5 Swiss cities and partnered with over 50 local organic farmers.",
-    icon: "📈",
-    achievements: ["5 cities covered", "50+ farm partners", "1,000+ customers"]
-  },
-  {
-    year: "2023",
-    title: "Nationwide Impact",
-    description: "Now delivering across all of Switzerland, serving over 7,900 happy customers.",
-    icon: "🏔️",
-    achievements: ["National coverage", "100+ employees", "Food waste award"]
-  },
-  {
-    year: "2025",
-    title: "The Future Vision",
-    description: "Continuing to innovate sustainable food delivery while reducing waste at every step.",
+    year: "2021",
+    title: "Commercial Launch",
+    description: "Officially launched biofactor products to the agricultural market.",
     icon: "🚀",
-    achievements: ["European expansion", "AI optimization", "Carbon negative goal"]
+    achievements: ["Product line launch", "National distribution", "100+ clients"]
+  },
+  {
+    year: "2024",
+    title: "Global Expansion",
+    description: "Expanding our technology to address agricultural challenges worldwide.",
+    icon: "🌍",
+    achievements: ["EU certification", "Research partnerships", "Soil health focus"]
   },
 ];
 
+// Online placeholder images for leadership team
 const teamMembers = [
   {
-    name: "Dr. Maria Schmidt",
-    role: "Founder & CEO",
-    bio: "Former agricultural scientist turned entrepreneur",
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
-    quote: "Every vegetable has a story worth telling."
+    name: "Dr. Elena Schmidt",
+    role: "Chief Scientist & Founder",
+    bio: "PhD in Soil Microbiology from ETH Zurich. 15+ years researching soil ecosystems.",
+    image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop&crop=face",
+    quote: "The solution to healthy crops begins with understanding the soil microbiome."
   },
   {
-    name: "Hans Müller",
-    role: "Head of Farming",
-    bio: "Third-generation organic farmer",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-    quote: "The soil speaks to those who listen."
+    name: "Markus Weber",
+    role: "Director of Agricultural Operations",
+    bio: "Third-generation farmer with expertise in regenerative agriculture practices.",
+    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop&crop=face",
+    quote: "Real agricultural solutions come from the field, not just the laboratory."
   },
   {
-    name: "Elena Rossi",
-    role: "Sustainability Director",
-    bio: "Environmental policy expert",
-    image: "https://images.unsplash.com/photo-1551836026-d5c2c0b4d5a9?w=400&h=400&fit=crop",
-    quote: "Sustainability isn't a trend, it's a responsibility."
+    name: "Dr. Chen Li",
+    role: "Head of Research & Development",
+    bio: "Expert in microbial formulations and sustainable agricultural technology.",
+    image: "https://images.unsplash.com/photo-1551836026-d5c2c0b4d5a9?w=400&h=400&fit=crop&crop=face",
+    quote: "Nature provides the blueprint, science provides the precision."
   },
 ];
 
 const About = () => {
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
+      {/* Hero Section with Field Application Photo */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-emerald-900/10 to-white rounded-b-[60px]">
+        {/* Background field application image */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={fieldApplication}
+            alt="Biofactor field research application"
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 via-emerald-900/10 to-white" />
+        </div>
+        
+        <div className="container mx-auto px-4 py-20 relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              <h1 className="text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight">
-                <span className="text-[#3A0F2E]">Food that nourishes</span>
-                <span className="block text-white">life itself</span>
+              
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                <span className="text-gray-900">Pioneering</span>
+                <span className="block bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  Biofactor Technology
+                </span>
               </h1>
               
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-black text-3xl md:text-4xl font-serif italic leading-tight mb-8"
+                className="text-gray-700 text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto"
               >
-                "We blend the wisdom of nature with modern biological science — cultivating 
-                food in biologically alive soils, built not on chemicals, but on life itself."
+                "We combine cutting-edge soil science with sustainable agriculture to create 
+                biofactor solutions that enhance soil vitality, improve crop resilience, 
+                and support regenerative farming practices."
               </motion.p>
 
-              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center pt-8"
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                  asChild
+                >
+                  <Link to="/technology" className="flex items-center gap-2">
+                    <FlaskConical className="w-4 h-4" />
+                    Our Technology
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </Button>
+                
+              </motion.div>
             </motion.div>
           </div>
         </div>
@@ -135,18 +172,18 @@ const About = () => {
                 viewport={{ once: true }}
                 className="group"
               >
-                <div className="bg-gradient-to-br from-[#CD98ED]/5 to-purple-50 rounded-3xl p-8 h-full border border-[#CD98ED]/20 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl p-8 h-full border border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
                   {/* Icon & Header */}
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-[#CD98ED] to-purple-500 rounded-xl text-white">
+                    <div className="p-3 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl text-white">
                       <MissionIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-purple-600 font-semibold text-sm uppercase tracking-wider">
+                      <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
                         Our Mission
                       </span>
                       <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                        What Drives Us Forward
+                        Revolutionizing Soil Health
                       </h2>
                     </div>
                   </div>
@@ -154,34 +191,30 @@ const About = () => {
                   {/* Content */}
                   <div className="space-y-4">
                     <p className="text-gray-700 text-lg leading-relaxed">
-                      To revolutionize the food system by connecting conscious consumers with local, 
-                      organic farmers through a sustainable, waste-free delivery network that nourishes 
-                      both people and the planet.
+                      To develop scientifically-validated biofactor solutions that enhance 
+                      soil microbiology, improve crop nutrition, and enable sustainable 
+                      agricultural practices for farmers worldwide.
                     </p>
 
-                    <div className="bg-white/50 p-5 rounded-xl border border-[#CD98ED]/10">
-                      <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                        <Compass className="w-4 h-4 text-[#CD98ED]" />
-                        Our Core Objectives
+                    <div className="bg-white/70 p-5 rounded-xl border border-emerald-100">
+                      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <Compass className="w-4 h-4 text-emerald-600" />
+                        Scientific Objectives
                       </h3>
                       <ul className="space-y-2 text-gray-700">
                         {[
-                          "Eliminate food waste by saving 'imperfect' produce",
-                          "Create fair economic opportunities for local farmers",
-                          "Make organic food accessible to every household",
-                          "Build a carbon-neutral supply chain from farm to table",
-                          "Educate communities about sustainable agriculture"
+                          "Develop microbial formulations that enhance soil biodiversity",
+                          "Create nutrient delivery systems with optimal bioavailability",
+                          "Establish protocols for soil health monitoring and improvement",
+                          "Partner with research institutions for continuous innovation",
+                          "Provide farmers with data-driven agricultural solutions"
                         ].map((item, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#CD98ED] mt-2 flex-shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
                             <span>{item}</span>
                           </li>
                         ))}
                       </ul>
-                    </div>
-
-                    <div className="pt-4">
-                      
                     </div>
                   </div>
                 </div>
@@ -195,18 +228,18 @@ const About = () => {
                 transition={{ delay: 0.2 }}
                 className="group"
               >
-                <div className="bg-gradient-to-br from-purple-50 to-[#CD98ED]/5 rounded-3xl p-8 h-full border border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-3xl p-8 h-full border border-teal-200 shadow-lg hover:shadow-xl transition-all duration-300">
                   {/* Icon & Header */}
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-purple-600 to-[#CD98ED] rounded-xl text-white">
+                    <div className="p-3 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl text-white">
                       <VisionIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-purple-600 font-semibold text-sm uppercase tracking-wider">
+                      <span className="text-teal-700 font-semibold text-sm uppercase tracking-wider">
                         Our Vision
                       </span>
                       <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                        The Future We're Building
+                        The Future of Agriculture
                       </h2>
                     </div>
                   </div>
@@ -214,33 +247,31 @@ const About = () => {
                   {/* Content */}
                   <div className="space-y-4">
                     <p className="text-gray-700 text-lg leading-relaxed">
-                      To create a world where sustainable agriculture is the norm, every community 
-                      has access to nutrient-rich food, and our food systems regenerate rather than 
-                      deplete the Earth's resources.
+                      To create a world where agriculture works in harmony with nature, 
+                      where soil health is prioritized, and where sustainable practices 
+                      ensure food security for future generations.
                     </p>
 
-                    <div className="bg-white/50 p-5 rounded-xl border border-purple-200">
-                      <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                        <Star className="w-4 h-4 text-purple-600" />
-                        Long-term Aspirations
+                    <div className="bg-white/70 p-5 rounded-xl border border-teal-100">
+                      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <Star className="w-4 h-4 text-teal-600" />
+                        2030 Goals
                       </h3>
                       <ul className="space-y-2 text-gray-700">
                         {[
-                          "Establish regenerative farming practices across Europe by 2030",
-                          "Reduce food waste in Switzerland by 50% within 5 years",
-                          "Create a closed-loop packaging system with zero waste",
-                          "Develop educational programs for sustainable living",
-                          "Pioneer carbon-negative food delivery models"
+                          "Help restore 1 million hectares of degraded soil worldwide",
+                          "Develop carbon-negative agricultural systems",
+                          "Establish global soil health monitoring network",
+                          "Train 10,000 farmers in regenerative practices",
+                          "Achieve 100% sustainable packaging and operations"
                         ].map((item, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-purple-600 mt-2 flex-shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-2 flex-shrink-0" />
                             <span>{item}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-
-                    
                   </div>
                 </div>
               </motion.div>
@@ -254,9 +285,10 @@ const About = () => {
               transition={{ delay: 0.4 }}
               className="mt-12 text-center"
             >
-              <div className="inline-block bg-gradient-to-r from-[#CD98ED]/20 to-purple-500/20 px-6 py-4 rounded-2xl border border-[#CD98ED]/30">
-                <p className="text-purple-600 font-semibold text-sm uppercase tracking-wider">
-                  "Our mission fuels today's actions. Our vision guides tomorrow's possibilities."
+              <div className="inline-block bg-gradient-to-r from-emerald-100 to-teal-100 px-8 py-6 rounded-2xl border border-emerald-200 max-w-2xl mx-auto">
+                <p className="text-emerald-700 font-medium text-lg">
+                  "Science guides our research. Nature inspires our solutions. 
+                  Farmers validate our impact."
                 </p>
               </div>
             </motion.div>
@@ -265,7 +297,7 @@ const About = () => {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 bg-gradient-to-b from-white to-purple-50/30">
+      <section className="py-16 bg-gradient-to-b from-white to-emerald-50">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -274,19 +306,19 @@ const About = () => {
             className="text-center mb-12"
           >
             <div className="inline-flex items-center gap-2 mb-4">
-              <Award className="w-5 h-5 text-[#CD98ED]" />
-              <span className="text-[#CD98ED] font-semibold text-sm uppercase tracking-wider">
-                Our Values
+              <Award className="w-5 h-5 text-emerald-600" />
+              <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
+                Our Core Values
               </span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              What We
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#CD98ED] to-purple-500">
-                Stand For
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Principles That
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
+                Guide Our Work
               </span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Four pillars that guide everything we do, from farm to table
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              The foundational beliefs that shape our research, products, and partnerships
             </p>
           </motion.div>
 
@@ -304,7 +336,7 @@ const About = () => {
                 }}
                 className="group"
               >
-                <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl border border-gray-200 hover:border-gray-300 h-full transition-all duration-300">
+                <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl border border-gray-200 hover:border-emerald-200 h-full transition-all duration-300">
                   {/* Icon */}
                   <motion.div 
                     className={`inline-flex p-3 rounded-xl mb-4 bg-gradient-to-br ${value.color} text-white`}
@@ -333,7 +365,7 @@ const About = () => {
       </section>
 
       {/* Team Section */}
-      <section className="py-16 bg-gradient-to-b from-white to-purple-50/30">
+      <section className="py-16 bg-gradient-to-b from-white to-teal-50">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -342,23 +374,23 @@ const About = () => {
             className="text-center mb-12"
           >
             <div className="inline-flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-[#CD98ED]" />
-              <span className="text-[#CD98ED] font-semibold text-sm uppercase tracking-wider">
-                Our Team
+              <Users className="w-5 h-5 text-teal-600" />
+              <span className="text-teal-700 font-semibold text-sm uppercase tracking-wider">
+                Our Leadership Team
               </span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Meet the People
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#CD98ED] to-purple-500">
-                Behind the Produce
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Scientific Minds,
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
+                Agricultural Experience
               </span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Passionate individuals committed to sustainable agriculture and community wellbeing
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Experts in soil science, microbiology, and sustainable agriculture
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {teamMembers.map((member, index) => (
               <motion.div
                 key={member.name}
@@ -372,7 +404,7 @@ const About = () => {
                 }}
                 className="group"
               >
-                <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl border border-gray-200 hover:border-gray-300 h-full transition-all duration-300">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl border border-gray-200 hover:border-teal-200 h-full transition-all duration-300">
                   {/* Image */}
                   <div className="aspect-square overflow-hidden relative">
                     <img
@@ -380,21 +412,21 @@ const About = () => {
                       alt={member.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent" />
                   </div>
 
                   {/* Content */}
                   <div className="p-6">
                     <div className="mb-3">
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
-                      <div className="text-[#CD98ED] font-medium mb-2">{member.role}</div>
+                      <div className="text-teal-600 font-medium mb-2">{member.role}</div>
                       <p className="text-gray-600 text-sm mb-3">{member.bio}</p>
                     </div>
 
                     {/* Quote */}
                     <div className="border-t border-gray-200 pt-3">
                       <div className="flex items-start gap-2">
-                        <div className="text-lg text-[#CD98ED]">"</div>
+                        <div className="text-lg text-teal-500">"</div>
                         <p className="text-gray-700 italic text-sm">{member.quote}</p>
                       </div>
                     </div>
@@ -403,10 +435,51 @@ const About = () => {
               </motion.div>
             ))}
           </div>
+
+          {/* Scientific Background Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16 text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-100 to-cyan-100 mb-6">
+              <Microscope className="w-4 h-4 text-teal-600" />
+              <span className="text-sm font-medium text-teal-700">Scientific Excellence</span>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Backed by Research & Innovation
+            </h3>
+            
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-8">
+              {[
+                {
+                  title: "University Partnerships",
+                  description: "Collaborating with leading agricultural research institutions",
+                  icon: "🏛️"
+                },
+                {
+                  title: "Field Validation",
+                  description: "Extensive testing across diverse soil types and climates",
+                  icon: "🌍"
+                },
+                {
+                  title: "Continuous Innovation",
+                  description: "Ongoing R&D to advance sustainable agriculture",
+                  icon: "🚀"
+                }
+              ].map((item, index) => (
+                <div key={index} className="bg-white p-6 rounded-xl border border-teal-100 shadow-sm">
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h4 className="font-bold text-gray-900 mb-2">{item.title}</h4>
+                  <p className="text-gray-600 text-sm">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
-
-      
     </Layout>
   );
 };

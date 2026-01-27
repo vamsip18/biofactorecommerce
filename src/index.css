@@ -196,3 +196,20 @@
     transform-style: preserve-3d;
   }
 }
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    /* Remove or comment out bg-background */
+    /* @apply bg-background text-foreground font-sans antialiased; */
+    
+    /* Use transparent instead */
+    @apply bg-transparent text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
