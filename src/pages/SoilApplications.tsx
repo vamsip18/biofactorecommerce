@@ -1,1120 +1,1449 @@
-// SoilApplications.tsx
-import React, { useState, useEffect } from 'react';
-import { useCart } from '../contexts/CartContext';
-import { Layout } from '@/components/layout/Layout';
-import { Link } from 'react-router-dom';
+// src/pages/SoilApplications.tsx
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ShoppingCart, Filter, ChevronDown, X,
-  Star, Truck, Shield, Check,
-  Plus, Minus, Share2, Heart,
-  Grid, List, Search, Clock,
-  Package, Sliders, ArrowUpDown,
-  ChevronLeft, ChevronRight
+import { Layout } from "@/components/layout/Layout"; 
+import { 
+  Filter, 
+  ChevronDown, 
+  Grid, 
+  List, 
+  Search, 
+  X, 
+  ShoppingCart,
+  Heart,
+  Package,
+  Clock,
+  Sliders,
+  ArrowUpDown,
+  Minus,
+  Plus,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Check,
+  Truck,
+  Shield,
+  Sprout,
+  Droplets,
+  Leaf,
+  Trees,
+  CloudRain
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
-interface Product {
-  id: number;
-  name: string;
+// Types based on your Supabase schema
+type ProductVariant = {
+  id: string;
+  title: string;
+  variant_type: string;
+  value: number | null;
+  unit: string | null;
   price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  formulation: string;
-  coverage: string;
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+  sku: string;
+};
+
+type Collection = {
+  id: string;
+  title: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
   description: string;
-  features: string[];
-  availability: 'In Stock' | 'Sold Out';
-  rating: number;
-  reviews: number;
-  isNew?: boolean;
-  isBestSeller?: boolean;
-  dosage?: string;
-  applicationTiming?: string;
-  frequency?: string;
-  caution?: string;
-  sizes?: string[];
-}
+  is_active: boolean;
+  created_at?: string;
+  collections: Collection | null;
+  product_variants: ProductVariant[];
+};
 
-const SoilApplications = () => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState('bestSelling');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
-  const [availability, setAvailability] = useState<string[]>(['In Stock']);
-  const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { addToCart, getCartCount } = useCart();
+// Sort options
+const sortOptions = [
+  { value: "name-asc", label: "Alphabetically, A-Z" },
+  { value: "name-desc", label: "Alphabetically, Z-A" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "created-desc", label: "Newest First" }
+];
 
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Aadhar Gold Biofertilizer - Foundation Granules - 4Kg",
-      description: "Premium biofertilizer for soil health and foundation building",
-      price: 1150.00,
-      image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-      category: "Biofertilizer",
-      formulation: "Granular",
-      coverage: "4 Kg Pack",
-      features: [
-        "Enhances soil structure",
-        "Promotes microbial activity",
-        "Improves nutrient availability",
-        "Long-lasting effect"
-      ],
-      availability: "In Stock",
-      rating: 4.7,
-      reviews: 189,
-      isBestSeller: true,
-      sizes: ["1 Kg", "4 Kg", "10 Kg"]
-    },
-    {
-      id: 2,
-      name: "G-Vam - Liquid",
-      description: "Liquid mycorrhiza formulation for enhanced nutrient uptake",
-      price: 4126.00,
-      image: "https://images.unsplash.com/photo-1557735938-cb4b0d11c73a?w=400&h=400&fit=crop",
-      category: "Mycorrhiza",
-      formulation: "Liquid",
-      coverage: "5 litres per acre",
-      features: [
-        "Improves phosphorus absorption",
-        "Enhances root development",
-        "Protects against soil pathogens",
-        "Bio-encapsulation technology"
-      ],
-      availability: "In Stock",
-      rating: 4.8,
-      reviews: 234,
-      isBestSeller: true,
-      dosage: "5 litres per acre for liquid form",
-      applicationTiming: "Apply during initial phase, at planting or shortly thereafter",
-      frequency: "Single application for short-duration crops; 1-2 times annually for long-duration crops",
-      caution: "Apply directly to roots during planting or shortly afterward",
-      sizes: ["1 Litre", "5 Litres", "10 Litres"]
-    },
-    {
-      id: 3,
-      name: "K Factor – Potassium Mobilising Bacteria",
-      description: "Specialized bacteria for potassium mobilization in soil",
-      price: 1106.00,
-      image: "https://images.unsplash.com/photo-1615485500607-1758f56c2c8a?w=400&h=400&fit=crop",
-      category: "Bacterial Inoculant",
-      formulation: "Powder",
-      coverage: "1 Kg per acre",
-      features: [
-        "Mobilizes potassium in soil",
-        "Improves crop yield",
-        "Enhances soil fertility",
-        "Reduces chemical fertilizer need"
-      ],
-      availability: "In Stock",
-      rating: 4.5,
-      reviews: 156,
-      sizes: ["500 g", "1 Kg", "5 Kg"]
-    },
-    {
-      id: 4,
-      name: "Proceed -",
-      description: "Advanced soil conditioner for optimal plant growth",
-      price: 1080.00,
-      image: "https://images.unsplash.com/photo-1597848212624-e5f4b41d7f50?w=400&h=400&fit=crop",
-      category: "Soil Conditioner",
-      formulation: "Granular",
-      coverage: "10 Kg per acre",
-      features: [
-        "Improves soil texture",
-        "Enhances water retention",
-        "Promotes root growth",
-        "Balances soil pH"
-      ],
-      availability: "In Stock",
-      rating: 4.4,
-      reviews: 128,
-      sizes: ["5 Kg", "10 Kg", "25 Kg"]
-    },
-    {
-      id: 5,
-      name: "BOC - A Revolutionary Bio-Organic Carbon Product",
-      description: "Bio-organic carbon for sustainable soil enrichment",
-      price: 1040.00,
-      originalPrice: 1200.00,
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c033a88e?w=400&h=400&fit=crop",
-      category: "Organic Carbon",
-      formulation: "Powder",
-      coverage: "From 2 Kg per acre",
-      features: [
-        "Increases soil organic carbon",
-        "Improves soil structure",
-        "Enhances microbial diversity",
-        "Sustainable alternative to chemical carbon"
-      ],
-      availability: "In Stock",
-      rating: 4.6,
-      reviews: 201,
-      isBestSeller: true,
-      isNew: true,
-      sizes: ["2 Kg", "5 Kg", "10 Kg", "20 Kg"]
+const priceRanges = [
+  { id: "range1", min: 0, max: 1000, label: "Under Rs. 1000" },
+  { id: "range2", min: 1000, max: 2000, label: "Rs. 1000 - Rs. 2000" },
+  { id: "range3", min: 2000, max: 3000, label: "Rs. 2000 - Rs. 3000" },
+  { id: "range4", min: 3000, max: 4000, label: "Rs. 3000 - Rs. 4000" },
+  { id: "range5", min: 4000, max: 5000, label: "Rs. 4000 - Rs. 5000" },
+  { id: "range6", min: 5000, max: 10000, label: "Rs. 5000 - Rs. 10000" }
+];
+
+// Helper functions
+const getDefaultVariant = (product: Product) => {
+  return product.product_variants?.[0];
+};
+
+const getProductCategory = (product: Product) => {
+  return product.collections?.title || "Soil Applications";
+};
+
+const isProductInStock = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.stock > 0;
+};
+
+const getProductImage = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.image_url || "/placeholder-soil.jpg";
+};
+
+const getProductPrice = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.price || 0;
+};
+
+const getVariantDisplay = (variant: ProductVariant) => {
+  return `${variant.value || ''}${variant.unit || ''}`.trim();
+};
+
+const getRatingDisplay = () => {
+  const defaultRating = 4.5;
+  const stars = [];
+  const fullStars = Math.floor(defaultRating);
+  const hasHalfStar = defaultRating % 1 >= 0.5;
+  
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else {
+      stars.push(<Star key={i} className="w-4 h-4 fill-gray-300 text-gray-300" />);
     }
+  }
+  
+  return stars;
+};
+
+// Determine soil type for product
+const getSoilType = (product: Product) => {
+  const name = product.name.toLowerCase();
+  const desc = product.description?.toLowerCase() || '';
+  
+  if (name.includes('aadhar') || desc.includes('biofertilizer')) return 'biofertilizer';
+  if (name.includes('g-vam') || desc.includes('mycorrhiza')) return 'mycorrhiza';
+  if (name.includes('k factor') || desc.includes('bacterial')) return 'bacterial';
+  if (name.includes('proceed') || desc.includes('conditioner')) return 'conditioner';
+  if (name.includes('boc') || desc.includes('organic carbon')) return 'organic';
+  return 'general';
+};
+
+// Filter Section Component
+const FilterSection = ({ 
+  filters, 
+  setFilters,
+  searchQuery,
+  setSearchQuery
+}: { 
+  filters: {
+    availability: string[];
+    priceRanges: string[];
+    soilTypes: string[];
+  };
+  setFilters: (filters: any) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) => {
+  const [expandedSections, setExpandedSections] = useState({
+    price: true,
+    availability: true,
+    soilTypes: true
+  });
+
+  const soilTypeOptions = [
+    { id: "biofertilizer", label: "Biofertilizers", icon: <Sprout className="w-4 h-4" /> },
+    { id: "mycorrhiza", label: "Mycorrhiza", icon: <Trees className="w-4 h-4" /> },
+    { id: "bacterial", label: "Bacterial Inoculants", icon: <Leaf className="w-4 h-4" /> },
+    { id: "conditioner", label: "Soil Conditioners", icon: <CloudRain className="w-4 h-4" /> },
+    { id: "organic", label: "Organic Carbon", icon: <Droplets className="w-4 h-4" /> }
   ];
 
-  const productsPerPage = 12;
+  const toggleSection = (section: 'price' | 'availability' | 'soilTypes') => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search */}
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search soil applications..."
+            className="pl-10 border-green-200 focus:border-green-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Availability Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('availability')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Availability</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${
+            expandedSections.availability ? 'rotate-180' : ''
+          }`} />
+        </button>
+        
+        {expandedSections.availability && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('in-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked 
+                    ? [...filters.availability, 'in-stock']
+                    : filters.availability.filter(v => v !== 'in-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">In Stock</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('out-of-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked 
+                    ? [...filters.availability, 'out-of-stock']
+                    : filters.availability.filter(v => v !== 'out-of-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">Out of Stock</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Price Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('price')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Price</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${
+            expandedSections.price ? 'rotate-180' : ''
+          }`} />
+        </button>
+        
+        {expandedSections.price && (
+          <div className="space-y-2">
+            {priceRanges.map((range) => (
+              <label key={range.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.priceRanges.includes(range.id)}
+                  onChange={(e) => {
+                    const newPriceRanges = e.target.checked 
+                      ? [...filters.priceRanges, range.id]
+                      : filters.priceRanges.filter(v => v !== range.id);
+                    setFilters({ ...filters, priceRanges: newPriceRanges });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{range.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      
+      {/* Clear Filters Button */}
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.soilTypes.length > 0 || searchQuery) && (
+        <Button
+          variant="outline"
+          className="w-full border-green-200 text-green-700 hover:bg-green-50"
+          onClick={() => {
+            setFilters({ availability: [], priceRanges: [], soilTypes: [] });
+            setSearchQuery('');
+            // Clear URL parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }}
+        >
+          <X className="w-4 h-4 mr-2" />
+          Clear Filters
+        </Button>
+      )}
+    </div>
+  );
+};
+
+// Product Card Component - Grid View
+const ProductCard = ({ 
+  product, 
+  onClick,
+  quantity,
+  onQuantityChange
+}: { 
+  product: Product;
+  onClick: () => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
+}) => {
+  const defaultVariant = getDefaultVariant(product);
+  const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+  const { addToCart } = useCart();
   
-  // Filter products based on selected filters
-  const filteredProducts = products.filter(product => {
-    const priceInRange = product.price >= priceRange[0] && product.price <= priceRange[1];
-    const availabilityMatch = availability.length === 0 || availability.includes(product.availability);
-    const searchMatch = !searchQuery || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+  const productImage = getProductImage(product, activeVariant);
+  const productPrice = getProductPrice(product, activeVariant);
+  const productCategory = getProductCategory(product);
+  const isInStock = isProductInStock(product, activeVariant);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     
-    return priceInRange && availabilityMatch && searchMatch;
-  });
-
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'priceLowHigh':
-        return a.price - b.price;
-      case 'priceHighLow':
-        return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      default: // bestSelling
-        return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviews - a.reviews;
+    const displayName = `${product.name} ${getVariantDisplay(activeVariant)}`.trim();
+    
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: activeVariant.id,
+        name: displayName,
+        price: activeVariant.price,
+        image: activeVariant.image_url || "/placeholder-soil.jpg",
+        category: productCategory,
+        quantity: quantity,
+        stock: activeVariant.stock || 10
+      });
+      
+      toast.success(`${product.name} added to cart!`);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
     }
-  });
+  };
 
-  // Calculate pagination
-  const totalProducts = sortedProducts.length;
-  const totalPages = Math.ceil(totalProducts / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const endIndex = startIndex + productsPerPage;
-  const currentProducts = sortedProducts.slice(startIndex, endIndex);
+  const soilType = getSoilType(product);
+  const soilTypeColors: Record<string, string> = {
+    biofertilizer: 'bg-brown-500',
+    mycorrhiza: 'bg-green-600',
+    bacterial: 'bg-blue-500',
+    conditioner: 'bg-amber-500',
+    organic: 'bg-teal-500',
+    general: 'bg-gray-500'
+  };
 
-  // Reset to page 1 when filters change
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      className="group bg-white rounded-lg border border-gray-200 hover:border-brown-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
+      onClick={onClick}
+    >
+      <div className="relative flex-1">
+        {/* Product Image */}
+        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-brown-50 to-green-50">
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          />
+          
+          {/* Variant Hover Dots */}
+          {product.product_variants && product.product_variants.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+              {product.product_variants.map(v => (
+                <button
+                  key={v.id}
+                  onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    setActiveVariant(v);
+                  }}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                    activeVariant.id === v.id ? "bg-brown-600 scale-110" : "bg-gray-300 hover:bg-brown-400"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {!isInStock && (
+              <Badge className="bg-gray-500 text-white text-xs font-semibold">
+                Sold Out
+              </Badge>
+            )}
+            <Badge className={`${soilTypeColors[soilType]} text-white text-xs font-semibold`}>
+              {soilType.charAt(0).toUpperCase() + soilType.slice(1)}
+            </Badge>
+          </div>
+          
+          {/* Wishlist Button */}
+          <button 
+            className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.info("Added to wishlist");
+            }}
+          >
+            <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
+          </button>
+        </div>
+
+        {/* Product Info */}
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-semibold text-gray-900 group-hover:text-brown-700 transition-colors mb-2 line-clamp-2">
+            {product.name}
+          </h3>
+          
+          <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+          
+          <div className="flex items-center text-sm text-gray-500 mb-3">
+            <Package className="w-4 h-4 mr-1 flex-shrink-0" />
+            <span className="truncate">{productCategory}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 mt-3">
+            {/* Price Section */}
+            <div className="flex-1">
+              <div className="text-lg font-bold text-gray-900">
+                Rs. {productPrice.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-500">
+                {getVariantDisplay(activeVariant)}
+              </div>
+            </div>
+
+            {/* Quantity and Add to Cart */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, -1);
+                  }}
+                  className="px-2 py-1 text-gray-600 hover:text-brown-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                  {quantity}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, 1);
+                  }}
+                  className="px-2 py-1 text-gray-600 hover:text-brown-700 hover:bg-gray-50"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              
+              <Button 
+                size="sm"
+                className={`${
+                  !isInStock 
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
+                    : "bg-brown-600 hover:bg-brown-700 text-green"
+                }`}
+                disabled={!isInStock}
+                onClick={handleAddToCart}
+              >
+                {!isInStock ? (
+                  <>
+                    <Clock className="w-3 h-3 mr-1" />
+                    <span className="text-xs">Sold Out</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    <span className="text-xs">Add</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>  
+      </div>
+    </motion.div>
+  );
+};
+
+// Product Modal Component
+const ProductModal = ({ 
+  product, 
+  isOpen, 
+  onClose 
+}: { 
+  product: Product | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+
   useEffect(() => {
-    setCurrentPage(1);
-  }, [priceRange, availability, searchQuery, sortBy]);
+    if (product) {
+      const defaultVariant = getDefaultVariant(product);
+      setSelectedVariant(defaultVariant || null);
+    }
+  }, [product]);
 
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
-    setQuantity(1);
-    setIsModalOpen(true);
-    document.body.style.overflow = 'hidden';
+  if (!product || !selectedVariant) return null;
+
+  const handleAddToCart = async () => {
+    const displayName = `${product.name} ${getVariantDisplay(selectedVariant)}`.trim();
+    
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        name: displayName,
+        price: selectedVariant.price,
+        image: selectedVariant.image_url || "/placeholder-soil.jpg",
+        category: getProductCategory(product),
+        quantity: quantity,
+        stock: selectedVariant.stock || 10
+      });
+      
+      toast.success(`${product.name} added to cart!`);
+      onClose();
+    } catch (error) {
+      console.error("Error adding to cart from modal:", error);
+      toast.error("Failed to add to cart");
+    }
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    document.body.style.overflow = 'unset';
-  };
-
-  const handleAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage
-    });
-    toast.success("Added to cart");
-  };
-
-  const handleBuyNow = (product: Product) => {
-    handleAddToCart(product);
+  const handleBuyNow = () => {
+    handleAddToCart();
     window.location.href = "/cart";
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: selectedProduct?.name,
-        text: `Check out ${selectedProduct?.name} - ${selectedProduct?.description}`,
-        url: window.location.href,
+  // Get variant-specific image
+  const variantImage = selectedVariant.image_url || "/placeholder-soil.jpg";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">{product.name}</DialogTitle>
+          <DialogDescription>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="flex">
+                {getRatingDisplay()}
+              </div>
+              <span className="text-sm text-gray-600">
+                (4.5)
+              </span>
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Image */}
+          <div className="space-y-4">
+            <div className="relative h-96 rounded-lg overflow-hidden bg-gradient-to-br from-brown-50 to-green-50">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selectedVariant.id}
+                  src={variantImage}
+                  alt={product.name}
+                  initial={{ opacity: 0.4 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-full h-full object-cover"
+                />
+              </AnimatePresence>
+              
+              {/* Badges */}
+              <div className="absolute top-4 left-4 flex flex-col gap-2">
+                {!isProductInStock(product, selectedVariant) && (
+                  <Badge className="bg-gray-500 text-white">
+                    Sold Out
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            {/* Variant Thumbnails */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {product.product_variants.map((variantItem) => (
+                  <button
+                    key={variantItem.id}
+                    onClick={() => setSelectedVariant(variantItem)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${
+                      selectedVariant.id === variantItem.id
+                        ? "border-brown-600"
+                        : "border-gray-200 hover:border-brown-300"
+                    }`}
+                  >
+                    <img
+                      src={variantItem.image_url || "/placeholder-soil.jpg"}
+                      alt={getVariantDisplay(variantItem)}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Share Button */}
+            <Button variant="outline" className="w-full border-brown-200">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+          </div>
+
+          {/* Right Column - Product Details */}
+          <div className="space-y-6">
+            {/* Price */}
+            <div>
+              <div className="text-3xl font-bold text-gray-900">
+                Rs. {selectedVariant.price.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {getVariantDisplay(selectedVariant)}
+              </div>
+              <p className={`font-semibold mt-2 ${
+                isProductInStock(product, selectedVariant) ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {isProductInStock(product, selectedVariant) ? 'In Stock' : 'Sold Out'}
+              </p>
+            </div>
+
+            {/* Shipping Info */}
+            <div className="p-4 bg-brown-50 rounded-lg">
+              <div className="flex items-start gap-3 mb-3">
+                <Truck className="w-5 h-5 text-brown-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-brown-700">Free Shipping</p>
+                  <p className="text-sm text-gray-600">
+                    Free shipping on orders over ₹500
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-brown-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-brown-700">Quality Guarantee</p>
+                  <p className="text-sm text-gray-600">
+                    100% satisfaction guaranteed or your money back
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Variant Selection */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Available Sizes</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {product.product_variants.map((variantItem) => (
+                    <button
+                      key={variantItem.id}
+                      onClick={() => setSelectedVariant(variantItem)}
+                      className={`px-4 py-3 rounded-lg border text-sm transition-all flex items-center gap-2 ${
+                        selectedVariant.id === variantItem.id
+                          ? "border-brown-600 bg-brown-50 text-brown-700"
+                          : "border-gray-300 hover:border-brown-300"
+                      }`}
+                    >
+                      {variantItem.image_url && (
+                        <img
+                          src={variantItem.image_url}
+                          alt=""
+                          className="w-8 h-8 rounded object-cover"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">{getVariantDisplay(variantItem)}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Rs. {variantItem.price}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity Selector */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Quantity</h3>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 rounded-full border border-gray-300 hover:border-brown-300"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="text-xl font-semibold w-8 text-center">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="p-2 rounded-full border border-gray-300 hover:border-brown-300"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-sm text-gray-500">
+                  {quantity} × Rs. {selectedVariant.price.toFixed(2)} = Rs. {(selectedVariant.price * quantity).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button 
+                className="flex-1 bg-brown-600 hover:bg-brown-700 text-green h-12 text-lg"
+                onClick={handleAddToCart}
+                disabled={!isProductInStock(product, selectedVariant)}
+              >
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Add to cart
+              </Button>
+              <Button 
+                className="flex-1 border-brown-600 text-brown-600 hover:bg-brown-50 h-12 text-lg" 
+                variant="outline"
+                onClick={handleBuyNow}
+                disabled={!isProductInStock(product, selectedVariant)}
+              >
+                Buy it now
+              </Button>
+            </div>
+
+            {/* Product Details */}
+            <div className="pt-6 border-t">
+              <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
+              <p className="text-gray-600 mb-4">{product.description}</p>
+              
+              {/* Key Features */}
+              <h4 className="font-semibold text-gray-900 mb-3">Key Benefits</h4>
+              <ul className="space-y-2">
+                {[
+                  "Enhances soil structure and fertility",
+                  "Improves nutrient availability and uptake",
+                  "Promotes beneficial microbial activity",
+                  "Increases water retention capacity",
+                  "Sustainable and eco-friendly solution"
+                ].map((feature, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <Check className="w-5 h-5 text-brown-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// List View Item Component
+const ListViewItem = ({ 
+  product, 
+  onClick,
+  quantity,
+  onQuantityChange
+}: { 
+  product: Product;
+  onClick: () => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
+}) => {
+  const defaultVariant = getDefaultVariant(product);
+  const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+  const { addToCart } = useCart();
+  
+  const productImage = getProductImage(product, activeVariant);
+  const productPrice = getProductPrice(product, activeVariant);
+  const productCategory = getProductCategory(product);
+  const isInStock = isProductInStock(product, activeVariant);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const displayName = `${product.name} ${getVariantDisplay(activeVariant)}`.trim();
+    
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: activeVariant.id,
+        name: displayName,
+        price: activeVariant.price,
+        image: activeVariant.image_url || "/placeholder-soil.jpg",
+        category: productCategory,
+        quantity: quantity,
+        stock: activeVariant.stock || 10
       });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
+      
+      toast.success(`${product.name} added to cart!`);
+    } catch (error) {
+      console.error("Error adding to cart from list view:", error);
+      toast.error("Failed to add to cart");
     }
   };
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`w-4 h-4 ${
-              i < Math.floor(rating)
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'fill-gray-300 text-gray-300'
-            }`}
+  return (
+    <motion.div
+      key={product.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg border border-gray-200 hover:border-brown-300 p-4 md:p-6 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        <div className="md:w-1/4 relative">
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-48 md:h-full object-cover rounded-lg"
           />
-        ))}
-        <span className="text-sm text-gray-600 ml-1">({rating})</span>
-      </div>
-    );
-  };
-
-  // Filter Section Component
-  const FilterSection = () => {
-    const [expandedSections, setExpandedSections] = useState({
-      price: true,
-      availability: true
-    });
-
-    const toggleSection = (section: 'price' | 'availability') => {
-      setExpandedSections(prev => ({
-        ...prev,
-        [section]: !prev[section]
-      }));
-    };
-
-    const priceRanges = [
-      { id: "range1", min: 0, max: 1000, label: "Under Rs. 1000" },
-      { id: "range2", min: 1000, max: 2000, label: "Rs. 1000 - Rs. 2000" },
-      { id: "range3", min: 2000, max: 3000, label: "Rs. 2000 - Rs. 3000" },
-      { id: "range4", min: 3000, max: 4000, label: "Rs. 3000 - Rs. 4000" },
-      { id: "range5", min: 4000, max: 5000, label: "Over Rs. 4000" }
-    ];
-
-    return (
-      <div className="space-y-6">
-        {/* Search */}
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Price Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('price')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Price Range</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${
-              expandedSections.price ? 'rotate-180' : ''
-            }`} />
-          </button>
           
-          {expandedSections.price && (
-            <div className="space-y-4">
-              <input
-                type="range"
-                min="0"
-                max="5000"
-                step="100"
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Rs. {priceRange[0]}</span>
-                <span>Rs. {priceRange[1]}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Availability Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('availability')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Availability</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${
-              expandedSections.availability ? 'rotate-180' : ''
-            }`} />
-          </button>
-          
-          {expandedSections.availability && (
-            <div className="space-y-2">
-              {['In Stock', 'Sold Out'].map((status) => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={availability.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAvailability([...availability, status]);
-                      } else {
-                        setAvailability(availability.filter(s => s !== status));
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{status}</span>
-                </label>
+          {/* Variant Hover Dots */}
+          {product.product_variants && product.product_variants.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+              {product.product_variants.map(v => (
+                <button
+                  key={v.id}
+                  onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    setActiveVariant(v);
+                  }}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                    activeVariant.id === v.id ? "bg-brown-600 scale-110" : "bg-gray-300 hover:bg-brown-400"
+                  }`}
+                />
               ))}
             </div>
           )}
         </div>
-
-        {/* Clear Filters Button */}
-        {(priceRange[1] !== 5000 || availability.length !== 1 || availability[0] !== 'In Stock' || searchQuery) && (
-          <button
-            onClick={() => {
-              setPriceRange([0, 5000]);
-              setAvailability(['In Stock']);
-              setSearchQuery('');
-            }}
-            className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Clear All Filters
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  // Product Card Component - Grid View
-  const ProductCard = ({ product }: { product: Product }) => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
-        onClick={() => handleProductClick(product)}
-      >
-        <div className="relative flex-1">
-          {/* Product Image */}
-          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
+        <div className="md:w-3/4 flex flex-col">
+          <div className="flex-1">
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+            <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
             
-            {/* Badges */}
-            <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && (
-                <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  NEW
-                </span>
-              )}
-              {product.isBestSeller && (
-                <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Best Seller
-                </span>
-              )}
-              {product.availability === 'Sold Out' && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Sold Out
-                </span>
-              )}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center text-sm text-gray-600">
+                <Package className="w-4 h-4 mr-1" />
+                {productCategory}
+              </div>
             </div>
-            
-            {/* Wishlist Button */}
-            <button 
-              className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                toast.info("Added to wishlist");
-              }}
-            >
-              <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-            </button>
           </div>
-
-          {/* Product Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
-              {product.name}
-            </h3>
-            
-            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
-            
-            <div className="flex items-center text-sm text-gray-500 mb-2">
-              <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{product.category}</span>
-            </div>
-
-            {/* Rating */}
-            <div className="mb-3">
-              {renderStars(product.rating)}
-              <p className="text-sm text-gray-500 mt-1">{product.reviews} reviews</p>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 mt-3">
-              {/* Price Section */}
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900">
-                  Rs. {product.price.toFixed(2)}
+          
+          {/* Price, Quantity and Add to Cart */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
+            <div className="w-full sm:w-auto flex items-center gap-4">
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-gray-900">
+                  Rs. {productPrice.toFixed(2)}
                 </div>
-                {product.originalPrice && (
-                  <div className="text-sm text-gray-500 line-through">
-                    Rs. {product.originalPrice.toFixed(2)}
-                  </div>
-                )}
-              </div>
-
-              {/* Add to Cart Button */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(product);
-                  }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                    product.availability === 'Sold Out'
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
-                >
-                  {product.availability === 'Sold Out' ? (
-                    <>
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Sold Out</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span className="text-sm">Add</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>  
-        </div>
-      </motion.div>
-    );
-  };
-
-  // List View Item Component
-  const ListViewItem = ({ product }: { product: Product }) => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg border border-gray-200 hover:border-green-300 p-4 md:p-6 cursor-pointer"
-        onClick={() => handleProductClick(product)}
-      >
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <div className="md:w-1/4">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-48 md:h-full object-cover rounded-lg"
-            />
-          </div>
-          <div className="md:w-3/4 flex flex-col">
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
-                <div className="flex gap-2">
-                  {product.isNew && (
-                    <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      NEW
-                    </span>
-                  )}
-                  {product.isBestSeller && (
-                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Best Seller
-                    </span>
-                  )}
+                <div className="text-sm text-gray-500">
+                  {getVariantDisplay(activeVariant)}
                 </div>
               </div>
-              <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
               
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Package className="w-4 h-4 mr-1" />
-                  {product.category}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  {renderStars(product.rating)}
-                  <span className="ml-1">({product.reviews})</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Price and Add to Cart in same line */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
-              <div className="w-full sm:w-auto flex items-center gap-4">
-                <div>
-                  <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {product.price.toFixed(2)}
-                  </div>
-                  {product.originalPrice && (
-                    <div className="text-sm text-gray-500 line-through">
-                      Rs. {product.originalPrice.toFixed(2)}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="w-full sm:w-auto">
+              {/* Quantity Selector */}
+              <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToCart(product);
+                    onQuantityChange(product.id, -1);
                   }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${
-                    product.availability === 'Sold Out'
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
+                  className="px-3 py-1 text-gray-600 hover:text-brown-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
                 >
-                  {product.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="px-3 py-1 border-x border-gray-300 min-w-8 text-center">
+                  {quantity}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, 1);
+                  }}
+                  className="px-3 py-1 text-gray-600 hover:text-brown-700 hover:bg-gray-50"
+                >
+                  <Plus className="w-3 h-3" />
                 </button>
               </div>
             </div>
+            
+            <div className="w-full sm:w-auto">
+              <Button 
+                className={`w-full sm:w-auto ${
+                  !isInStock 
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
+                    : "bg-brown-600  text-green hover:bg-brown-700"
+                }`}
+                disabled={!isInStock}
+                onClick={handleAddToCart}
+              >
+                {!isInStock ? "Sold Out" : "Add to Cart"}
+              </Button>
+            </div>
           </div>
         </div>
-      </motion.div>
-    );
+      </div>
+    </motion.div>
+  );
+};
+
+const SoilApplications = () => {
+  const [sortBy, setSortBy] = useState("name-asc");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [filters, setFilters] = useState({
+    availability: [] as string[],
+    priceRanges: [] as string[],
+    soilTypes: [] as string[],
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { getCartCount } = useCart();
+  
+  // State for product quantities
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  
+  // Get location for URL parameters
+  const location = useLocation();
+
+  const productsPerPage = 12;
+
+  // Parse URL parameters on component mount and URL changes
+  useEffect(() => {
+    // Parse search query from URL
+    const urlParams = new URLSearchParams(location.search);
+    const query = urlParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+    }
+    
+    // Handle highlighting a specific product
+    const highlightId = urlParams.get('highlight');
+    if (highlightId) {
+      // Find and highlight the product
+      const productToHighlight = products.find(p => p.id === highlightId);
+      if (productToHighlight) {
+        setSelectedProduct(productToHighlight);
+      }
+    }
+  }, [location.search, products]);
+
+  // Fetch soil applications products from Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching soil applications products from Supabase...");
+        
+        const { data, error } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            is_active,
+            created_at,
+            collections (
+              id,
+              title
+            ),
+            product_variants (
+              id,
+              title,
+              variant_type,
+              value,
+              unit,
+              price,
+              stock,
+              image_url,
+              is_active,
+              sku
+            )
+          `)
+          .eq("is_active", true);
+
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+
+        console.log("Raw data from Supabase:", data);
+
+        // Filter data on the frontend
+        const soilApplicationsProducts = (data || [])
+          .map(product => ({
+            ...product,
+            // Filter out inactive variants
+            product_variants: product.product_variants?.filter(
+              (v: ProductVariant) => v.is_active === true
+            ) || []
+          }))
+          .filter(product => {
+            // Only include products with active variants
+            if (product.product_variants.length === 0) return false;
+            
+            // Filter for soil applications products
+            const collectionName = product.collections?.title?.toLowerCase() || '';
+            const productName = product.name.toLowerCase();
+            const productDescription = product.description?.toLowerCase() || '';
+            
+            return collectionName.includes('soil') || 
+                   productName.includes('soil') ||
+                   productDescription.includes('soil') ||
+                   productName.includes('aadhar') ||
+                   productName.includes('g-vam') ||
+                   productName.includes('biofertilizer') ||
+                   productName.includes('mycorrhiza') ||
+                   productName.includes('k factor') ||
+                   productName.includes('proceed') ||
+                   productName.includes('boc') ||
+                   productDescription.includes('biofertilizer') ||
+                   productDescription.includes('mycorrhiza') ||
+                   productDescription.includes('soil conditioner') ||
+                   productDescription.includes('organic carbon');
+          });
+
+        console.log("Filtered soil applications products:", soilApplicationsProducts);
+        setProducts(soilApplicationsProducts);
+        
+        // Initialize quantities for all products
+        const initialQuantities: { [key: string]: number } = {};
+        soilApplicationsProducts.forEach(product => {
+          initialQuantities[product.id] = 1;
+        });
+        setQuantities(initialQuantities);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        toast.error("Failed to load soil applications products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Apply filters and sorting with enhanced search
+  const filteredAndSortedProducts = products
+    .filter(product => {
+      // Enhanced search filter - search in name, description, and variant titles
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = product.name.toLowerCase().includes(query);
+        const descMatch = product.description.toLowerCase().includes(query);
+        
+        // Check if any variant title matches the search
+        const variantMatch = product.product_variants?.some(variant => 
+          variant.title?.toLowerCase().includes(query)
+        ) || false;
+        
+        if (!nameMatch && !descMatch && !variantMatch) {
+          return false;
+        }
+      }
+      
+      // Availability filter
+      if (filters.availability.length > 0) {
+        const inStockFilter = filters.availability.includes('in-stock');
+        const outOfStockFilter = filters.availability.includes('out-of-stock');
+        
+        if (inStockFilter && outOfStockFilter) {
+          // Show both
+        } else if (inStockFilter && !isProductInStock(product)) {
+          return false;
+        } else if (outOfStockFilter && isProductInStock(product)) {
+          return false;
+        }
+      }
+      
+      // Price range filter
+      if (filters.priceRanges.length > 0) {
+        const productPrice = getProductPrice(product);
+        const matchesPriceRange = filters.priceRanges.some(rangeId => {
+          const range = priceRanges.find(r => r.id === rangeId);
+          if (!range) return false;
+          return productPrice >= range.min && productPrice <= range.max;
+        });
+        if (!matchesPriceRange) return false;
+      }
+      
+      // Soil types filter
+      if (filters.soilTypes.length > 0) {
+        const soilType = getSoilType(product);
+        if (!filters.soilTypes.includes(soilType)) return false;
+      }
+      
+      return true;
+    })
+    .sort((a, b) => {
+      const priceA = getProductPrice(a);
+      const priceB = getProductPrice(b);
+      
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "price-asc":
+          return priceA - priceB;
+        case "price-desc":
+          return priceB - priceA;
+        case "created-desc":
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA;
+        default:
+          return 0;
+      }
+    });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSortedProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const endIndex = startIndex + productsPerPage;
+  const currentProducts = filteredAndSortedProducts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortBy, searchQuery]);
+
+  // Handle quantity change for a product
+  const handleQuantityChange = (productId: string, delta: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) + delta)
+    }));
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brown-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading soil applications...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Soil Applications</h1>
-            <p className="text-green-100">
-              Premium soil enhancement products for sustainable agriculture and healthy crops
-            </p>
-          </div>
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Soil Applications</h1>
+          <p className="text-green-100">
+            Premium soil-applied solutions for enhanced soil health and plant growth
+          </p>
         </div>
+      </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Filters - Desktop */}
-            <aside className="lg:w-1/4 hidden lg:block">
-              <div className="sticky top-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Filter className="w-5 h-5" />
-                      Filters
-                    </h2>
-                    <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {filteredProducts.length} products
-                    </span>
-                  </div>
-                  <FilterSection />
-                </div>
+      {/* Search Results Indicator */}
+      {searchQuery && (
+        <div className="container mx-auto px-4 pt-6">
+          <div className="bg-white rounded-lg border border-green-200 p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">Search Results</h3>
+                <p className="text-gray-600 text-sm">
+                  Showing {filteredAndSortedProducts.length} results for "{searchQuery}" in Soil Applications
+                </p>
               </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="lg:w-3/4">
-              {/* Mobile Filter Button */}
-              <div className="lg:hidden mb-6">
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-                >
-                  <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters
-                </button>
-              </div>
-
-              {/* Results Header */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
-                    </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Soil Enhancement Products</h2>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-                    {/* Sort By */}
-                    <div className="relative w-full sm:w-auto">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
-                      >
-                        <option value="bestSelling">Best Selling</option>
-                        <option value="priceLowHigh">Price: Low to High</option>
-                        <option value="priceHighLow">Price: High to Low</option>
-                        <option value="rating">Highest Rating</option>
-                      </select>
-                      <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-
-                    {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${
-                          viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
-                        }`}
-                      >
-                        <Grid className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">Grid</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${
-                          viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
-                        }`}
-                      >
-                        <List className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">List</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Products Grid/List */}
-              <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
-                {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
-                      <ProductCard key={product.id} product={product} />
-                    ) : (
-                      <ListViewItem key={product.id} product={product} />
-                    )
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
-                    <button
-                      onClick={() => {
-                        setPriceRange([0, 5000]);
-                        setAvailability(['In Stock']);
-                        setSearchQuery('');
-                      }}
-                      className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Pagination (hidden since only 5 products) */}
-              {totalPages > 1 && (
-                <div className="flex flex-wrap justify-center items-center gap-2">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
-                  >
-                    <ChevronLeft className="w-4 h-4 inline mr-1" />
-                    Previous
-                  </button>
-                  
-                  {[...Array(totalPages)].map((_, index) => {
-                    const pageNum = index + 1;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-4 py-2 rounded-lg ${
-                          currentPage === pageNum 
-                            ? "bg-green-600 text-white hover:bg-green-700" 
-                            : "border border-green-200 text-green-700 hover:bg-green-50"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 inline ml-1" />
-                  </button>
-                </div>
-              )}
-            </main>
-          </div>
-        </div>
-
-        {/* Mobile Filters Drawer */}
-        <AnimatePresence>
-          {showFilters && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/50"
-                onClick={() => setShowFilters(false)}
-              />
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ type: "tween" }}
-                className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-y-auto"
+              <Button
+                variant="outline"
+                className="border-green-200 text-green-700 hover:bg-green-50"
+                onClick={() => {
+                  setSearchQuery('');
+                  // Clear the URL parameter
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }}
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold">Filters</h2>
-                    <button onClick={() => setShowFilters(false)}>
-                      <X className="w-6 h-6" />
-                    </button>
-                  </div>
-                  <FilterSection />
-                  <button
-                    className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
-                    onClick={() => setShowFilters(false)}
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Product Modal */}
-        {isModalOpen && selectedProduct && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={closeModal}
-            />
-
-            {/* Modal Content */}
-            <div className="relative min-h-screen flex items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  {/* Close Button */}
-                  <button
-                    onClick={closeModal}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
-
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Product Images */}
-                    <div>
-                      <div className="rounded-xl overflow-hidden mb-4">
-                        <img
-                          src={selectedProduct.image}
-                          alt={selectedProduct.name}
-                          className="w-full h-96 object-cover"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Product Details */}
-                    <div>
-                      {/* Badges */}
-                      <div className="flex gap-2 mb-4">
-                        {selectedProduct.isNew && (
-                          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            NEW
-                          </span>
-                        )}
-                        {selectedProduct.isBestSeller && (
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            BEST SELLER
-                          </span>
-                        )}
-                      </div>
-
-                      <h2 className="text-4xl font-bold text-gray-900 mb-2">
-                        {selectedProduct.name}
-                      </h2>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {renderStars(selectedProduct.rating)}
-                        <span className="text-gray-600">({selectedProduct.reviews} reviews)</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="mb-6">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-gray-900">
-                            Rs. {selectedProduct.price.toFixed(2)}
-                          </span>
-                          
-                        </div>
-                        <p className="text-green-600 font-semibold mt-1">
-                          {selectedProduct.availability}
-                        </p>
-                      </div>
-
-                      {/* Shipping Info */}
-                      <div className="bg-green-50 rounded-xl p-4 mb-6">
-                        <p className="text-gray-600">
-                          <Truck className="inline w-5 h-5 mr-2" />
-                          Shipping calculated at checkout.
-                        </p>
-                      </div>
-
-                      {/* Quantity Selector */}
-                      <div className="mb-8">
-                        <p className="font-semibold text-gray-900 mb-3">Quantity</p>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Minus className="w-5 h-5" />
-                          </button>
-                          <span className="text-2xl font-bold w-12 text-center">{quantity}</span>
-                          <button
-                            onClick={() => setQuantity(quantity + 1)}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                          <span className="text-gray-600 ml-4">
-                            Total: Rs. {(selectedProduct.price * quantity).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <button
-                          onClick={() => {
-                            handleAddToCart(selectedProduct);
-                            closeModal();
-                          }}
-                          className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          <ShoppingCart className="w-6 h-6" />
-                          {selectedProduct.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
-                        </button>
-                        <button
-                          onClick={() => handleBuyNow(selectedProduct)}
-                          className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          Buy it now
-                        </button>
-                      </div>
-
-                      {/* Share Button */}
-                      <button
-                        onClick={handleShare}
-                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        <Share2 className="w-5 h-5" />
-                        Share
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
-                    <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
-
-                    {/* Special Description for G-Vam Liquid */}
-                    {selectedProduct.id === 2 && (
-                      <>
-                        <p className="text-gray-700 mb-4">
-                          G-VAM, employing its cutting-edge Bio encapsulation technology, presents solid granules and liquid formulations of mycorrhiza, a pivotal microorganism adept at efficiently retrieving essential nutrients, particularly phosphorus, for plant roots. These granules and liquid variants act as a vital conduit for plant sustenance. Within a milligram or millilitre, a minimum of 10 mycorrhizal spores is encapsulated. Highly effective Bio encapsulation (patented technology) ensures the availability of these mycorrhiza variants in both granular and liquid states.
-                        </p>
-                        
-                        <h4 className="text-xl font-bold text-gray-900 mb-4">Benefits:</h4>
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-                          <li className="flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-600" />
-                            <span className="text-gray-700"><strong>Nutrient Uptake:</strong> Mycorrhiza significantly improves the absorption of phosphorus from the soil through its intricate root network, fostering plant growth even in soils with diminished phosphorus levels.</span>
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-600" />
-                            <span className="text-gray-700"><strong>Mycorrhizal Population:</strong> Augments the mycorrhizal population, contributing to enhanced nutrient uptake and overall plant vitality.</span>
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-600" />
-                            <span className="text-gray-700"><strong>Protection against Soil borne Pathogens:</strong> Mycorrhiza acts as a shield, safeguarding plants from soil borne diseases and resulting in healthier crops.</span>
-                          </li>
-                        </ul>
-                      </>
-                    )}
-
-                    {/* Standard Features for other products */}
-                    {selectedProduct.id !== 2 && (
-                      <>
-                        <h4 className="text-xl font-bold text-gray-900 mb-4">Key Features</h4>
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {selectedProduct.features.map((feature, index) => (
-                            <li key={index} className="flex items-center gap-2">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-gray-700">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Specifications */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
-                        <p className="text-gray-600">{selectedProduct.category}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Formulation</h4>
-                        <p className="text-gray-600">{selectedProduct.formulation}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Coverage</h4>
-                        <p className="text-gray-600">{selectedProduct.coverage}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Application Details for G-Vam */}
-                  {selectedProduct.id === 2 && (
-                    <div className="mt-12 pt-8 border-t border-gray-200 space-y-6">
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Dosage:</h4>
-                        <p className="text-gray-700">{selectedProduct.dosage}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Application Timing:</h4>
-                        <p className="text-gray-700">{selectedProduct.applicationTiming}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Frequency of Application:</h4>
-                        <p className="text-gray-700">{selectedProduct.frequency}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Caution:</h4>
-                        <p className="text-gray-700">{selectedProduct.caution}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Special for BOC */}
-                  {selectedProduct.id === 5 && (
-                    <div className="mt-12 pt-8 border-t border-gray-200">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Revolutionary Bio-Organic Carbon Technology</h3>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <p className="text-gray-700 mb-4">
-                          BOC represents a breakthrough in sustainable agriculture, providing a revolutionary approach to soil carbon enrichment through advanced bio-organic processes.
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                          <li>Increases soil organic carbon by up to 2% within one season</li>
-                          <li>Enhances soil water retention capacity by 30-40%</li>
-                          <li>Improves soil structure and reduces compaction</li>
-                          <li>Promotes beneficial microbial activity</li>
-                          <li>Reduces dependency on chemical fertilizers</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* You May Also Like */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">You may also like</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {products
-                        .filter(p => p.id !== selectedProduct.id)
-                        .slice(0, 3)
-                        .map(product => (
-                          <div
-                            key={product.id}
-                            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                            onClick={() => {
-                              closeModal();
-                              setTimeout(() => handleProductClick(product), 100);
-                            }}
-                          >
-                            <div className="flex items-start gap-4">
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-20 h-20 object-cover rounded-lg"
-                              />
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                                <p className="text-gray-600 text-sm">{product.category}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="font-bold text-gray-900">
-                                    Rs. {product.price.toFixed(2)}
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddToCart(product);
-                                    }}
-                                    className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-                                  >
-                                    Add
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </div>
+                <X className="w-4 h-4 mr-2" />
+                Clear Search
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8">
+          {/* Filters Sidebar - Desktop */}
+          <div className="hidden lg:block lg:col-span-3">
+            <div className="sticky top-24">
+              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <FilterSection
+                  filters={filters}
+                  setFilters={setFilters}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
               </div>
             </div>
           </div>
-        )}
 
-        {/* Cart Count Indicator */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <div className="relative">
-            <Link
-              to="/cart"
-              className="w-16 h-16 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-green-700 transition-colors"
-            >
-              <ShoppingCart className="w-8 h-8" />
-            </Link>
-            {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                {getCartCount()}
-              </span>
+          {/* Products Section */}
+          <div className="lg:col-span-9">
+            {/* Mobile Filters Header */}
+            <div className="lg:hidden mb-6">
+              <Button
+                onClick={() => setMobileFiltersOpen(true)}
+                variant="outline"
+                className="w-full justify-center border-brown-200 text-brown-700 hover:bg-brown-50"
+              >
+                <Sliders className="w-4 h-4 mr-2" />
+                Filters
+                {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.soilTypes.length > 0) && (
+                  <Badge className="ml-2 bg-brown-600 text-white">
+                    {filters.priceRanges.length + filters.availability.length + filters.soilTypes.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+
+            {/* Products Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  All Soil Applications
+                </h2>
+                <p className="text-gray-600 text-sm">
+                  {filteredAndSortedProducts.length} products found
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                {/* Sort Dropdown */}
+                <div className="flex-1 sm:flex-none">
+                  <div className="relative">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm focus:border-brown-500 focus:ring-1 focus:ring-brown-500"
+                    >
+                      {sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  </div>
+                </div>
+                
+                {/* View Toggle */}
+                <div className="flex items-center border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-2 rounded-l-lg ${
+                      viewMode === "grid"
+                        ? "bg-brown-50 text-brown-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <Grid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-2 rounded-r-lg ${
+                      viewMode === "list"
+                        ? "bg-brown-50 text-brown-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Grid/List */}
+            {filteredAndSortedProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Search className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No products found
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Try adjusting your filters or search terms
+                </p>
+                <Button
+                  onClick={() => {
+                    setFilters({ availability: [], priceRanges: [], soilTypes: [] });
+                    setSearchQuery('');
+                  }}
+                  variant="outline"
+                  className="border-brown-600 text-brown-600 hover:bg-brown-50"
+                >
+                  Clear all filters
+                </Button>
+              </div>
+            ) : (
+              <>
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <AnimatePresence>
+                      {currentProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onClick={() => setSelectedProduct(product)}
+                          quantity={quantities[product.id] || 1}
+                          onQuantityChange={handleQuantityChange}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <AnimatePresence>
+                      {currentProducts.map((product) => (
+                        <ListViewItem
+                          key={product.id}
+                          product={product}
+                          onClick={() => setSelectedProduct(product)}
+                          quantity={quantities[product.id] || 1}
+                          onQuantityChange={handleQuantityChange}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-12">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="border-gray-300 hover:border-brown-300"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={
+                        currentPage === pageNum
+                          ? "bg-brown-600 hover:bg-brown-700"
+                          : "border-gray-300 hover:border-brown-300"
+                      }
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="border-gray-300 hover:border-brown-300"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
-
-        
       </div>
+
+      {/* Mobile Filters Dialog */}
+      <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Filters</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilters({ availability: [], priceRanges: [], soilTypes: [] });
+                  setSearchQuery('');
+                }}
+              >
+                Clear all
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <FilterSection
+            filters={filters}
+            setFilters={setFilters}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Modal */}
+      <ProductModal
+        product={selectedProduct}
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
     </Layout>
   );
 };

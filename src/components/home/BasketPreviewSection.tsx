@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Heart, ArrowRight, ArrowUpRight, Shield, Target, Globe, Recycle, Leaf, Truck, Calendar, Star, Package, Clock, Check, Plus, Zap, Droplets, ShieldCheck, Brain, Thermometer, Users, Award, ShoppingCart, TrendingUp } from "lucide-react";
-
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/autoplay';
 // Import your images - update these with actual biofactor product images
 import biofactorHero from "@/assets/biofactor-hero.png";
 import virban from "@/assets/virban.webp";
@@ -164,7 +167,6 @@ export const BestSellingProducts = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-green-700" />
-              
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-green-900">Top Selling Products</h2>
           </div>
@@ -174,103 +176,138 @@ export const BestSellingProducts = () => {
           Discover our most popular biofactor solutions for agriculture, aquaculture, and animal care
         </p>
 
-        {/* Single Row Carousel */}
+        {/* Continuous Scrolling Carousel with Swiper */}
         <div className="relative">
-          <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
+          <Swiper
+            modules={[Autoplay]}
+            spaceBetween={16}
+            slidesPerView="auto"
+            loop={true}
+            autoplay={{
+              delay: 0,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            speed={3000}
+            freeMode={true}
+            allowTouchMove={false}
+            className="!pb-6"
+            breakpoints={{
+              320: {
+                slidesPerView: 1.2,
+                spaceBetween: 12,
+              },
+              640: {
+                slidesPerView: 2.2,
+                spaceBetween: 16,
+              },
+              768: {
+                slidesPerView: 3.2,
+                spaceBetween: 16,
+              },
+              1024: {
+                slidesPerView: 4,
+                spaceBetween: 20,
+              },
+              1280: {
+                slidesPerView: 4.5,
+                spaceBetween: 20,
+              },
+            }}
+          >
             {products.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
-              >
-                {/* Product Image */}
-                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  
-                  {/* Tag Badge */}
-                  {product.tag && (
-                    <div className="absolute top-3 left-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        product.tag === "Best Seller" 
-                          ? "bg-green-600 text-white" 
-                          : product.tag === "Popular"
-                          ? "bg-green-500 text-white"
-                          : "bg-emerald-400 text-white"
-                      }`}>
-                        {product.tag}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Wishlist Button */}
-                  <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
-                    <Heart className="w-4 h-4 text-gray-600 hover:text-green-600" />
-                  </button>
-                  
-                  {/* Sold Out Overlay */}
-                  {product.soldOut && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                      <span className="px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg">
-                        Sold Out
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Info - Flex column with grow */}
-                <div className="p-5 flex flex-col flex-grow">
-                  <h3 className="font-semibold text-lg text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2 min-h-[56px]">
-                    {product.name}
-                  </h3>
-                  
-                  <div className="flex items-center text-sm text-gray-500 mb-3">
-                    <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-                    <span className="truncate">Vendor: {product.vendor}</span>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="text-xl font-bold text-gray-900">{product.price}</div>
-                      {product.originalPrice && (
-                        <div className="text-sm text-gray-500 line-through">{product.originalPrice}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Add to Cart Button - At bottom of card */}
-                  <div className="mt-auto">
-                    <Button 
-                      className={`w-full ${
-                        product.soldOut 
-                          ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
-                          : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white"
-                      }`}
-                      disabled={product.soldOut}
-                    >
-                      {product.soldOut ? (
-                        <>
-                          <Clock className="w-4 h-4 mr-2" />
+              <SwiperSlide key={product.id} className="!w-[280px]">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full"
+                >
+                  {/* Product Image */}
+                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    
+                    {/* Tag Badge */}
+                    {product.tag && (
+                      <div className="absolute top-3 left-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          product.tag === "Best Seller" 
+                            ? "bg-green-600 text-white" 
+                            : product.tag === "Popular"
+                            ? "bg-green-500 text-white"
+                            : "bg-emerald-400 text-white"
+                        }`}>
+                          {product.tag}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Wishlist Button */}
+                    <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
+                      <Heart className="w-4 h-4 text-gray-600 hover:text-green-600" />
+                    </button>
+                    
+                    {/* Sold Out Overlay */}
+                    {product.soldOut && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                        <span className="px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg">
                           Sold Out
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Add to Cart
-                        </>
-                      )}
-                    </Button>
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </motion.div>
+
+                  {/* Product Info - Flex column with grow */}
+                  <div className="p-5 flex flex-col flex-grow">
+                    <h3 className="font-semibold text-lg text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2 min-h-[56px]">
+                      {product.name}
+                    </h3>
+                    
+                    <div className="flex items-center text-sm text-gray-500 mb-3">
+                      <Package className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">Vendor: {product.vendor}</span>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-xl font-bold text-gray-900">{product.price}</div>
+                        
+                      </div>
+                    </div>
+
+                    {/* Add to Cart Button - At bottom of card */}
+                    <div className="mt-auto">
+                      <Button 
+                        className={`w-full ${
+                          product.soldOut 
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed" 
+                            : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white"
+                        }`}
+                        disabled={product.soldOut}
+                      >
+                        {product.soldOut ? (
+                          <>
+                            <Clock className="w-4 h-4 mr-2" />
+                            Sold Out
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            Add to Cart
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
             ))}
-          </div>
+          </Swiper>
         </div>
 
         {/* View All Button - Centered Below Products */}
@@ -288,8 +325,7 @@ export const BestSellingProducts = () => {
         </div>
       </div>
     </section>
-  );
-};
+  );};
 
 // Blog Card Component
 const BlogCard = ({ blog, index }: { blog: any; index: number }) => {
