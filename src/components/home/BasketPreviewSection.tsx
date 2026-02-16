@@ -244,9 +244,9 @@ export const BestSellingProducts = () => {
                   )}
 
                   {/* Wishlist Button */}
-                  <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
+                  {/* <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
                     <Heart className="w-4 h-4 text-gray-600 hover:text-green-600" />
-                  </button>
+                  </button> */}
 
                   {/* Sold Out Overlay */}
                   {product.soldOut && (
