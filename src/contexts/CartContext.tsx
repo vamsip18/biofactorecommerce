@@ -42,7 +42,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth(); // Now this should work since CartProvider is within AuthProvider
-  
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +51,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const initializeCart = async () => {
       try {
         console.log("Initializing cart for user:", user?.email || 'guest');
-        
+
         if (user) {
           // Load from Supabase for logged-in user
           await loadFromSupabase(user.id);
@@ -92,7 +92,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const loadFromSupabase = async (userId: string) => {
     try {
       console.log("Loading cart from Supabase for user:", userId);
-      
+
       // Get or create cart
       let { data: cart, error: cartError } = await supabase
         .from('carts')
@@ -113,7 +113,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           .insert({ user_id: userId })
           .select()
           .single();
-        
+
         if (createError) {
           console.error("Error creating cart:", createError);
           throw createError;
@@ -166,7 +166,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         console.log("Transformed cart items:", transformedItems);
         setCartItems(transformedItems);
-        
+
         // Clear localStorage when loading from Supabase
         localStorage.setItem('cart', JSON.stringify([]));
       } else {
@@ -189,11 +189,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const syncCartWithSupabase = async (userId: string) => {
     try {
       console.log("Syncing cart with Supabase for user:", userId);
-      
+
       // Get localStorage cart
       const savedCart = localStorage.getItem('cart');
       const localCart: CartItem[] = savedCart ? JSON.parse(savedCart) : [];
-      
+
       console.log("Local cart items to sync:", localCart.length);
 
       if (localCart.length === 0) {
@@ -233,9 +233,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           // Update quantity (add local quantity to existing)
           await supabase
             .from('cart_items')
-            .update({ 
+            .update({
               quantity: Math.min(
-                existingItem.quantity + localItem.quantity, 
+                existingItem.quantity + localItem.quantity,
                 localItem.stock || 99
               )
             })
@@ -255,12 +255,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       // Clear localStorage after successful sync
       localStorage.removeItem('cart');
-      
+
       // Now load the merged cart from Supabase
       await loadFromSupabase(userId);
-      
+
       console.log("Cart sync completed successfully");
-      
+
     } catch (error) {
       console.error('Error syncing cart:', error);
       // On error, keep localStorage intact for retry
@@ -276,7 +276,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addToCart = async (item: Omit<CartItem, 'id'>) => {
     try {
       console.log("Adding to cart:", item);
-      
+
       if (user) {
         // Add to Supabase for logged-in user
         let { data: cart } = await supabase
@@ -309,20 +309,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             existingItem.quantity + item.quantity,
             item.stock || 99
           );
-          
+
           await supabase
             .from('cart_items')
             .update({ quantity: newQuantity })
             .eq('id', existingItem.id);
-          
+
           // Update local state
-          const updatedItems = cartItems.map(ci => 
-            ci.variantId === item.variantId 
+          const updatedItems = cartItems.map(ci =>
+            ci.variantId === item.variantId
               ? { ...ci, quantity: newQuantity }
               : ci
           );
           setCartItems(updatedItems);
-          
+
         } else {
           // Insert new item
           const { data: newItem, error: insertError } = await supabase
@@ -335,16 +335,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             })
             .select()
             .single();
-            
+
           if (insertError) throw insertError;
-          
+
           const cartItem = { ...item, id: newItem.id };
           setCartItems(prev => [...prev, cartItem]);
         }
       } else {
         // Add to localStorage for guest
         const existingIndex = cartItems.findIndex(ci => ci.variantId === item.variantId);
-        
+
         if (existingIndex >= 0) {
           // Update existing item
           const updatedItems = [...cartItems];
@@ -367,7 +367,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       toast.success(`${item.name} added to cart!`);
       window.dispatchEvent(new CustomEvent('cartUpdated'));
-      
+
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add item to cart');
@@ -387,7 +387,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       // Update local state
       const updatedItems = cartItems.filter(item => item.id !== id);
       setCartItems(updatedItems);
-      
+
       if (!user) {
         localStorage.setItem('cart', JSON.stringify(updatedItems));
       }
@@ -426,7 +426,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         item.id === id ? { ...item, quantity: newQuantity } : item
       );
       setCartItems(updatedItems);
-      
+
       if (!user) {
         localStorage.setItem('cart', JSON.stringify(updatedItems));
       }

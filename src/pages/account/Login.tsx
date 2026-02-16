@@ -15,13 +15,13 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, refreshUser } = useAuth();
-  
+
   // Get redirect parameter from URL or state
   const from = location.state?.from?.pathname || "/";
   const searchParams = new URLSearchParams(location.search);
   const redirectParam = searchParams.get("redirect");
   const redirectTo = redirectParam || from;
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ const Login = () => {
 
       if (signInError) {
         console.error("Login error:", signInError);
-        
+
         // Handle specific error cases
         if (signInError.message.includes("Invalid login credentials")) {
           throw new Error("Invalid email or password. Please try again.");
@@ -97,24 +97,24 @@ const Login = () => {
 
       // Wait a moment for auth state to update
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Force refresh auth context
       await refreshUser();
-      
+
       // Verify session exists
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error("Login successful but session not established. Please refresh the page.");
       }
 
       console.log("Login successful, session verified!");
-      
+
       toast.success("Login successful! Redirecting...");
-      
+
       // Clear form
       setFormData({ email: "", password: "" });
-      
+
       // Navigate to the intended destination
       setTimeout(() => {
         navigate(redirectTo, { replace: true });
@@ -122,13 +122,13 @@ const Login = () => {
 
     } catch (err: any) {
       console.error("Login failed:", err);
-      
+
       // Set error for display
       setError(err.message || "Login failed. Please try again.");
-      
+
       // Also show toast
       toast.error(err.message || "Login failed");
-      
+
     } finally {
       setLoading(false);
     }
@@ -149,14 +149,14 @@ const Login = () => {
       toast.error("Please enter your email address first");
       return;
     }
-    
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) throw error;
-      
+
       toast.success("Password reset email sent! Check your inbox.");
     } catch (error: any) {
       toast.error(error.message || "Failed to send reset email");
@@ -332,7 +332,7 @@ const Login = () => {
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-8 p-4 bg-gray-100 rounded-lg">
                 <p className="text-xs text-gray-600">
-                  Debug: User logged in: {user ? "Yes" : "No"} | 
+                  Debug: User logged in: {user ? "Yes" : "No"} |
                   Redirecting to: {redirectTo} |
                   Loading: {loading ? "Yes" : "No"}
                 </p>

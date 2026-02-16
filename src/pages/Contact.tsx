@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Mail, Phone, MapPin, Clock, Send, User,
   Building, CheckCircle, ChevronRight, MessageSquare,
-  Headphones, Shield, Truck, Leaf, ArrowRight, MessageCircle
+  Headphones, Shield, Truck, Leaf, ArrowRight, MessageCircle,
+  Package, RotateCcw
 } from "lucide-react";
 import { useState } from "react";
 
@@ -22,16 +23,16 @@ const contactInfo = [
   {
     icon: Phone,
     title: "Phone",
-    value: "+91 98765 43210",
-    link: "tel:+919876543210",
+    value: "+91 88866 24775",
+    link: "tel:+918886624775",
     description: "Mon-Sat: 9am-6pm",
     color: "bg-green-700"
   },
   {
     icon: MessageCircle,
     title: "WhatsApp",
-    value: "+91 98765 43210",
-    link: "https://wa.me/919876543210",
+    value: "+91 88866 24775",
+    link: "https://wa.me/8886624775",
     description: "Chat with us instantly",
     color: "bg-emerald-600"
   },
@@ -133,7 +134,7 @@ const Contact = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Contact Us</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Customer care</h1>
           <p className="text-green-100">
             Get in touch with our agricultural experts. We're here to help you grow better.
           </p>
@@ -151,7 +152,6 @@ const Contact = () => {
                   <MessageSquare className="w-5 h-5" />
                   Contact Information
                 </h2>
-
                 <div className="space-y-6">
                   {contactInfo.map((item, index) => (
                     <motion.div
@@ -166,7 +166,6 @@ const Contact = () => {
                           <div className={`p-3 rounded-lg ${item.color} text-white`}>
                             <item.icon className="w-5 h-5" />
                           </div>
-
                           <div className="flex-1">
                             <h3 className="font-bold text-green-900 mb-1">
                               {item.title}
@@ -215,26 +214,17 @@ const Contact = () => {
                 <button
                   onClick={() => setActiveTab("general")}
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "general"
-                      ? "text-green-700 border-b-2 border-green-700"
-                      : "text-gray-500 hover:text-gray-700"
+                    ? "text-green-700 border-b-2 border-green-700"
+                    : "text-gray-500 hover:text-gray-700"
                     }`}
                 >
                   General Inquiry
                 </button>
                 <button
-                  onClick={() => setActiveTab("technical")}
-                  className={`px-4 py-2 font-medium text-sm ${activeTab === "technical"
-                      ? "text-green-700 border-b-2 border-green-700"
-                      : "text-gray-500 hover:text-gray-700"
-                    }`}
-                >
-                  Technical Support
-                </button>
-                <button
                   onClick={() => setActiveTab("order")}
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "order"
-                      ? "text-green-700 border-b-2 border-green-700"
-                      : "text-gray-500 hover:text-gray-700"
+                    ? "text-green-700 border-b-2 border-green-700"
+                    : "text-gray-500 hover:text-gray-700"
                     }`}
                 >
                   Order Inquiry
@@ -327,7 +317,7 @@ const Contact = () => {
                             name="phone"
                             value={formData.phone}
                             onChange={handleInputChange}
-                            placeholder="+91 98765 43210"
+                            placeholder="+91 88866 24775"
                             className="pl-10 border-gray-300 focus:border-green-600 focus:ring-green-600"
                             disabled={formState.loading}
                           />
@@ -396,81 +386,95 @@ const Contact = () => {
           </main>
         </div>
 
-        {/* Map Section */}
-        <div className="mt-8">
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-green-600" />
-                Our Location
-              </h2>
-            </div>
-            <div className="aspect-video bg-gradient-to-br from-green-50 to-emerald-100 flex flex-col items-center justify-center p-8">
-              <div className="text-center mb-6">
-                <div className="inline-flex p-4 bg-green-600 rounded-full mb-4">
-                  <MapPin className="w-8 h-8 text-white" />
+        {/* Customer Care Quick Actions Section */}
+        <div className="mt-16 pt-12 border-t border-gray-200">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Quick Access
+            </h2>
+            <p className="text-gray-600">
+              Find answers to your most common questions
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Your Orders Card */}
+            <motion.a
+              href="/orders"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="group"
+            >
+              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-green-400 hover:shadow-lg transition-all cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-blue-100">
+                    <Package className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Bio Factor Solutions
+                  Your Orders
                 </h3>
-                <p className="text-gray-600 mb-2">
-                  Hyderabad, Telangana, India
+                <p className="text-gray-600 text-sm mb-4">
+                  Track your packages & manage your orders
                 </p>
-                <p className="text-gray-500 text-sm">
-                  Near HITEC City, Cyberabad
-                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Track packages in real-time
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Edit or cancel orders
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Download invoices
+                  </li>
+                </ul>
               </div>
+            </motion.a>
 
-              <div className="flex flex-wrap gap-3 justify-center">
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  asChild
-                >
-                  <a
-                    href="https://maps.app.goo.gl/b8CkmdTqDm5fosjD9"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Open in Maps
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500"
-                  asChild
-                >
-                  <a href="tel:+919876543210">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call Now
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-500"
-                  asChild
-                >
-                  <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    WhatsApp
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500"
-                  asChild
-                >
-                  <a href="mailto:contact@biofactor.com">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email Us
-                  </a>
-                </Button>
+            {/* Returns and Refunds Card */}
+            <motion.a
+              href="/returns"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="group"
+            >
+              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-amber-400 hover:shadow-lg transition-all cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-amber-100">
+                    <RotateCcw className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-amber-600 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Returns & Refunds
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Return or exchange items easily
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Return or exchange items
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Track refund status
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Print return labels
+                  </li>
+                </ul>
               </div>
-            </div>
+            </motion.a>
           </div>
         </div>
-
-
       </div>
     </Layout>
   );

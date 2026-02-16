@@ -20,8 +20,8 @@ import logo from "@/assets/Biofactor-Logo.png";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-// import { searchProducts, getCollections } from "@/lib/supabase/products";
-// import { getCategoryRoute, getCategoryIcon, navigateWithSearch } from "@/lib/utils";
+import { searchProducts, getCollections } from "@/lib/supabase/products";
+import { getCategoryRoute, getCategoryIcon, navigateWithSearch } from "@/lib/utils";
 
 // Updated navLinks with dropdowns
 const navLinks = [
@@ -47,8 +47,7 @@ const navLinks = [
   { name: "Large Animals", href: "/large-animals" },
   { name: "Kitchen Gardening", href: "/kitchen-gardening" },
   { name: "Blog", href: "/blog" },
-  { name: "Customer Care", href: "/contact" },
-  // { name: "Customer Care", href: "/about" }
+  { name: "Customer Care", href: "/contact" }
 ];
 
 const languages = [
@@ -703,61 +702,16 @@ export const Header = () => {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center justify-end">
               {navLinks.map((link) => (
-                <div
+                <Link
                   key={link.name}
-                  className="relative group"
-                  onMouseEnter={() => link.dropdown && setOpenDropdown(link.name)}
-                  onMouseLeave={() => setOpenDropdown(null)}
+                  to={link.href}
+                  className={`px-4 py-3 font-medium transition-colors text-sm ${location.pathname === link.href
+                    ? "text-white bg-green-800"
+                    : "text-white hover:bg-green-800"
+                    }`}
                 >
-                  {link.dropdown ? (
-                    <>
-                      <button
-                        onClick={(e) => handleDropdownToggle(link.name, e)}
-                        className={`flex items-center px-4 py-3 font-medium transition-colors text-sm ${location.pathname.startsWith(link.href)
-                            ? "text-white bg-green-800"
-                            : "text-white hover:bg-green-800"
-                          }`}
-                      >
-                        {link.name}
-                        <ChevronDown className={`ml-1 w-4 h-4 transition-transform ${openDropdown === link.name ? 'rotate-180' : ''
-                          }`} />
-                      </button>
-
-                      {/* Dropdown Menu */}
-                      <AnimatePresence>
-                        {(openDropdown === link.name) && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute right-0 mt-0 w-56 bg-white border rounded-lg shadow-lg z-50"
-                          >
-                            {link.dropdown.map((item) => (
-                              <Link
-                                key={item.name}
-                                to={item.href}
-                                className="block px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors border-b last:border-b-0 text-sm"
-                                onClick={() => setOpenDropdown(null)}
-                              >
-                                {item.name}
-                              </Link>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </>
-                  ) : (
-                    <Link
-                      to={link.href}
-                      className={`px-4 py-3 font-medium transition-colors text-sm ${location.pathname === link.href
-                          ? "text-white bg-green-800"
-                          : "text-white hover:bg-green-800"
-                        }`}
-                    >
-                      {link.name}
-                    </Link>
-                  )}
-                </div>
+                  {link.name}
+                </Link>
               ))}
             </div>
 
@@ -784,51 +738,13 @@ export const Header = () => {
                 {/* Navigation Links */}
                 {navLinks.map((link) => (
                   <div key={link.name} className="border-b border-green-800 last:border-b-0">
-                    {link.dropdown ? (
-                      <div className="space-y-1">
-                        <button
-                          onClick={(e) => handleDropdownToggle(link.name, e)}
-                          className="flex items-center justify-between w-full text-white font-medium py-3 hover:bg-green-800 px-2 rounded transition-colors"
-                        >
-                          {link.name}
-                          <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === link.name ? 'rotate-180' : ''
-                            }`} />
-                        </button>
-
-                        <AnimatePresence>
-                          {openDropdown === link.name && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="ml-4 space-y-1 overflow-hidden"
-                            >
-                              {link.dropdown.map((item) => (
-                                <Link
-                                  key={item.name}
-                                  to={item.href}
-                                  className="block text-gray-200 font-medium py-2 hover:bg-green-800 px-2 rounded transition-colors text-sm"
-                                  onClick={() => {
-                                    setMobileMenuOpen(false);
-                                    setOpenDropdown(null);
-                                  }}
-                                >
-                                  • {item.name}
-                                </Link>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    ) : (
-                      <Link
-                        to={link.href}
-                        className="block text-white font-medium py-3 hover:bg-green-800 px-2 rounded transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {link.name}
-                      </Link>
-                    )}
+                    <Link
+                      to={link.href}
+                      className="block text-white font-medium py-3 hover:bg-green-800 px-2 rounded transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.name}
+                    </Link>
                   </div>
                 ))}
 

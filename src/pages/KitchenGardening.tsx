@@ -28,247 +28,35 @@ import {
   Heart,
   Check
 } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import { useCart } from "@/contexts/CartContext";
-import { Link } from "react-router-dom";
 
-// Product Data
-const products = [
-  {
-    id: 1,
-    name: "Eight Petals - Home Gardening Kit",
-    price: 700.00,
-    originalPrice: 899.00,
-    description: "Grow Fresh & Organic Vegetables at Home with Biofactor Eight Petals. Complete home gardening kit with all essentials for beginners and experts alike.",
-    features: [
-      "8 different vegetable seeds",
-      "Organic fertilizer pouch",
-      "Soil mixture",
-      "Gardening tools set",
-      "Step-by-step guide",
-      "Grow bag included"
-    ],
-    images: [
-      "/placeholder-gardening-1.jpg",
-      "/placeholder-gardening-2.jpg",
-      "/placeholder-gardening-3.jpg"
-    ],
-    category: "Home Gardening",
-    formulation: "Complete Kit",
-    coverage: "For 10-15 plants",
-    availability: "In Stock",
-    rating: 4.8,
-    reviews: 124,
-    isBestSeller: true,
-    isNew: true,
-    sizes: ["Starter Kit", "Family Kit", "Pro Kit"],
-    dosage: "Complete kit for immediate start",
-    applicationTiming: "Any season",
-    frequency: "One-time setup",
-    caution: "Store in cool, dry place"
-  },
-  {
-    id: 2,
-    name: "V-Vacc",
-    price: 2799.00,
-    description: "Advanced plant vaccination formula for disease prevention and growth enhancement in home gardens.",
-    features: [
-      "Prevents common plant diseases",
-      "Enhances natural immunity",
-      "Improves nutrient uptake",
-      "Safe for edible plants",
-      "Easy to apply spray",
-      "Long lasting protection"
-    ],
-    images: [
-      "/placeholder-vacc-1.jpg",
-      "/placeholder-vacc-2.jpg"
-    ],
-    category: "Plant Protection",
-    formulation: "Liquid Formulation",
-    coverage: "1-5 Liters per acre",
-    availability: "In Stock",
-    rating: 4.6,
-    reviews: 89,
-    isBestSeller: false,
-    sizes: ["250 ml", "500 ml", "1 Ltr"],
-    dosage: "1-5 ml per liter of water",
-    applicationTiming: "Every 15 days",
-    frequency: "Regular preventive application"
-  },
-  {
-    id: 3,
-    name: "Virban 1 Ltr",
-    price: 2575.00,
-    description: "Natural antiviral solution for plants, effective against viral infections in home gardens.",
-    features: [
-      "Controls viral infections",
-      "100% natural ingredients",
-      "Safe for all plants",
-      "Easy dilution formula",
-      "Preventive & curative",
-      "Environment friendly"
-    ],
-    images: [
-      "/placeholder-virban-1.jpg",
-      "/placeholder-virban-2.jpg"
-    ],
-    category: "Plant Protection",
-    formulation: "Liquid Solution",
-    coverage: "2-4 ml per liter",
-    availability: "In Stock",
-    rating: 4.7,
-    reviews: 67,
-    isBestSeller: true,
-    sizes: ["100 ml", "250 ml", "500 ml", "1 Ltr"],
-    dosage: "2-4 ml per liter of water",
-    applicationTiming: "At first sign of infection",
-    frequency: "Every 7-10 days until cured"
-  },
-  {
-    id: 4,
-    name: "Sea Factor",
-    price: 1679.00,
-    originalPrice: 1999.00,
-    description: "Marine-based organic fertilizer rich in micronutrients for healthy plant growth.",
-    images: [
-      "/placeholder-sea-factor-1.jpg",
-      "/placeholder-sea-factor-2.jpg"
-    ],
-    category: "Fertilizer",
-    formulation: "Liquid Concentrate",
-    coverage: "1 liter for 100 plants",
-    availability: "In Stock",
-    rating: 4.5,
-    reviews: 92,
-    isBestSeller: true,
-    sizes: ["250 ml", "500 ml", "1 Ltr"],
-    dosage: "10 ml per liter of water",
-    applicationTiming: "During growth phase",
-    frequency: "Every 15 days"
-  },
-  {
-    id: 5,
-    name: "Proceed -",
-    price: 1080.00,
-    description: "Advanced growth promoter for faster and healthier plant development.",
-    images: [
-      "/placeholder-proceed-1.jpg",
-      "/placeholder-proceed-2.jpg"
-    ],
-    category: "Growth Promoter",
-    formulation: "Liquid Growth Enhancer",
-    coverage: "500 ml per acre",
-    availability: "In Stock",
-    rating: 4.4,
-    reviews: 56,
-    sizes: ["100 ml", "250 ml", "500 ml"],
-    dosage: "5 ml per liter of water",
-    applicationTiming: "Early morning",
-    frequency: "Weekly application"
-  },
-  {
-    id: 6,
-    name: "BOC - A Revolutionary Bio-Organic Carbon Product",
-    price: 1040.00,
-    description: "Bio-organic carbon product for soil health improvement and plant vitality.",
-    images: [
-      "/placeholder-boc-1.jpg",
-      "/placeholder-boc-2.jpg"
-    ],
-    category: "Soil Conditioner",
-    formulation: "Bio-Organic Carbon",
-    coverage: "From 2 liters per acre",
-    availability: "In Stock",
-    rating: 4.9,
-    reviews: 203,
-    isBestSeller: true,
-    isNew: true,
-    sizes: ["500 gm", "1 kg", "5 kg"],
-    dosage: "50 gm per plant",
-    applicationTiming: "Before planting",
-    frequency: "Once per season"
-  },
-  {
-    id: 7,
-    name: "Modiphy",
-    price: 1568.00,
-    description: "Plant supplement for enhanced photosynthesis and better yield.",
-    images: [
-      "/placeholder-modiphy-1.jpg",
-      "/placeholder-modiphy-2.jpg"
-    ],
-    category: "Plant Supplement",
-    formulation: "Liquid Supplement",
-    coverage: "250 ml per 100 plants",
-    availability: "In Stock",
-    rating: 4.3,
-    reviews: 45,
-    sizes: ["100 ml", "250 ml", "500 ml"],
-    dosage: "2.5 ml per liter",
-    applicationTiming: "Morning hours",
-    frequency: "Every 10 days"
-  },
-  {
-    id: 8,
-    name: "Virban 2.0",
-    price: 2499.00,
-    description: "Enhanced formula of Virban for better viral protection in plants.",
-    images: [
-      "/placeholder-virban2-1.jpg",
-      "/placeholder-virban2-2.jpg"
-    ],
-    category: "Plant Protection",
-    formulation: "Enhanced Formula",
-    coverage: "1-2 ml per liter",
-    availability: "In Stock",
-    rating: 4.7,
-    reviews: 78,
-    sizes: ["100 ml", "250 ml", "500 ml"],
-    dosage: "1-2 ml per liter",
-    applicationTiming: "Preventive application",
-    frequency: "Every 15 days"
-  },
-  {
-    id: 9,
-    name: "Regalis - 1Kg",
-    price: 2832.00,
-    description: "Plant growth regulator for controlled and uniform growth.",
-    images: [
-      "/placeholder-regalis-1.jpg",
-      "/placeholder-regalis-2.jpg"
-    ],
-    category: "Plant Regulator",
-    formulation: "Granular Form",
-    coverage: "For 200 plants",
-    availability: "In Stock",
-    rating: 4.6,
-    reviews: 62,
-    sizes: ["500 gm", "1 kg", "2 kg"],
-    dosage: "5 gm per plant",
-    applicationTiming: "During vegetative growth",
-    frequency: "Once per month"
-  },
-  {
-    id: 10,
-    name: "E-Vac - EHP Remedy",
-    price: 2911.00,
-    description: "Specialized remedy for EHP (Enterocytozoon hepatopenaei) in plants.",
-    images: [
-      "/placeholder-evac-1.jpg",
-      "/placeholder-evac-2.jpg"
-    ],
-    category: "Disease Control",
-    formulation: "Specialized Remedy",
-    coverage: "Treatment for 100 plants",
-    availability: "In Stock",
-    rating: 4.8,
-    reviews: 34,
-    sizes: ["50 ml", "100 ml", "250 ml"],
-    dosage: "5 ml per liter",
-    applicationTiming: "At symptom onset",
-    frequency: "Every 5 days until cured"
-  }
-];
+type ProductVariant = {
+  id: string;
+  title: string;
+  variant_type: string;
+  value: number | null;
+  unit: string | null;
+  price: number;
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+};
+
+type Collection = {
+  id: string;
+  title: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  collections: Collection | null;
+  product_variants: ProductVariant[];
+};
 
 const priceRanges = [
   { id: "range1", min: 0, max: 500, label: "Under Rs. 500" },
@@ -278,78 +66,194 @@ const priceRanges = [
   { id: "range5", min: 5000, max: Infinity, label: "Over Rs. 5000" }
 ];
 
-
-
 const KitchenGardening = () => {
-  const [selectedProduct, setSelectedProduct] = useState<(typeof products)[0] | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState('bestSelling');
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string[]>(['In Stock']);
+  const [filters, setFilters] = useState({
+    availability: [] as string[],
+    priceRanges: [] as string[]
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
-  const [filters, setFilters] = useState({
-    availability: [] as string[],
-    priceRanges: [] as string[],
-    search: ''
-  });
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  const [loading, setLoading] = useState(true);
 
+  // Use the real CartContext
+  const { addToCart, getCartCount } = useCart();
 
-  // Simulate cart context
-  const cartContext = {
-    addToCart: (item: any) => {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const existingItem = cart.find((cartItem: any) => cartItem.id === item.id);
+  // Get location for URL parameters
+  const location = useLocation();
 
-      if (existingItem) {
-        existingItem.quantity += item.quantity || 1;
-      } else {
-        cart.push({ ...item, quantity: item.quantity || 1 });
-      }
-
-      localStorage.setItem('cart', JSON.stringify(cart));
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-      alert(`${item.quantity || 1} × ${item.name} added to cart!`);
-    },
-    getCartCount: () => {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      return cart.reduce((total: number, item: any) => total + (item.quantity || 1), 0);
+  // Parse URL parameters on component mount and URL changes
+  useEffect(() => {
+    // Parse search query from URL
+    const urlParams = new URLSearchParams(location.search);
+    const query = urlParams.get('q');
+    if (query) {
+      setSearchQuery(query);
     }
+
+    // Handle highlighting a specific product
+    const highlightId = urlParams.get('highlight');
+    if (highlightId) {
+      // Find and highlight the product
+      const productToHighlight = products.find(p => p.id === highlightId);
+      if (productToHighlight) {
+        handleProductClick(productToHighlight);
+      }
+    }
+  }, [location.search, products]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            collections (
+              id,
+              title
+            ),
+            product_variants (
+              id,
+              title,
+              variant_type,
+              value,
+              unit,
+              price,
+              stock,
+              image_url,
+              is_active
+            )
+          `)
+          .eq("is_active", true)
+          .eq("product_variants.is_active", true);
+
+        if (error) throw error;
+
+        // Filter products to only show "Kitchen Gardening" collection
+        const kitchenGardeningProducts = (data || []).filter(product =>
+          product.collections?.title === "Kitchen Gardening"
+        );
+
+        setProducts(kitchenGardeningProducts);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Helper function to get default variant
+  const getDefaultVariant = (product: Product) => {
+    return product.product_variants?.[0];
+  };
+
+  // Helper function to get category from collections
+  const getProductCategory = (product: Product) => {
+    return product.collections?.title || "Uncategorized";
+  };
+
+  // Helper function to check if product is in stock
+  const isProductInStock = (product: Product) => {
+    const variant = getDefaultVariant(product);
+    return variant?.stock > 0;
+  };
+
+  // Helper function to get product image
+  const getProductImage = (product: Product) => {
+    const variant = getDefaultVariant(product);
+    return variant?.image_url || "/placeholder.jpg";
+  };
+
+  // Helper function to get product price
+  const getProductPrice = (product: Product) => {
+    const variant = getDefaultVariant(product);
+    return variant?.price || 0;
+  };
+
+  // Helper function to get variant display name
+  const getVariantDisplay = (variant: ProductVariant) => {
+    return `${variant.value || ''}${variant.unit || ''}`.trim();
+  };
+
+  // Get image for selected variant or use default
+  const getSelectedVariantImage = () => {
+    if (selectedVariant?.image_url) {
+      return selectedVariant.image_url;
+    }
+    return getProductImage(selectedProduct!);
   };
 
   const productsPerPage = 12;
 
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
-    const priceInRange = selectedPriceRanges.length === 0 || selectedPriceRanges.some(rangeId => {
-      const range = priceRanges.find(r => r.id === rangeId);
-      return range ? product.price >= range.min && product.price <= range.max : false;
-    });
-    const availabilityMatch = availability.length === 0 || availability.includes(product.availability);
-    const searchMatch = !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const variant = getDefaultVariant(product);
+    if (!variant) return false;
 
-    return priceInRange && availabilityMatch && searchMatch;
+    if (filters.availability.length > 0) {
+      const inStockFilter = filters.availability.includes('in-stock');
+      const outOfStockFilter = filters.availability.includes('out-of-stock');
+      const isInStock = variant.stock > 0;
+
+      if (inStockFilter && outOfStockFilter) {
+        // Show both
+      } else if (inStockFilter && !isInStock) {
+        return false;
+      } else if (outOfStockFilter && isInStock) {
+        return false;
+      }
+    }
+
+    if (filters.priceRanges.length > 0) {
+      const productPrice = variant.price;
+      const matchesPriceRange = filters.priceRanges.some(rangeId => {
+        const range = priceRanges.find(r => r.id === rangeId);
+        if (!range) return false;
+        return productPrice >= range.min && productPrice <= range.max;
+      });
+      if (!matchesPriceRange) return false;
+    }
+
+    // Search filtering
+    const searchMatch =
+      !searchQuery ||
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return searchMatch;
   });
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const variantA = getDefaultVariant(a);
+    const variantB = getDefaultVariant(b);
+    const priceA = variantA?.price || 0;
+    const priceB = variantB?.price || 0;
+
     switch (sortBy) {
       case 'priceLowHigh':
-        return a.price - b.price;
+        return priceA - priceB;
       case 'priceHighLow':
-        return b.price - a.price;
+        return priceB - priceA;
       case 'rating':
-        return b.rating - a.rating;
+        return 0;
       default: // bestSelling
-        return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviews - a.reviews;
+        return 0;
     }
   });
 
@@ -363,12 +267,15 @@ const KitchenGardening = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedPriceRanges, availability, searchQuery, sortBy]);
+  }, [filters, searchQuery]);
 
-  const handleProductClick = (product: (typeof products)[0]) => {
+  const handleProductClick = (product: Product) => {
+    const variant = getDefaultVariant(product);
+    if (!variant) return;
+
     setSelectedProduct(product);
+    setSelectedVariant(variant);
     setQuantity(1);
-    setSelectedSize(product.sizes?.[0] || "");
     setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
   };
@@ -376,33 +283,62 @@ const KitchenGardening = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
+    setSelectedVariant(null);
     document.body.style.overflow = 'unset';
   };
 
-  const handleAddToCart = (product: (typeof products)[0], size?: string, e?: React.MouseEvent) => {
+  const handleAddToCart = (
+    product: Product,
+    e?: React.MouseEvent,
+    qty?: number
+  ) => {
     if (e) e.stopPropagation();
 
-    cartContext.addToCart({
-      id: product.id,
-      name: product.name + (size ? ` - ${size}` : ''),
-      price: product.price,
-      image: product.images[0],
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage,
-      quantity: quantities[product.id] || 1
+    const variant = getDefaultVariant(product);
+    if (!variant) {
+      alert("This product variant is not available");
+      return;
+    }
+
+    const displayName = `${product.name} ${getVariantDisplay(variant)}`.trim();
+
+    addToCart({
+      productId: product.id,
+      variantId: variant.id,
+      name: displayName,
+      price: variant.price,
+      image: variant.image_url || "/placeholder.jpg",
+      category: getProductCategory(product),
+      stock: variant.stock,
+      quantity: qty ?? quantities[product.id] ?? 1
     });
 
-    // Reset quantity for this product
     setQuantities(prev => ({
       ...prev,
       [product.id]: 1
     }));
   };
 
-  const handleBuyNow = (product: (typeof products)[0], size?: string) => {
-    handleAddToCart(product, size);
+  const handleModalAddToCart = () => {
+    if (!selectedProduct || !selectedVariant) return;
+
+    const displayName = `${selectedProduct.name} ${getVariantDisplay(selectedVariant)}`.trim();
+
+    addToCart({
+      productId: selectedProduct.id,
+      variantId: selectedVariant.id,
+      name: displayName,
+      price: selectedVariant.price,
+      image: selectedVariant.image_url || "/placeholder.jpg",
+      category: getProductCategory(selectedProduct),
+      stock: selectedVariant.stock,
+      quantity: quantity
+    });
     closeModal();
+  };
+
+  const handleBuyNow = () => {
+    handleModalAddToCart();
     window.location.href = "/cart";
   };
 
@@ -419,7 +355,7 @@ const KitchenGardening = () => {
     }
   };
 
-  const handleQuantityChange = (productId: number, delta: number) => {
+  const handleQuantityChange = (productId: string, delta: number) => {
     setQuantities(prev => ({
       ...prev,
       [productId]: Math.max(1, (prev[productId] || 1) + delta)
@@ -441,8 +377,8 @@ const KitchenGardening = () => {
           <Star
             key={i}
             className={`w-4 h-4 ${i < Math.floor(rating)
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'fill-gray-300 text-gray-300'
+              ? 'fill-yellow-400 text-yellow-400'
+              : 'fill-gray-300 text-gray-300'
               }`}
           />
         ))}
@@ -455,19 +391,15 @@ const KitchenGardening = () => {
   const FilterSection = () => {
     const [expandedSections, setExpandedSections] = useState({
       price: true,
-      availability: true,
-      category: true
+      availability: true
     });
 
-    const toggleSection = (section: 'price' | 'availability' | 'category') => {
+    const toggleSection = (section: 'price' | 'availability') => {
       setExpandedSections(prev => ({
         ...prev,
         [section]: !prev[section]
       }));
     };
-
-    const categories = ["All", "Home Gardening", "Plant Protection", "Fertilizer", "Growth Promoter", "Soil Conditioner", "Plant Supplement", "Plant Regulator", "Disease Control"];
-    const [selectedCategory, setSelectedCategory] = useState("All");
 
     return (
       <div className="space-y-6">
@@ -486,8 +418,6 @@ const KitchenGardening = () => {
           </div>
         </div>
 
-
-
         {/* Availability Filter */}
         <div className="border-t pt-4">
           <button
@@ -501,23 +431,34 @@ const KitchenGardening = () => {
 
           {expandedSections.availability && (
             <div className="space-y-2">
-              {['In Stock', 'Sold Out'].map((status) => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={availability.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAvailability([...availability, status]);
-                      } else {
-                        setAvailability(availability.filter(s => s !== status));
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{status}</span>
-                </label>
-              ))}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.availability.includes('in-stock')}
+                  onChange={(e) => {
+                    const newAvailability = e.target.checked
+                      ? [...filters.availability, 'in-stock']
+                      : filters.availability.filter(v => v !== 'in-stock');
+                    setFilters({ ...filters, availability: newAvailability });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">In Stock</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.availability.includes('out-of-stock')}
+                  onChange={(e) => {
+                    const newAvailability = e.target.checked
+                      ? [...filters.availability, 'out-of-stock']
+                      : filters.availability.filter(v => v !== 'out-of-stock');
+                    setFilters({ ...filters, availability: newAvailability });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">Out of Stock</span>
+              </label>
             </div>
           )}
         </div>
@@ -539,12 +480,12 @@ const KitchenGardening = () => {
                 <label key={range.id} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={selectedPriceRanges.includes(range.id)}
+                    checked={filters.priceRanges.includes(range.id)}
                     onChange={(e) => {
-                      const nextRanges = e.target.checked
-                        ? [...selectedPriceRanges, range.id]
-                        : selectedPriceRanges.filter(id => id !== range.id);
-                      setSelectedPriceRanges(nextRanges);
+                      const newPriceRanges = e.target.checked
+                        ? [...filters.priceRanges, range.id]
+                        : filters.priceRanges.filter(v => v !== range.id);
+                      setFilters({ ...filters, priceRanges: newPriceRanges });
                     }}
                     className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
@@ -556,18 +497,18 @@ const KitchenGardening = () => {
         </div>
 
         {/* Clear Filters Button */}
-        {(selectedPriceRanges.length > 0 || availability.length !== 1 || availability[0] !== 'In Stock' || searchQuery || selectedCategory !== 'All') && (
+        {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
           <button
             onClick={() => {
-              setSelectedPriceRanges([]);
-              setAvailability(['In Stock']);
+              setFilters({ availability: [], priceRanges: [] });
               setSearchQuery('');
-              setSelectedCategory('All');
+              // Clear the URL parameter
+              window.history.replaceState({}, document.title, window.location.pathname);
             }}
             className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
           >
             <X className="w-4 h-4 mr-2" />
-            Clear All Filters
+            Clear Filters
           </button>
         )}
       </div>
@@ -575,7 +516,15 @@ const KitchenGardening = () => {
   };
 
   // Product Card Component - Grid View
-  const ProductCard = ({ product }: { product: (typeof products)[0] }) => {
+  const ProductCard = ({ product }: { product: Product }) => {
+    const variant = getDefaultVariant(product);
+    if (!variant) return null;
+
+    const productImage = getProductImage(product);
+    const productPrice = getProductPrice(product);
+    const productCategory = getProductCategory(product);
+    const isInStock = variant.stock > 0;
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -588,24 +537,14 @@ const KitchenGardening = () => {
           {/* Product Image */}
           <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
-              src={product.images[0]}
+              src={productImage}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             />
 
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && (
-                <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  NEW
-                </span>
-              )}
-              {product.isBestSeller && (
-                <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Best Seller
-                </span>
-              )}
-              {product.availability === 'Sold Out' && (
+              {!isInStock && (
                 <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
                   Sold Out
                 </span>
@@ -613,7 +552,7 @@ const KitchenGardening = () => {
             </div>
 
             {/* Wishlist Button */}
-            <button
+            {/* <button
               className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -621,7 +560,7 @@ const KitchenGardening = () => {
               }}
             >
               <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-            </button>
+            </button> */}
           </div>
 
           {/* Product Info */}
@@ -634,18 +573,15 @@ const KitchenGardening = () => {
 
             <div className="flex items-center text-sm text-gray-500 mb-2">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{product.category}</span>
+              <span className="truncate">Kitchen Gardening</span>
             </div>
-
-
 
             <div className="flex items-center justify-between gap-4 mt-3">
               {/* Price Section */}
               <div className="flex-1">
                 <div className="text-lg font-bold text-gray-900">
-                  Rs. {product.price.toFixed(2)}
+                  Rs. {productPrice.toFixed(2)}
                 </div>
-
               </div>
 
               {/* Quantity and Add to Cart */}
@@ -678,15 +614,15 @@ const KitchenGardening = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToCart(product, undefined, e);
+                    handleAddToCart(product, e);
                   }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`px-3 py-2 rounded-lg font-medium flex items-center gap-1 ${product.availability === 'Sold Out'
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  disabled={!isInStock}
+                  className={`px-3 py-2 rounded-lg font-medium flex items-center gap-1 ${!isInStock
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
-                  {product.availability === 'Sold Out' ? (
+                  {!isInStock ? (
                     <>
                       <Clock className="w-3 h-3" />
                       <span className="text-xs">Sold Out</span>
@@ -707,7 +643,14 @@ const KitchenGardening = () => {
   };
 
   // List View Item Component
-  const ListViewItem = ({ product }: { product: (typeof products)[0] }) => {
+  const ListViewItem = ({ product }: { product: Product }) => {
+    const variant = getDefaultVariant(product);
+    if (!variant) return null;
+
+    const productImage = getProductImage(product);
+    const productPrice = getProductPrice(product);
+    const isInStock = variant.stock > 0;
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -718,7 +661,7 @@ const KitchenGardening = () => {
         <div className="flex flex-col md:flex-row gap-4 md:gap-6">
           <div className="md:w-1/4">
             <img
-              src={product.images[0]}
+              src={productImage}
               alt={product.name}
               className="w-full h-48 md:h-full object-cover rounded-lg"
             />
@@ -728,14 +671,9 @@ const KitchenGardening = () => {
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex gap-2">
-                  {product.isNew && (
-                    <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      NEW
-                    </span>
-                  )}
-                  {product.isBestSeller && (
-                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Best Seller
+                  {!isInStock && (
+                    <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+                      Sold Out
                     </span>
                   )}
                 </div>
@@ -745,11 +683,7 @@ const KitchenGardening = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <Package className="w-4 h-4 mr-1" />
-                  {product.category}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  {renderStars(product.rating)}
-                  <span className="ml-1">({product.reviews})</span>
+                  Kitchen Gardening
                 </div>
               </div>
             </div>
@@ -759,13 +693,8 @@ const KitchenGardening = () => {
               <div className="w-full sm:w-auto flex items-center gap-4">
                 <div>
                   <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {product.price.toFixed(2)}
+                    Rs. {productPrice.toFixed(2)}
                   </div>
-                  {product.originalPrice && (
-                    <div className="text-sm text-gray-500 line-through">
-                      Rs. {product.originalPrice.toFixed(2)}
-                    </div>
-                  )}
                 </div>
 
                 {/* Quantity Selector */}
@@ -799,15 +728,15 @@ const KitchenGardening = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToCart(product, undefined, e);
+                    handleAddToCart(product, e);
                   }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${product.availability === 'Sold Out'
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  disabled={!isInStock}
+                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${!isInStock
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
-                  {product.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                  {!isInStock ? 'Sold Out' : 'Add to Cart'}
                 </button>
               </div>
             </div>
@@ -816,6 +745,19 @@ const KitchenGardening = () => {
       </motion.div>
     );
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading Kitchen Gardening products...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -829,6 +771,33 @@ const KitchenGardening = () => {
             </p>
           </div>
         </div>
+
+        {/* Search Results Indicator */}
+        {searchQuery && (
+          <div className="container mx-auto px-4 pt-6">
+            <div className="bg-white rounded-lg border border-green-200 p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Search Results</h3>
+                  <p className="text-gray-600 text-sm">
+                    Showing {filteredProducts.length} results for "{searchQuery}" in Kitchen Gardening
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                  }}
+                  className="px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Clear Search
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -845,7 +814,8 @@ const KitchenGardening = () => {
                       {filteredProducts.length} products
                     </span>
                   </div>
-                  <FilterSection />
+                  <FilterSection
+                  />
                 </div>
               </div>
             </aside>
@@ -868,9 +838,9 @@ const KitchenGardening = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} Kitchen Gardening products
                     </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Home Gardening Solutions</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">Kitchen Gardening Solutions</h2>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
@@ -915,20 +885,23 @@ const KitchenGardening = () => {
               {/* Products Grid/List */}
               <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
                 {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
+                  currentProducts.map((product) => {
+                    if (!product.product_variants || product.product_variants.length === 0) {
+                      return null;
+                    }
+
+                    return viewMode === "grid" ? (
                       <ProductCard key={product.id} product={product} />
                     ) : (
                       <ListViewItem key={product.id} product={product} />
-                    )
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
+                    <p className="text-gray-500 text-lg">No Kitchen Gardening products found matching your criteria.</p>
                     <button
                       onClick={() => {
-                        setSelectedPriceRanges([]);
-                        setAvailability(['In Stock']);
+                        setFilters({ availability: [], priceRanges: [] });
                         setSearchQuery('');
                       }}
                       className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
@@ -958,8 +931,8 @@ const KitchenGardening = () => {
                         key={index}
                         onClick={() => setCurrentPage(pageNum)}
                         className={`px-4 py-2 rounded-lg ${currentPage === pageNum
-                            ? "bg-green-600 text-white hover:bg-green-700"
-                            : "border border-green-200 text-green-700 hover:bg-green-50"
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "border border-green-200 text-green-700 hover:bg-green-50"
                           }`}
                       >
                         {pageNum}
@@ -1006,7 +979,8 @@ const KitchenGardening = () => {
                       <X className="w-6 h-6" />
                     </button>
                   </div>
-                  <FilterSection />
+                  <FilterSection
+                  />
                   <button
                     className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                     onClick={() => setShowFilters(false)}
@@ -1020,325 +994,283 @@ const KitchenGardening = () => {
         </AnimatePresence>
 
         {/* Product Modal */}
-        {isModalOpen && selectedProduct && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={closeModal}
-            />
+        <AnimatePresence>
+          {isModalOpen && selectedProduct && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 overflow-y-auto"
+            >
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={closeModal}
+              />
 
-            {/* Modal Content */}
-            <div className="relative min-h-screen flex items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  {/* Close Button */}
-                  <button
-                    onClick={closeModal}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
+              {/* Modal Content */}
+              <div className="relative min-h-screen flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="p-6">
+                    {/* Close Button */}
+                    <button
+                      onClick={closeModal}
+                      className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+                    >
+                      <X className="w-8 h-8" />
+                    </button>
 
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Product Images */}
-                    <div>
-                      <div className="rounded-xl overflow-hidden mb-4">
-                        <img
-                          src={selectedProduct.images[0]}
-                          alt={selectedProduct.name}
-                          className="w-full h-96 object-cover"
-                        />
-                      </div>
-                      {/* Gardening Icon */}
-                      <div className="flex items-center justify-center gap-2 text-green-600">
-                        <Leaf className="w-6 h-6" />
-                        <span className="text-lg font-semibold">Home Gardening Product</span>
-                      </div>
-                    </div>
-
-                    {/* Product Details */}
-                    <div>
-                      {/* Badges */}
-                      <div className="flex gap-2 mb-4">
-                        {selectedProduct.isNew && (
-                          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            NEW
-                          </span>
-                        )}
-                        {selectedProduct.isBestSeller && (
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            BEST SELLER
-                          </span>
-                        )}
-                      </div>
-
-                      <h2 className="text-4xl font-bold text-gray-900 mb-2">
-                        {selectedProduct.name}
-                      </h2>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {renderStars(selectedProduct.rating)}
-                        <span className="text-gray-600">({selectedProduct.reviews} reviews)</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="mb-6">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-gray-900">
-                            Rs. {selectedProduct.price.toFixed(2)}
-                          </span>
-                          {selectedProduct.originalPrice && (
-                            <span className="text-lg text-gray-500 line-through">
-                              Rs. {selectedProduct.originalPrice.toFixed(2)}
-                            </span>
+                    <div className="grid md:grid-cols-2 gap-8">
+                      {/* Product Images */}
+                      <div>
+                        <div className="rounded-xl overflow-hidden mb-4 relative">
+                          <AnimatePresence mode="wait">
+                            <motion.img
+                              key={selectedVariant?.id || getProductImage(selectedProduct!)}
+                              src={getSelectedVariantImage()}
+                              alt={selectedProduct.name}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="w-full h-96 object-cover"
+                            />
+                          </AnimatePresence>
+                          {selectedVariant?.stock === 0 && (
+                            <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold">
+                              Sold Out
+                            </div>
                           )}
                         </div>
-                        <p className="text-green-600 font-semibold mt-1">
-                          {selectedProduct.availability}
-                        </p>
-                      </div>
 
-                      {/* Shipping Info */}
-                      <div className="bg-green-50 rounded-xl p-4 mb-6">
-                        <p className="text-gray-600">
-                          <Truck className="inline w-5 h-5 mr-2" />
-                          {selectedProduct.price > 999 ? "Free shipping" : "Shipping calculated at checkout"}
-                        </p>
-                      </div>
-
-                      {/* Size Selection */}
-                      {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
-                        <div className="mb-6">
-                          <p className="font-semibold text-gray-900 mb-3">Size</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedProduct.sizes.map((size) => (
+                        {/* Variant Thumbnails */}
+                        {selectedProduct.product_variants.length > 1 && (
+                          <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                            {selectedProduct.product_variants.map((variant) => (
                               <button
-                                key={size}
-                                onClick={() => setSelectedSize(size)}
-                                className={`px-4 py-2 rounded-lg border ${selectedSize === size
-                                    ? "border-green-600 bg-green-50 text-green-700"
-                                    : "border-gray-300 hover:border-green-300"
+                                key={variant.id}
+                                onClick={() => setSelectedVariant(variant)}
+                                className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${selectedVariant?.id === variant.id
+                                  ? "border-green-600"
+                                  : "border-gray-200 hover:border-green-400"
                                   }`}
                               >
-                                {size}
+                                <img
+                                  src={variant.image_url || "/placeholder.jpg"}
+                                  alt={variant.title}
+                                  className="w-full h-full object-cover"
+                                />
                               </button>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Quantity Selector */}
-                      <div className="mb-8">
-                        <p className="font-semibold text-gray-900 mb-3">Quantity</p>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Minus className="w-5 h-5" />
-                          </button>
-                          <span className="text-2xl font-bold w-12 text-center">{quantity}</span>
-                          <button
-                            onClick={() => setQuantity(quantity + 1)}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                          <span className="text-gray-600 ml-4">
-                            Total: Rs. {(selectedProduct.price * quantity).toFixed(2)}
-                          </span>
+                        {/* Gardening Icon */}
+                        <div className="flex items-center justify-center gap-2 text-green-600 mt-4">
+                          <Leaf className="w-6 h-6" />
+                          <span className="text-lg font-semibold">Kitchen Gardening Product</span>
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <button
-                          onClick={() => {
-                            handleAddToCart(selectedProduct, selectedSize);
-                            closeModal();
-                          }}
-                          className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          <ShoppingCart className="w-6 h-6" />
-                          {selectedProduct.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
-                        </button>
-                        <button
-                          onClick={() => handleBuyNow(selectedProduct, selectedSize)}
-                          className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          Buy it now
-                        </button>
-                      </div>
-
-                      {/* Share Button */}
-                      <button
-                        onClick={handleShare}
-                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        <Share2 className="w-5 h-5" />
-                        Share
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
-                    <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
-
-                    <h4 className="text-xl font-bold text-gray-900 mb-4">Key Features</h4>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {selectedProduct.features && selectedProduct.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <Check className="w-5 h-5 text-green-600" />
-                          <span className="text-gray-700">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Specifications */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
-                        <p className="text-gray-600">{selectedProduct.category}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Formulation</h4>
-                        <p className="text-gray-600">{selectedProduct.formulation}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Coverage</h4>
-                        <p className="text-gray-600">{selectedProduct.coverage}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Application Details */}
-                  <div className="mt-12 pt-8 border-t border-gray-200 space-y-6">
-                    {selectedProduct.dosage && (
+                      {/* Product Details */}
                       <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Dosage:</h4>
-                        <p className="text-gray-700">{selectedProduct.dosage}</p>
-                      </div>
-                    )}
+                        <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                          {selectedProduct.name}
+                        </h2>
 
-                    {selectedProduct.applicationTiming && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Application Timing:</h4>
-                        <p className="text-gray-700">{selectedProduct.applicationTiming}</p>
-                      </div>
-                    )}
+                        {/* Price */}
+                        <div className="mb-6">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl font-bold text-gray-900">
+                              Rs. {selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
+                            </span>
+                          </div>
+                          <p className={`font-semibold mt-1 ${selectedVariant?.stock && selectedVariant.stock > 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                            {selectedVariant?.stock && selectedVariant.stock > 0 ? 'In Stock' : 'Sold Out'}
+                          </p>
+                        </div>
 
-                    {selectedProduct.frequency && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Frequency of Application:</h4>
-                        <p className="text-gray-700">{selectedProduct.frequency}</p>
-                      </div>
-                    )}
+                        {/* Shipping Info */}
+                        <div className="bg-green-50 rounded-xl p-4 mb-6">
+                          <p className="text-gray-600">
+                            <Truck className="inline w-5 h-5 mr-2" />
+                            {selectedVariant && selectedVariant.price > 999 ? "Free shipping" : "Shipping calculated at checkout"}
+                          </p>
+                        </div>
 
-                    {selectedProduct.caution && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Caution:</h4>
-                        <p className="text-gray-700">{selectedProduct.caution}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Special Information for Eight Petals */}
-                  {selectedProduct.id === 1 && (
-                    <div className="mt-12 pt-8 border-t border-gray-200">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Complete Home Gardening Kit</h3>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <p className="text-gray-700 mb-4">
-                          The Eight Petals Home Gardening Kit is designed for beginners and experienced gardeners alike. Everything you need to start growing your own organic vegetables at home.
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                          <li>Complete setup with all necessary components</li>
-                          <li>Organic and sustainable gardening approach</li>
-                          <li>Easy-to-follow step-by-step instructions</li>
-                          <li>Suitable for balcony, terrace, or backyard gardening</li>
-                          <li>Produces fresh vegetables within 45-60 days</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* BOC Special Information */}
-                  {selectedProduct.id === 6 && (
-                    <div className="mt-12 pt-8 border-t border-gray-200">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Bio-Organic Carbon Technology</h3>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <p className="text-gray-700 mb-4">
-                          BOC represents a revolutionary approach to soil health improvement specifically designed for home gardening.
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                          <li>Improves soil structure and water retention</li>
-                          <li>Enhances nutrient availability to plants</li>
-                          <li>Promotes beneficial soil microorganisms</li>
-                          <li>Reduces need for chemical fertilizers</li>
-                          <li>Safe for all edible plants and vegetables</li>
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* You May Also Like */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">You may also like</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {products
-                        .filter(p => p.id !== selectedProduct.id)
-                        .slice(0, 3)
-                        .map(product => (
-                          <div
-                            key={product.id}
-                            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                            onClick={() => {
-                              closeModal();
-                              setTimeout(() => handleProductClick(product), 100);
-                            }}
-                          >
-                            <div className="flex items-start gap-4">
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="w-20 h-20 object-cover rounded-lg"
-                              />
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                                <p className="text-gray-600 text-sm">{product.category}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="font-bold text-gray-900">
-                                    Rs. {product.price.toFixed(2)}
+                        {/* Variant Selection */}
+                        {selectedProduct.product_variants && selectedProduct.product_variants.length > 1 && (
+                          <div className="mb-6">
+                            <p className="font-semibold text-gray-900 mb-3">Options</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedProduct.product_variants.map((variant) => (
+                                <button
+                                  key={variant.id}
+                                  onClick={() => setSelectedVariant(variant)}
+                                  className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${selectedVariant?.id === variant.id
+                                    ? "border-green-600 bg-green-50 text-green-700"
+                                    : "border-gray-300 hover:border-green-300"
+                                    }`}
+                                >
+                                  {variant.image_url && (
+                                    <img
+                                      src={variant.image_url}
+                                      alt=""
+                                      className="w-8 h-8 rounded object-cover"
+                                    />
+                                  )}
+                                  <span>
+                                    {getVariantDisplay(variant)} – Rs. {variant.price}
                                   </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddToCart(product);
-                                    }}
-                                    className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-                                  >
-                                    Add
-                                  </button>
-                                </div>
-                              </div>
+                                </button>
+                              ))}
                             </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* Quantity Selector */}
+                        <div className="mb-8">
+                          <p className="font-semibold text-gray-900 mb-3">Quantity</p>
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                              className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              <Minus className="w-5 h-5" />
+                            </button>
+                            <span className="text-2xl font-bold w-12 text-center">{quantity}</span>
+                            <button
+                              onClick={() => setQuantity(quantity + 1)}
+                              className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </button>
+                            {selectedVariant && (
+                              <span className="text-gray-600 ml-4">
+                                Total: Rs. {(selectedVariant.price * quantity).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                          <button
+                            onClick={handleModalAddToCart}
+                            className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            disabled={!selectedVariant || selectedVariant.stock === 0}
+                          >
+                            <ShoppingCart className="w-6 h-6" />
+                            {!selectedVariant || selectedVariant.stock === 0 ? 'Sold Out' : 'Add to Cart'}
+                          </button>
+                          <button
+                            onClick={handleBuyNow}
+                            className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+                            disabled={!selectedVariant || selectedVariant.stock === 0}
+                          >
+                            Buy it now
+                          </button>
+                        </div>
+
+                        {/* Share Button */}
+                        <button
+                          onClick={handleShare}
+                          className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
+                        >
+                          <Share2 className="w-5 h-5" />
+                          Share
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="mt-12 pt-8 border-t border-gray-200">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
+                      <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
+                    </div>
+
+                    {/* Specifications */}
+                    <div className="mt-12 pt-8 border-t border-gray-200">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-green-50 p-6 rounded-xl">
+                          <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
+                          <p className="text-gray-600">Kitchen Gardening</p>
+                        </div>
+                        {selectedVariant && (
+                          <div className="bg-green-50 p-6 rounded-xl">
+                            <h4 className="font-semibold text-gray-900 mb-2">Available Size</h4>
+                            <p className="text-gray-600">
+                              {getVariantDisplay(selectedVariant)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* You May Also Like */}
+                    <div className="mt-12 pt-8 border-t border-gray-200">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">You may also like</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {products
+                          .filter(p => p.id !== selectedProduct.id)
+                          .slice(0, 3)
+                          .map(product => {
+                            const variant = getDefaultVariant(product);
+                            if (!variant) return null;
+
+                            return (
+                              <motion.div
+                                key={product.id}
+                                whileHover={{ y: -5 }}
+                                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                                onClick={() => {
+                                  closeModal();
+                                  setTimeout(() => handleProductClick(product), 100);
+                                }}
+                              >
+                                <div className="flex items-start gap-4">
+                                  <img
+                                    src={getProductImage(product)}
+                                    alt={product.name}
+                                    className="w-20 h-20 object-cover rounded-lg"
+                                  />
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900">{product.name}</h4>
+                                    <p className="text-gray-600 text-sm">Kitchen Gardening</p>
+                                    <div className="flex items-center justify-between mt-2">
+                                      <span className="font-bold text-gray-900">
+                                        Rs. {getProductPrice(product).toFixed(2)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleAddToCart(product, e);
+                                        }}
+                                        className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                                      >
+                                        Add
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Cart Count Indicator */}
         <div className="fixed bottom-6 right-6 z-40">
@@ -1349,15 +1281,15 @@ const KitchenGardening = () => {
             >
               <ShoppingCart className="w-8 h-8" />
             </Link>
-            {cartContext.getCartCount() > 0 && (
+            {getCartCount() > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                {cartContext.getCartCount()}
+                {getCartCount()}
               </span>
             )}
           </div>
         </div>
       </div>
-    </Layout>
+    </Layout> 
   );
 };
 

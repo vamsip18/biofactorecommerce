@@ -22,11 +22,11 @@ import { toast } from "sonner";
 const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Check if we have a redirect from cart/checkout
   const searchParams = new URLSearchParams(location.search);
   const redirectAfterLogin = searchParams.get("redirect") || "/";
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +48,8 @@ const Register = () => {
 
   const validateForm = () => {
     // Check required fields
-    if (!formData.email || !formData.password || !formData.confirmPassword || 
-        !formData.firstName || !formData.lastName) {
+    if (!formData.email || !formData.password || !formData.confirmPassword ||
+      !formData.firstName || !formData.lastName) {
       setError("Please fill in all required fields");
       return false;
     }
@@ -108,10 +108,10 @@ const Register = () => {
 
       if (signUpError) {
         console.error("Registration error:", signUpError);
-        
-        if (signUpError.message.includes("already registered") || 
-            signUpError.message.includes("User already registered") ||
-            signUpError.code === 'user_already_exists') {
+
+        if (signUpError.message.includes("already registered") ||
+          signUpError.message.includes("User already registered") ||
+          signUpError.code === 'user_already_exists') {
           throw new Error("This email is already registered. Please login instead.");
         } else if (signUpError.message.includes("Invalid email")) {
           throw new Error("Please enter a valid email address.");
@@ -137,7 +137,7 @@ const Register = () => {
       if (data.session) {
         // User is logged in immediately (email confirmation not required)
         toast.success("Registration successful! Welcome to Biofactor!");
-        
+
         // Navigate based on redirect
         setTimeout(() => {
           navigate(redirectAfterLogin, { replace: true });
@@ -145,10 +145,10 @@ const Register = () => {
       } else {
         // Email verification required
         toast.success("Registration successful! Please check your email to verify your account.");
-        
-        navigate("/login", { 
+
+        navigate("/login", {
           replace: true,
-          state: { 
+          state: {
             message: "Please check your email to verify your account.",
             email: formData.email,
             type: "success"

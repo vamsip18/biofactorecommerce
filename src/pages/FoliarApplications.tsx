@@ -428,7 +428,7 @@ const FoliarApplications = () => {
             </div>
 
             {/* Wishlist Button */}
-            <button
+            {/* <button
               className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -436,7 +436,7 @@ const FoliarApplications = () => {
               }}
             >
               <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-            </button>
+            </button> */}
           </div>
 
           {/* Product Info */}
@@ -638,7 +638,8 @@ const FoliarApplications = () => {
   };
 
   return (
-    <Layout>
+    // <Layout>
+    <>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
@@ -1023,21 +1024,18 @@ const FoliarApplications = () => {
                         <p className="text-gray-700">{selectedProduct.dosage}</p>
                       </div>
                     )}
-
                     {selectedProduct.applicationTiming && (
                       <div>
                         <h4 className="text-xl font-bold text-gray-900 mb-3">Application Timing:</h4>
                         <p className="text-gray-700">{selectedProduct.applicationTiming}</p>
                       </div>
                     )}
-
                     {selectedProduct.frequency && (
                       <div>
                         <h4 className="text-xl font-bold text-gray-900 mb-3">Frequency of Application:</h4>
                         <p className="text-gray-700">{selectedProduct.frequency}</p>
                       </div>
                     )}
-
                     {selectedProduct.caution && (
                       <div>
                         <h4 className="text-xl font-bold text-gray-900 mb-3">Caution:</h4>
@@ -1173,7 +1171,8 @@ const FoliarApplications = () => {
 
 
       </div>
-    </Layout>
+      </>
+    /* </Layout> */
   );
 };
 

@@ -1,4 +1,4 @@
-// DripApplications.tsx
+// src/pages/DripApplications.tsx
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { Layout } from '@/components/layout/Layout';
@@ -10,32 +10,42 @@ import {
   Plus, Minus, Share2, Heart,
   Grid, List, Search, Clock,
   Package, Sliders, ArrowUpDown,
-  ChevronLeft, ChevronRight, Droplets
+  ChevronLeft, ChevronRight, Droplets,
+  Tag, BarChart3, TrendingUp, Leaf,
+  Zap, Droplet, Thermometer, CloudRain,
+  Wind, Sun, Moon, CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
-interface Product {
-  id: number;
-  name: string;
+// Types based on your Supabase schema
+type ProductVariant = {
+  id: string;
+  title: string;
+  variant_type: string;
+  value: number | null;
+  unit: string | null;
   price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  formulation: string;
-  coverage: string;
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+  sku: string;
+};
+
+type Collection = {
+  id: string;
+  title: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
   description: string;
-  features: string[];
-  availability: 'In Stock' | 'Sold Out';
-  rating: number;
-  reviews: number;
-  isNew?: boolean;
-  isBestSeller?: boolean;
-  dosage?: string;
-  applicationTiming?: string;
-  frequency?: string;
-  caution?: string;
-  sizes?: string[];
-}
+  is_active: boolean;
+  created_at?: string;
+  collections: Collection | null;
+  product_variants: ProductVariant[];
+};
 
 const priceRanges = [
   { id: "range1", min: 0, max: 500, label: "Under Rs. 500" },
@@ -45,184 +55,498 @@ const priceRanges = [
   { id: "range5", min: 5000, max: Infinity, label: "Over Rs. 5000" }
 ];
 
+// Helper functions
+const getDefaultVariant = (product: Product) => {
+  return product.product_variants?.[0];
+};
+
+const getProductCategory = (product: Product) => {
+  return product.collections?.title || "Drip Applications";
+};
+
+const isProductInStock = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.stock > 0;
+};
+
+const getProductImage = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.image_url || "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop";
+};
+
+const getProductPrice = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.price || 0;
+};
+
+const getVariantDisplay = (variant: ProductVariant) => {
+  return `${variant.value || ''}${variant.unit || ''}`.trim();
+};
+
+const renderStars = (rating: number) => {
+  const defaultRating = rating || 4.5;
+  return (
+    <div className="flex items-center gap-1">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i < Math.floor(defaultRating)
+            ? 'fill-yellow-400 text-yellow-400'
+            : 'fill-gray-300 text-gray-300'
+            }`}
+        />
+      ))}
+      <span className="text-sm text-gray-600 ml-1">({defaultRating})</span>
+    </div>
+  );
+};
+
+// Determine if product is new based on created_at
+const isProductNew = (product: Product) => {
+  if (product.created_at) {
+    const createdDate = new Date(product.created_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return createdDate > thirtyDaysAgo;
+  }
+  return false;
+};
+
+const isProductBestSeller = (product: Product) => {
+  const name = product.name.toLowerCase();
+  return name.includes('iim chakra') || name.includes('proceed') || name.includes('boc') || name.includes('virnix');
+};
+
+// Get product features based on product name
+const getProductFeatures = (product: Product) => {
+  const name = product.name.toLowerCase();
+
+  if (name.includes('chakra')) {
+    return [
+      "1.5x10⁸ bacteria per millilitre",
+      "Collects nitrogen from air",
+      "Dissolves phosphorus and potash",
+      "Increases soil fertility",
+      "25-30% higher yields"
+    ];
+  } else if (name.includes('proceed')) {
+    return [
+      "Improves nutrient uptake",
+      "Enhances root development",
+      "Increases stress tolerance",
+      "Better water utilization",
+      "Compatible with fertilizers"
+    ];
+  } else if (name.includes('boc')) {
+    return [
+      "Increases soil organic carbon",
+      "Improves soil structure",
+      "Enhances water retention",
+      "Promotes microbial activity",
+      "Sustainable alternative"
+    ];
+  } else if (name.includes('high-k')) {
+    return [
+      "High potassium content",
+      "Improves fruit quality",
+      "Enhances stress tolerance",
+      "Better water regulation",
+      "Quick absorption"
+    ];
+  } else if (name.includes('virnix')) {
+    return [
+      "Complete nutrition package",
+      "Viral disease protection",
+      "Systemic action",
+      "Enhances plant immunity",
+      "Compatible with drip systems"
+    ];
+  }
+
+  // Default features
+  return [
+    "Efficient nutrient delivery",
+    "Drip system compatible",
+    "Easy to apply",
+    "Improves crop health",
+    "Increases yield"
+  ];
+};
+
+// Get product specifications
+const getProductSpecifications = (product: Product) => {
+  const variant = getDefaultVariant(product);
+  const name = product.name.toLowerCase();
+
+  if (name.includes('chakra')) {
+    return {
+      dosage: "1-5 liters per acre through drip irrigation",
+      applicationTiming: "First stage (within 10-15 days after sowing)",
+      frequency: "1 time for short-term crops, 2 times for mid-term crops, 2-3 times for perennial crops",
+      caution: "Apply 5 days before or after chemical fertilizers through drip irrigation"
+    };
+  } else if (name.includes('proceed')) {
+    return {
+      dosage: "500 ml per acre mixed with irrigation water",
+      applicationTiming: "During critical growth stages",
+      frequency: "Every 15-20 days during crop period"
+    };
+  } else if (name.includes('boc')) {
+    return {
+      dosage: "2-5 liters per acre through drip system",
+      applicationTiming: "At planting and during growing season",
+      frequency: "2-3 applications per season"
+    };
+  } else if (name.includes('high-k')) {
+    return {
+      dosage: "1 liter per acre through drip irrigation",
+      applicationTiming: "During flowering and fruiting stages",
+      frequency: "2-3 applications during critical stages"
+    };
+  } else if (name.includes('virnix')) {
+    return {
+      dosage: "750 ml per acre mixed with irrigation water",
+      applicationTiming: "Preventive application and during stress periods",
+      frequency: "Every 15 days during high-risk periods"
+    };
+  }
+
+  return {
+    dosage: "As per manufacturer's recommendation",
+    applicationTiming: "During crop growth stages",
+    frequency: "Regular applications as needed"
+  };
+};
+
+// Get product sizes from variants
+const getProductSizes = (product: Product) => {
+  return product.product_variants
+    ?.filter(variant => variant.is_active)
+    .map(variant => getVariantDisplay(variant))
+    .filter((size, index, self) => self.indexOf(size) === index) || [];
+};
+
+// Enhanced search function that searches multiple fields
+const searchProducts = (products: Product[], query: string) => {
+  if (!query.trim()) return products;
+
+  const searchTerms = query.toLowerCase().trim().split(/\s+/);
+
+  return products.filter(product => {
+    // Search in multiple fields
+    const searchableFields = [
+      product.name.toLowerCase(),
+      product.description.toLowerCase(),
+      getProductCategory(product).toLowerCase(),
+      ...getProductFeatures(product).map(f => f.toLowerCase()),
+      ...Object.values(getProductSpecifications(product)).map(v => v.toLowerCase()),
+      ...product.product_variants?.map(v =>
+        `${v.title} ${getVariantDisplay(v)} ${v.sku}`
+      ).join(' ').toLowerCase().split(' ') || []
+    ].filter(Boolean);
+
+    // Check if ALL search terms are found in any of the fields
+    return searchTerms.every(term =>
+      searchableFields.some(field => field.includes(term))
+    );
+  });
+};
+
+// Filter Section Component
+const FilterSection = ({
+  filters,
+  setFilters,
+  searchQuery,
+  setSearchQuery
+}: {
+  filters: {
+    availability: string[];
+    priceRanges: string[];
+  };
+  setFilters: (filters: any) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) => {
+  const [expandedSections, setExpandedSections] = useState({
+    price: true,
+    availability: true
+  });
+
+  const toggleSection = (section: 'price' | 'availability') => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search */}
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search products..."
+            className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Availability Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('availability')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Availability</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.availability && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('in-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked
+                    ? [...filters.availability, 'in-stock']
+                    : filters.availability.filter(v => v !== 'in-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">In Stock</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('out-of-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked
+                    ? [...filters.availability, 'out-of-stock']
+                    : filters.availability.filter(v => v !== 'out-of-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">Out of Stock</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Price Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('price')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Price</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.price && (
+          <div className="space-y-2">
+            {priceRanges.map((range) => (
+              <label key={range.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.priceRanges.includes(range.id)}
+                  onChange={(e) => {
+                    const newPriceRanges = e.target.checked
+                      ? [...filters.priceRanges, range.id]
+                      : filters.priceRanges.filter(v => v !== range.id);
+                    setFilters({ ...filters, priceRanges: newPriceRanges });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{range.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Clear Filters Button */}
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
+        <button
+          onClick={() => {
+            setFilters({ availability: [], priceRanges: [] });
+            setSearchQuery('');
+          }}
+          className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Clear Filters
+        </button>
+      )}
+    </div>
+  );
+};
+
 const DripApplications = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState('bestSelling');
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string[]>(['In Stock']);
+  const [filters, setFilters] = useState({
+    availability: [] as string[],
+    priceRanges: [] as string[]
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const { addToCart, getCartCount } = useCart();
-  const [filters, setFilters] = useState({
-    availability: [] as string[],
-    priceRanges: [] as string[],
-    search: ''
-  });
 
-
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "IINM Chakra -",
-      description: "Bacterial consortium in liquid form for efficient drip irrigation",
-      price: 736.00,
-      image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-      category: "Bacterial Consortium",
-      formulation: "Liquid Formulation",
-      coverage: "1-5 Liters per acre",
-      features: [
-        "1.5x10⁸ bacteria per millilitre",
-        "Collects nitrogen from air",
-        "Dissolves phosphorus and potash",
-        "Increases soil fertility",
-        "25-30% higher yields"
-      ],
-      availability: "In Stock",
-      rating: 4.7,
-      reviews: 156,
-      isBestSeller: true,
-      sizes: ["1 Ltr", "5 Ltr"],
-      dosage: "1-5 liters per acre through drip irrigation",
-      applicationTiming: "First stage (within 10-15 days after sowing)",
-      frequency: "1 time for short-term crops, 2 times for mid-term crops, 2-3 times for perennial crops",
-      caution: "Apply 5 days before or after chemical fertilizers through drip irrigation"
-    },
-    {
-      id: 2,
-      name: "Proceed -",
-      description: "Advanced formulation for enhanced crop growth through drip systems",
-      price: 1080.00,
-      image: "https://images.unsplash.com/photo-1597848212624-e5f4b41d7f50?w=400&h=400&fit=crop",
-      category: "Growth Enhancer",
-      formulation: "Liquid Concentrate",
-      coverage: "500 ml per acre",
-      features: [
-        "Improves nutrient uptake",
-        "Enhances root development",
-        "Increases stress tolerance",
-        "Better water utilization",
-        "Compatible with fertilizers"
-      ],
-      availability: "In Stock",
-      rating: 4.5,
-      reviews: 128,
-      sizes: ["250 ml", "500 ml", "1 Ltr"],
-      dosage: "500 ml per acre mixed with irrigation water",
-      applicationTiming: "During critical growth stages",
-      frequency: "Every 15-20 days during crop period"
-    },
-    {
-      id: 3,
-      name: "BOC - A Revolutionary Bio-Organic Carbon Product",
-      description: "Bio-organic carbon for sustainable soil enrichment through drip",
-      price: 1040.00,
-      originalPrice: 1200.00,
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c033a88e?w=400&h=400&fit=crop",
-      category: "Organic Carbon",
-      formulation: "Liquid Suspension",
-      coverage: "From 2 liters per acre",
-      features: [
-        "Increases soil organic carbon",
-        "Improves soil structure",
-        "Enhances water retention",
-        "Promotes microbial activity",
-        "Sustainable alternative"
-      ],
-      availability: "In Stock",
-      rating: 4.8,
-      reviews: 203,
-      isBestSeller: true,
-      isNew: true,
-      sizes: ["1 Ltr", "2 Ltr", "5 Ltr"],
-      dosage: "2-5 liters per acre through drip system",
-      applicationTiming: "At planting and during growing season",
-      frequency: "2-3 applications per season"
-    },
-    {
-      id: 4,
-      name: "High-K Liquid Nutrient",
-      description: "High potassium liquid formulation for drip irrigation systems",
-      price: 1800.00,
-      image: "https://images.unsplash.com/photo-1615485500607-1758f56c2c8a?w=400&h=400&fit=crop",
-      category: "Potassium Nutrient",
-      formulation: "Liquid Solution",
-      coverage: "1 liter per acre",
-      features: [
-        "High potassium content",
-        "Improves fruit quality",
-        "Enhances stress tolerance",
-        "Better water regulation",
-        "Quick absorption"
-      ],
-      availability: "In Stock",
-      rating: 4.6,
-      reviews: 145,
-      isBestSeller: true,
-      sizes: ["500 ml", "1 Ltr", "5 Ltr"],
-      dosage: "1 liter per acre through drip irrigation",
-      applicationTiming: "During flowering and fruiting stages",
-      frequency: "2-3 applications during critical stages"
-    },
-    {
-      id: 5,
-      name: "Nutrition & Virnix",
-      description: "Combined nutrition and viral protection for drip application",
-      price: 1716.00,
-      image: "https://images.unsplash.com/photo-1581235720708-87e772807c71?w=400&h=400&fit=crop",
-      category: "Nutrition & Protection",
-      formulation: "Liquid Formulation",
-      coverage: "750 ml per acre",
-      features: [
-        "Complete nutrition package",
-        "Viral disease protection",
-        "Systemic action",
-        "Enhances plant immunity",
-        "Compatible with drip systems"
-      ],
-      availability: "In Stock",
-      rating: 4.7,
-      reviews: 189,
-      sizes: ["500 ml", "750 ml", "1 Ltr"],
-      dosage: "750 ml per acre mixed with irrigation water",
-      applicationTiming: "Preventive application and during stress periods",
-      frequency: "Every 15 days during high-risk periods"
-    }
-  ];
+  // State for quantity selectors in product cards
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
 
   const productsPerPage = 12;
 
+  // Fetch drip applications products from Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+
+        const { data, error } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            is_active,
+            created_at,
+            collections (
+              id,
+              title
+            ),
+            product_variants (
+              id,
+              title,
+              variant_type,
+              value,
+              unit,
+              price,
+              stock,
+              image_url,
+              is_active,
+              sku
+            )
+          `)
+          .eq("is_active", true);
+
+        if (error) throw error;
+
+        // Filter data on the frontend
+        const dripProducts = (data || [])
+          .map(product => ({
+            ...product,
+            product_variants: product.product_variants?.filter(
+              (v: ProductVariant) => v.is_active === true
+            ) || []
+          }))
+          .filter(product => {
+            if (product.product_variants.length === 0) return false;
+
+            const collectionName = product.collections?.title?.toLowerCase() || '';
+            const productName = product.name.toLowerCase();
+            const productDescription = product.description?.toLowerCase() || '';
+
+            // Filter for drip applications products
+            return collectionName.includes('drip') ||
+              productName.includes('drip') ||
+              productDescription.includes('drip') ||
+              productName.includes('chakra') ||
+              productName.includes('iim chakra') ||
+              productName.includes('proceed') ||
+              productName.includes('boc') ||
+              productName.includes('high-k') ||
+              productName.includes('virnix') ||
+              productDescription.includes('drip irrigation') ||
+              productDescription.includes('irrigation system') ||
+              productDescription.includes('drip application');
+          });
+
+        setProducts(dripProducts);
+
+        // Initialize quantities
+        const initialQuantities: Record<string, number> = {};
+        dripProducts.forEach(product => {
+          initialQuantities[product.id] = 1;
+        });
+        setProductQuantities(initialQuantities);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        toast.error("Failed to load drip applications products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
-    const priceInRange = selectedPriceRanges.length === 0 || selectedPriceRanges.some(rangeId => {
-      const range = priceRanges.find(r => r.id === rangeId);
-      return range ? product.price >= range.min && product.price <= range.max : false;
-    });
-    const availabilityMatch = availability.length === 0 || availability.includes(product.availability);
-    const searchMatch = !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    if (filters.availability.length > 0) {
+      const inStockFilter = filters.availability.includes('in-stock');
+      const outOfStockFilter = filters.availability.includes('out-of-stock');
+      const isInStock = isProductInStock(product);
 
-    return priceInRange && availabilityMatch && searchMatch;
+      if (inStockFilter && outOfStockFilter) {
+        // Show both
+      } else if (inStockFilter && !isInStock) {
+        return false;
+      } else if (outOfStockFilter && isInStock) {
+        return false;
+      }
+    }
+
+    if (filters.priceRanges.length > 0) {
+      const productPrice = getProductPrice(product);
+      const matchesPriceRange = filters.priceRanges.some(rangeId => {
+        const range = priceRanges.find(r => r.id === rangeId);
+        if (!range) return false;
+        return productPrice >= range.min && productPrice <= range.max;
+      });
+      if (!matchesPriceRange) return false;
+    }
+
+    return true;
   });
 
+  // Apply search to filtered products
+  const searchedProducts = searchProducts(filteredProducts, searchQuery);
+
   // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const sortedProducts = [...searchedProducts].sort((a, b) => {
     switch (sortBy) {
       case 'priceLowHigh':
-        return a.price - b.price;
+        return getProductPrice(a) - getProductPrice(b);
       case 'priceHighLow':
-        return b.price - a.price;
+        return getProductPrice(b) - getProductPrice(a);
+      case 'newest':
+        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
       case 'rating':
-        return b.rating - a.rating;
+        // For now using default rating, you can add rating field to your database
+        return 0;
       default: // bestSelling
-        return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviews - a.reviews;
+        const aBestSeller = isProductBestSeller(a);
+        const bBestSeller = isProductBestSeller(b);
+        return (bBestSeller ? 1 : 0) - (aBestSeller ? 1 : 0);
     }
   });
 
@@ -236,51 +560,47 @@ const DripApplications = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedPriceRanges, availability, searchQuery, sortBy]);
+  }, [filters, searchQuery, sortBy]);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
+    const defaultVariant = getDefaultVariant(product);
+    setSelectedVariant(defaultVariant || null);
     setQuantity(1);
-    setSelectedSize(product.sizes?.[0] || "");
+    const sizes = getProductSizes(product);
+    setSelectedSize(sizes[0] || "");
     setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setSelectedProduct(null);
+    setSelectedVariant(null);
     document.body.style.overflow = 'unset';
   };
 
-  const handleAddToCart = (product: Product, size?: string) => {
+  const handleAddToCart = (product: Product, variant?: ProductVariant, size?: string, qty?: number) => {
+    const targetVariant = variant || getDefaultVariant(product);
+    const displayName = `${product.name}${size ? ` - ${size}` : ''}`.trim();
+    const quantity = qty || productQuantities[product.id] || 1;
+
     addToCart({
-      id: product.id,
-      name: product.name + (size ? ` - ${size}` : ''),
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage,
-      quantity: quantities[product.id] || 1
+      productId: product.id,
+      variantId: targetVariant?.id || product.id.toString(),
+      name: displayName,
+      price: targetVariant?.price || getProductPrice(product),
+      image: targetVariant?.image_url || getProductImage(product),
+      category: getProductCategory(product),
+      quantity: quantity,
+      stock: targetVariant?.stock || 10
     });
-    toast.success("Added to cart");
-
-    // Reset quantity for this product
-    setQuantities(prev => ({
-      ...prev,
-      [product.id]: 1
-    }));
+    toast.success(`Added ${quantity} item${quantity > 1 ? 's' : ''} to cart`);
   };
 
-  const handleBuyNow = (product: Product, size?: string) => {
-    handleAddToCart(product, size);
+  const handleBuyNow = (product: Product, variant?: ProductVariant, size?: string) => {
+    handleAddToCart(product, variant, size);
     window.location.href = "/cart";
-  };
-
-  const handleQuantityChange = (productId: number, delta: number) => {
-    setQuantities(prev => ({
-      ...prev,
-      [productId]: Math.max(1, (prev[productId] || 1) + delta)
-    }));
   };
 
   const handleShare = () => {
@@ -296,6 +616,14 @@ const DripApplications = () => {
     }
   };
 
+  const updateProductQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    setProductQuantities(prev => ({
+      ...prev,
+      [productId]: Math.min(newQuantity, 10) // Limit to 10 per product
+    }));
+  };
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeModal();
@@ -304,141 +632,18 @@ const DripApplications = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`w-4 h-4 ${i < Math.floor(rating)
-              ? 'fill-yellow-400 text-yellow-400'
-              : 'fill-gray-300 text-gray-300'
-              }`}
-          />
-        ))}
-        <span className="text-sm text-gray-600 ml-1">({rating})</span>
-      </div>
-    );
-  };
-
-  // Filter Section Component
-  const FilterSection = () => {
-    const [expandedSections, setExpandedSections] = useState({
-      price: true,
-      availability: true
-    });
-
-    const toggleSection = (section: 'price' | 'availability') => {
-      setExpandedSections(prev => ({
-        ...prev,
-        [section]: !prev[section]
-      }));
-    };
-
-    return (
-      <div className="space-y-6">
-        {/* Search */}
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Availability Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('availability')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Availability</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
-              }`} />
-          </button>
-
-          {expandedSections.availability && (
-            <div className="space-y-2">
-              {['In Stock', 'Sold Out'].map((status) => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={availability.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAvailability([...availability, status]);
-                      } else {
-                        setAvailability(availability.filter(s => s !== status));
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{status}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Price Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('price')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Price</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
-              }`} />
-          </button>
-
-          {expandedSections.price && (
-            <div className="space-y-2">
-              {priceRanges.map((range) => (
-                <label key={range.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedPriceRanges.includes(range.id)}
-                    onChange={(e) => {
-                      const nextRanges = e.target.checked
-                        ? [...selectedPriceRanges, range.id]
-                        : selectedPriceRanges.filter(id => id !== range.id);
-                      setSelectedPriceRanges(nextRanges);
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{range.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Clear Filters Button */}
-        {(selectedPriceRanges.length > 0 || availability.length !== 1 || availability[0] !== 'In Stock' || searchQuery) && (
-          <button
-            onClick={() => {
-              setSelectedPriceRanges([]);
-              setAvailability(['In Stock']);
-              setSearchQuery('');
-            }}
-            className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Clear All Filters
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  // Product Card Component - Grid View
+  // Product Card Component - Grid View with Quantity Selector
   const ProductCard = ({ product }: { product: Product }) => {
+    const defaultVariant = getDefaultVariant(product);
+    const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+
+    const productImage = getProductImage(product, activeVariant);
+    const productPrice = getProductPrice(product, activeVariant);
+    const isInStock = isProductInStock(product, activeVariant);
+    const reviews = 156;
+    const rating = 4.5;
+    const productQuantity = productQuantities[product.id] || 1;
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -451,24 +656,41 @@ const DripApplications = () => {
           {/* Product Image */}
           <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
-              src={product.image}
+              src={productImage}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             />
 
+            {/* Variant Hover Dots */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                {product.product_variants.map(v => (
+                  <button
+                    key={v.id}
+                    onMouseEnter={(e) => {
+                      e.stopPropagation();
+                      setActiveVariant(v);
+                    }}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${activeVariant.id === v.id ? "bg-green-600 scale-110" : "bg-gray-300 hover:bg-green-400"
+                      }`}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && (
+              {isProductNew(product) && (
                 <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
                   NEW
                 </span>
               )}
-              {product.isBestSeller && (
+              {isProductBestSeller(product) && (
                 <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
                   Best Seller
                 </span>
               )}
-              {product.availability === 'Sold Out' && (
+              {!isInStock && (
                 <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
                   Sold Out
                 </span>
@@ -476,7 +698,7 @@ const DripApplications = () => {
             </div>
 
             {/* Wishlist Button */}
-            <button
+            {/* <button
               className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -484,7 +706,7 @@ const DripApplications = () => {
               }}
             >
               <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-            </button>
+            </button> */}
           </div>
 
           {/* Product Info */}
@@ -497,78 +719,81 @@ const DripApplications = () => {
 
             <div className="flex items-center text-sm text-gray-500 mb-2">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{product.category}</span>
+              <span className="truncate">{getProductCategory(product)}</span>
             </div>
 
             {/* Rating */}
             <div className="mb-3">
-              {renderStars(product.rating)}
-              <p className="text-sm text-gray-500 mt-1">{product.reviews} reviews</p>
+              {renderStars(rating)}
+              <p className="text-sm text-gray-500 mt-1">{reviews} reviews</p>
             </div>
 
             <div className="flex items-center justify-between gap-4 mt-3">
               {/* Price Section */}
               <div className="flex-1">
                 <div className="text-lg font-bold text-gray-900">
-                  Rs. {product.price.toFixed(2)}
+                  Rs. {productPrice.toFixed(2)}
                 </div>
-                {product.originalPrice && (
-                  <div className="text-sm text-gray-500 line-through">
-                    Rs. {product.originalPrice.toFixed(2)}
-                  </div>
-                )}
+                <div className="text-sm text-gray-500">
+                  {getVariantDisplay(activeVariant)}
+                </div>
               </div>
 
-              {/* Quantity and Add to Cart */}
+              {/* Quantity Selector and Add to Cart Button */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
+                {/* Quantity Selector */}
+                {isInStock && (
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateProductQuantity(product.id, productQuantity - 1);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="w-8 h-8 flex items-center justify-center text-sm font-medium">
+                      {productQuantity}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateProductQuantity(product.id, productQuantity + 1);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Add to Cart Button */}
+                <div className="flex-shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleQuantityChange(product.id, -1);
+                      handleAddToCart(product, activeVariant, '', productQuantity);
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                    disabled={(quantities[product.id] || 1) <= 1}
+                    disabled={!isInStock}
+                    className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${!isInStock
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                      }`}
                   >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                    {quantities[product.id] || 1}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, 1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  >
-                    <Plus className="w-3 h-3" />
+                    {!isInStock ? (
+                      <>
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm">Sold Out</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span className="text-sm">Add</span>
+                      </>
+                    )}
                   </button>
                 </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(product);
-                  }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${product.availability === 'Sold Out'
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
-                >
-                  {product.availability === 'Sold Out' ? (
-                    <>
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Sold Out</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span className="text-sm">Add</span>
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
@@ -577,8 +802,18 @@ const DripApplications = () => {
     );
   };
 
-  // List View Item Component
+  // List View Item Component with Quantity Selector
   const ListViewItem = ({ product }: { product: Product }) => {
+    const defaultVariant = getDefaultVariant(product);
+    const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+
+    const productImage = getProductImage(product, activeVariant);
+    const productPrice = getProductPrice(product, activeVariant);
+    const isInStock = isProductInStock(product, activeVariant);
+    const reviews = 156;
+    const rating = 4.5;
+    const productQuantity = productQuantities[product.id] || 1;
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -587,24 +822,41 @@ const DripApplications = () => {
         onClick={() => handleProductClick(product)}
       >
         <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <div className="md:w-1/4">
+          <div className="md:w-1/4 relative">
             <img
-              src={product.image}
+              src={productImage}
               alt={product.name}
               className="w-full h-48 md:h-full object-cover rounded-lg"
             />
+
+            {/* Variant Hover Dots */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                {product.product_variants.map(v => (
+                  <button
+                    key={v.id}
+                    onMouseEnter={(e) => {
+                      e.stopPropagation();
+                      setActiveVariant(v);
+                    }}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${activeVariant.id === v.id ? "bg-green-600 scale-110" : "bg-gray-300 hover:bg-green-400"
+                      }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div className="md:w-3/4 flex flex-col">
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex gap-2">
-                  {product.isNew && (
+                  {isProductNew(product) && (
                     <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
                       NEW
                     </span>
                   )}
-                  {product.isBestSeller && (
+                  {isProductBestSeller(product) && (
                     <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
                       Best Seller
                     </span>
@@ -616,67 +868,80 @@ const DripApplications = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <Package className="w-4 h-4 mr-1" />
-                  {product.category}
+                  {getProductCategory(product)}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  {renderStars(product.rating)}
-                  <span className="ml-1">({product.reviews})</span>
+                  {renderStars(rating)}
+                  <span className="ml-1">({reviews})</span>
                 </div>
               </div>
             </div>
 
-            {/* Price and Add to Cart in same line */}
+            {/* Price, Quantity Selector and Add to Cart in same line */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
               <div className="w-full sm:w-auto flex items-center gap-4">
                 <div>
                   <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {product.price.toFixed(2)}
+                    Rs. {productPrice.toFixed(2)}
                   </div>
-                  {product.originalPrice && (
-                    <div className="text-sm text-gray-500 line-through">
-                      Rs. {product.originalPrice.toFixed(2)}
-                    </div>
-                  )}
+                  <div className="text-sm text-gray-500">
+                    {getVariantDisplay(activeVariant)}
+                  </div>
                 </div>
+
+                {/* Quantity Selector */}
+                {isInStock && (
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateProductQuantity(product.id, productQuantity - 1);
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-10 h-10 flex items-center justify-center text-sm font-medium">
+                      {productQuantity}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateProductQuantity(product.id, productQuantity + 1);
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="w-full sm:w-auto flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, -1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                    disabled={(quantities[product.id] || 1) <= 1}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                    {quantities[product.id] || 1}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, 1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
+
+              <div className="w-full sm:w-auto flex gap-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToCart(product);
+                    handleAddToCart(product, activeVariant, '', productQuantity);
                   }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${product.availability === 'Sold Out'
+                  disabled={!isInStock}
+                  className={`flex-1 sm:w-auto px-6 py-2 rounded-lg font-medium ${!isInStock
                     ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
-                  {product.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                  {!isInStock ? 'Sold Out' : 'Add to Cart'}
                 </button>
+                {isInStock && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleBuyNow(product, activeVariant);
+                    }}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hidden sm:block"
+                  >
+                    Buy Now
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -685,8 +950,35 @@ const DripApplications = () => {
     );
   };
 
+  // Search suggestions based on product data
+  const categorySuggestions = Array.from(
+    new Set(products.map(p => getProductCategory(p)))
+  ).slice(0, 3);
+  const searchSuggestions = [
+    ...Array.from(new Set(products.flatMap(p =>
+      p.name.split(' ').filter(word => word.length > 3)
+    ))).slice(0, 5),
+    ...categorySuggestions,
+    'drip irrigation',
+    'bacterial consortium',
+    'high potassium'
+  ];
+
+  if (loading) {
+    return (
+      // <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading drip applications...</p>
+          </div>
+        </div>
+      // </Layout>
+    );
+  }
+
   return (
-    <Layout>
+    // <Layout>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
@@ -695,6 +987,30 @@ const DripApplications = () => {
             <p className="text-green-100">
               Specialized formulations for efficient nutrient delivery through drip irrigation systems
             </p>
+
+            {/* Enhanced Search Bar in Header */}
+            {/* <div className="mt-6 max-w-2xl mx-auto">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search drip applications by name, description, features, SKU..."
+                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-green-200 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+
+            </div> */}
           </div>
         </div>
 
@@ -710,10 +1026,29 @@ const DripApplications = () => {
                       Filters
                     </h2>
                     <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {filteredProducts.length} products
+                      {searchedProducts.length} products
                     </span>
                   </div>
-                  <FilterSection />
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
+                </div>
+
+                {/* Search Tips */}
+                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    <Search className="w-4 h-4" />
+                    Search Tips
+                  </h3>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Search by product name, description, or SKU</li>
+                    <li>• Try searching for specific features</li>
+                    <li>• Use category names for filtering</li>
+                    <li>• Search for specific nutrients or benefits</li>
+                  </ul>
                 </div>
               </div>
             </aside>
@@ -737,8 +1072,14 @@ const DripApplications = () => {
                   <div>
                     <p className="text-sm text-gray-600">
                       Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                      {searchQuery && (
+                        <span className="text-green-600 ml-2">
+                          for "{searchQuery}"
+                        </span>
+                      )}
                     </p>
                     <h2 className="text-xl font-semibold text-gray-900">Drip Irrigation Solutions</h2>
+
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
@@ -752,6 +1093,7 @@ const DripApplications = () => {
                         <option value="bestSelling">Best Selling</option>
                         <option value="priceLowHigh">Price: Low to High</option>
                         <option value="priceHighLow">Price: High to Low</option>
+                        <option value="newest">Newest</option>
                         <option value="rating">Highest Rating</option>
                       </select>
                       <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -792,22 +1134,23 @@ const DripApplications = () => {
                   ))
                 ) : (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
+                    <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg mb-2">No products found matching your criteria.</p>
+                    <p className="text-gray-400 mb-4">Try different search terms or clear filters</p>
                     <button
                       onClick={() => {
-                        setSelectedPriceRanges([]);
-                        setAvailability(['In Stock']);
+                        setFilters({ availability: [], priceRanges: [] });
                         setSearchQuery('');
                       }}
-                      className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
+                      className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                     >
-                      Clear Filters
+                      Clear All Filters
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Pagination (hidden since only 5 products) */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex flex-wrap justify-center items-center gap-2">
                   <button
@@ -821,18 +1164,35 @@ const DripApplications = () => {
 
                   {[...Array(totalPages)].map((_, index) => {
                     const pageNum = index + 1;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-4 py-2 rounded-lg ${currentPage === pageNum
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "border border-green-200 text-green-700 hover:bg-green-50"
-                          }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
+                    // Show only first 3, last 3, and pages around current
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-4 py-2 rounded-lg ${currentPage === pageNum
+                            ? "bg-green-600 text-white hover:bg-green-700"
+                            : "border border-green-200 text-green-700 hover:bg-green-50"
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 ||
+                      pageNum === currentPage + 2
+                    ) {
+                      return (
+                        <span key={index} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
                   })}
 
                   <button
@@ -874,7 +1234,12 @@ const DripApplications = () => {
                       <X className="w-6 h-6" />
                     </button>
                   </div>
-                  <FilterSection />
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
                   <button
                     className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                     onClick={() => setShowFilters(false)}
@@ -888,7 +1253,7 @@ const DripApplications = () => {
         </AnimatePresence>
 
         {/* Product Modal */}
-        {isModalOpen && selectedProduct && (
+        {isModalOpen && selectedProduct && selectedVariant && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
             <div
@@ -912,14 +1277,43 @@ const DripApplications = () => {
                     {/* Product Images */}
                     <div>
                       <div className="rounded-xl overflow-hidden mb-4">
-                        <img
-                          src={selectedProduct.image}
-                          alt={selectedProduct.name}
-                          className="w-full h-96 object-cover"
-                        />
+                        <AnimatePresence mode="wait">
+                          <motion.img
+                            key={selectedVariant.id}
+                            src={selectedVariant.image_url || "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop"}
+                            alt={selectedProduct.name}
+                            initial={{ opacity: 0.4 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full h-96 object-cover"
+                          />
+                        </AnimatePresence>
                       </div>
+
+                      {/* Variant Thumbnails */}
+                      {selectedProduct.product_variants && selectedProduct.product_variants.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {selectedProduct.product_variants.map((variantItem) => (
+                            <button
+                              key={variantItem.id}
+                              onClick={() => setSelectedVariant(variantItem)}
+                              className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${selectedVariant.id === variantItem.id
+                                ? "border-green-600"
+                                : "border-gray-200 hover:border-green-300"
+                                }`}
+                            >
+                              <img
+                                src={variantItem.image_url || "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop"}
+                                alt={getVariantDisplay(variantItem)}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Drip Application Icon */}
-                      <div className="flex items-center justify-center gap-2 text-green-600">
+                      <div className="flex items-center justify-center gap-2 text-green-600 mt-4">
                         <Droplets className="w-6 h-6" />
                         <span className="text-lg font-semibold">Drip Irrigation Product</span>
                       </div>
@@ -929,12 +1323,12 @@ const DripApplications = () => {
                     <div>
                       {/* Badges */}
                       <div className="flex gap-2 mb-4">
-                        {selectedProduct.isNew && (
+                        {isProductNew(selectedProduct) && (
                           <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                             NEW
                           </span>
                         )}
-                        {selectedProduct.isBestSeller && (
+                        {isProductBestSeller(selectedProduct) && (
                           <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
                             BEST SELLER
                           </span>
@@ -947,20 +1341,20 @@ const DripApplications = () => {
 
                       {/* Rating */}
                       <div className="flex items-center gap-2 mb-4">
-                        {renderStars(selectedProduct.rating)}
-                        <span className="text-gray-600">({selectedProduct.reviews} reviews)</span>
+                        {renderStars(4.5)}
+                        <span className="text-gray-600">(156 reviews)</span>
                       </div>
 
                       {/* Price */}
                       <div className="mb-6">
                         <div className="flex items-center gap-3">
                           <span className="text-3xl font-bold text-gray-900">
-                            Rs. {selectedProduct.price.toFixed(2)}
+                            Rs. {selectedVariant.price.toFixed(2)}
                           </span>
-
                         </div>
-                        <p className="text-green-600 font-semibold mt-1">
-                          {selectedProduct.availability}
+                        <p className={`font-semibold mt-1 ${isProductInStock(selectedProduct, selectedVariant) ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                          {isProductInStock(selectedProduct, selectedVariant) ? 'In Stock' : 'Sold Out'}
                         </p>
                       </div>
 
@@ -972,21 +1366,30 @@ const DripApplications = () => {
                         </p>
                       </div>
 
-                      {/* Size Selection */}
-                      {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
+                      {/* Variant Selection */}
+                      {selectedProduct.product_variants && selectedProduct.product_variants.length > 1 && (
                         <div className="mb-6">
-                          <p className="font-semibold text-gray-900 mb-3">Size</p>
+                          <p className="font-semibold text-gray-900 mb-3">Available Sizes</p>
                           <div className="flex flex-wrap gap-2">
-                            {selectedProduct.sizes.map((size) => (
+                            {selectedProduct.product_variants.map((variant) => (
                               <button
-                                key={size}
-                                onClick={() => setSelectedSize(size)}
-                                className={`px-4 py-2 rounded-lg border ${selectedSize === size
+                                key={variant.id}
+                                onClick={() => setSelectedVariant(variant)}
+                                className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${selectedVariant.id === variant.id
                                   ? "border-green-600 bg-green-50 text-green-700"
                                   : "border-gray-300 hover:border-green-300"
                                   }`}
                               >
-                                {size}
+                                {variant.image_url && (
+                                  <img
+                                    src={variant.image_url}
+                                    alt=""
+                                    className="w-8 h-8 rounded object-cover"
+                                  />
+                                )}
+                                <span>
+                                  {getVariantDisplay(variant)}
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -1011,7 +1414,7 @@ const DripApplications = () => {
                             <Plus className="w-5 h-5" />
                           </button>
                           <span className="text-gray-600 ml-4">
-                            Total: Rs. {(selectedProduct.price * quantity).toFixed(2)}
+                            Total: Rs. {(selectedVariant.price * quantity).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -1020,19 +1423,19 @@ const DripApplications = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                         <button
                           onClick={() => {
-                            handleAddToCart(selectedProduct, selectedSize);
+                            handleAddToCart(selectedProduct, selectedVariant, selectedSize, quantity);
                             closeModal();
                           }}
                           className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          disabled={selectedProduct.availability === 'Sold Out'}
+                          disabled={!isProductInStock(selectedProduct, selectedVariant)}
                         >
                           <ShoppingCart className="w-6 h-6" />
-                          {selectedProduct.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                          {!isProductInStock(selectedProduct, selectedVariant) ? 'Sold Out' : `Add ${quantity} to Cart`}
                         </button>
                         <button
-                          onClick={() => handleBuyNow(selectedProduct, selectedSize)}
+                          onClick={() => handleBuyNow(selectedProduct, selectedVariant, selectedSize)}
                           className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
-                          disabled={selectedProduct.availability === 'Sold Out'}
+                          disabled={!isProductInStock(selectedProduct, selectedVariant)}
                         >
                           Buy it now
                         </button>
@@ -1054,7 +1457,7 @@ const DripApplications = () => {
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
 
                     {/* Special Description for IINM Chakra */}
-                    {selectedProduct.id === 1 && (
+                    {selectedProduct.name.toLowerCase().includes('chakra') && (
                       <>
                         <p className="text-gray-600 mb-4 text-lg">
                           IINM-Chakra introduces bacterial consortium encapsulated in liquid form, offering a stable source of essential nutrients such as nitrogen, phosphorus, and potassium to our region. This innovative bacterial consortium, existing in liquid form, comprises a minimum of 1.5x10⁸ bacteria per millilitre. Developed through advanced technology, this consortium is specially formulated in liquid form for easy application in the field. The liquid formulation is crafted using state-of-the-art methods, ensuring both stability and efficiency.
@@ -1085,13 +1488,13 @@ const DripApplications = () => {
                     )}
 
                     {/* Standard Description for other products */}
-                    {selectedProduct.id !== 1 && (
+                    {!selectedProduct.name.toLowerCase().includes('chakra') && (
                       <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
                     )}
 
                     <h4 className="text-xl font-bold text-gray-900 mb-4">Key Features</h4>
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {selectedProduct.features.map((feature, index) => (
+                      {getProductFeatures(selectedProduct).map((feature, index) => (
                         <li key={index} className="flex items-center gap-2">
                           <Check className="w-5 h-5 text-green-600" />
                           <span className="text-gray-700">{feature}</span>
@@ -1106,51 +1509,45 @@ const DripApplications = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="bg-green-50 p-6 rounded-xl">
                         <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
-                        <p className="text-gray-600">{selectedProduct.category}</p>
+                        <p className="text-gray-600">{getProductCategory(selectedProduct)}</p>
                       </div>
                       <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Formulation</h4>
-                        <p className="text-gray-600">{selectedProduct.formulation}</p>
+                        <h4 className="font-semibold text-gray-900 mb-2">Size</h4>
+                        <p className="text-gray-600">{getVariantDisplay(selectedVariant)}</p>
                       </div>
                       <div className="bg-green-50 p-6 rounded-xl">
                         <h4 className="font-semibold text-gray-900 mb-2">Coverage</h4>
-                        <p className="text-gray-600">{selectedProduct.coverage}</p>
+                        <p className="text-gray-600">1-5 Liters per acre</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Application Details */}
                   <div className="mt-12 pt-8 border-t border-gray-200 space-y-6">
-                    {selectedProduct.dosage && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Dosage:</h4>
-                        <p className="text-gray-700">{selectedProduct.dosage}</p>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-3">Dosage:</h4>
+                      <p className="text-gray-700">{getProductSpecifications(selectedProduct).dosage}</p>
+                    </div>
 
-                    {selectedProduct.applicationTiming && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Application Timing:</h4>
-                        <p className="text-gray-700">{selectedProduct.applicationTiming}</p>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-3">Application Timing:</h4>
+                      <p className="text-gray-700">{getProductSpecifications(selectedProduct).applicationTiming}</p>
+                    </div>
 
-                    {selectedProduct.frequency && (
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-3">Frequency of Application:</h4>
-                        <p className="text-gray-700">{selectedProduct.frequency}</p>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900 mb-3">Frequency of Application:</h4>
+                      <p className="text-gray-700">{getProductSpecifications(selectedProduct).frequency}</p>
+                    </div>
 
-                    {selectedProduct.caution && (
+                    {getProductSpecifications(selectedProduct).caution && (
                       <div>
                         <h4 className="text-xl font-bold text-gray-900 mb-3">Caution:</h4>
-                        <p className="text-gray-700">{selectedProduct.caution}</p>
+                        <p className="text-gray-700">{getProductSpecifications(selectedProduct).caution}</p>
                       </div>
                     )}
 
                     {/* Special Instructions for IINM Chakra */}
-                    {selectedProduct.id === 1 && (
+                    {selectedProduct.name.toLowerCase().includes('chakra') && (
                       <div className="bg-green-50 p-6 rounded-xl">
                         <h4 className="text-xl font-bold text-gray-900 mb-3">Special Instructions:</h4>
                         <ul className="space-y-2 text-gray-700">
@@ -1164,7 +1561,7 @@ const DripApplications = () => {
                   </div>
 
                   {/* Technology Information */}
-                  {selectedProduct.id === 3 && (
+                  {selectedProduct.name.toLowerCase().includes('boc') && (
                     <div className="mt-12 pt-8 border-t border-gray-200">
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">Bio-Organic Carbon Technology</h3>
                       <div className="bg-green-50 p-6 rounded-xl">
@@ -1183,7 +1580,7 @@ const DripApplications = () => {
                   )}
 
                   {/* High-K Special Info */}
-                  {selectedProduct.id === 4 && (
+                  {selectedProduct.name.toLowerCase().includes('high-k') && (
                     <div className="mt-12 pt-8 border-t border-gray-200">
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">High Potassium Drip Technology</h3>
                       <div className="bg-green-50 p-6 rounded-xl">
@@ -1208,42 +1605,45 @@ const DripApplications = () => {
                       {products
                         .filter(p => p.id !== selectedProduct.id)
                         .slice(0, 3)
-                        .map(product => (
-                          <div
-                            key={product.id}
-                            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                            onClick={() => {
-                              closeModal();
-                              setTimeout(() => handleProductClick(product), 100);
-                            }}
-                          >
-                            <div className="flex items-start gap-4">
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-20 h-20 object-cover rounded-lg"
-                              />
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                                <p className="text-gray-600 text-sm">{product.category}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="font-bold text-gray-900">
-                                    Rs. {product.price.toFixed(2)}
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddToCart(product);
-                                    }}
-                                    className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-                                  >
-                                    Add
-                                  </button>
+                        .map(product => {
+                          const variant = getDefaultVariant(product);
+                          return (
+                            <div
+                              key={product.id}
+                              className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                              onClick={() => {
+                                closeModal();
+                                setTimeout(() => handleProductClick(product), 100);
+                              }}
+                            >
+                              <div className="flex items-start gap-4">
+                                <img
+                                  src={getProductImage(product, variant)}
+                                  alt={product.name}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">{product.name}</h4>
+                                  <p className="text-gray-600 text-sm">{getProductCategory(product)}</p>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="font-bold text-gray-900">
+                                      Rs. {getProductPrice(product, variant).toFixed(2)}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAddToCart(product, variant);
+                                      }}
+                                      className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   </div>
                 </div>
@@ -1268,10 +1668,8 @@ const DripApplications = () => {
             )}
           </div>
         </div>
-
-
       </div>
-    </Layout>
+    // </Layout>
   );
 };
 

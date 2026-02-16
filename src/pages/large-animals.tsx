@@ -1,4 +1,3 @@
-// src/components/products/large-animals.tsx
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
@@ -18,10 +17,6 @@ import {
   Minus,
   Plus,
   Share2,
-  Truck,
-  Shield,
-  Check,
-  X as XIcon,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -31,662 +26,42 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
-// Complete product data - Add formulation and coverage fields
-const largeAnimalProducts = [
-  {
-    id: 1,
-    name: "Aadhar Gold Biofertilizer - Foundation Granules - 4Kg",
-    description: "Premium biofertilizer for soil health",
-    price: 1150.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Biofertilizer",
-    tags: ["Organic", "Soil Health"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Aadhar Gold is a premium biofertilizer that enhances soil health and promotes plant growth through natural microbial action."
-  },
-  {
-    id: 2,
-    name: "AgriSeal - Protect Crops from Biotic Stress",
-    description: "Protection against biotic stress factors",
-    price: 998.00,
-    originalPrice: 1200.00,
-    vendor: "Biofactor",
-    category: "Crop Protection",
-    tags: ["Protection", "Stress Management"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1597848212624-e5f4b41d7f50?w=400&h=400&fit=crop",
-    details: "Agriseal is a specially formulated liquid blend crafted using advanced techniques to alleviate stress in plants. Enriched with vitamin C, amino acids, selenium, silica, and seaweed, this formulation serves as a valuable aid in mitigating various stresses encountered by crops, including climatic stressors like drought, heat, cold, and salinity, as well as biotic stresses.",
-    advantages: [
-      "Helps plants cope with a variety of stresses, including climatic stresses such as drought, heat, cold and salinity, and biotic stresses (such as pests and diseases).",
-      "Actively participates in various metabolic processes in plants including metabolism of carbohydrates and synthesis of nucleic acids and enhances plant growth and resistance to stress.",
-      "It overcomes the stresses during the most critical flowering stage, pod stage and more harvests during the plant growth stage and provides high quality yields."
-    ],
-    dosage: "Spray mode : 500 ml/acre (2.5 ml/liter of water). Drip Irrigation System : 1 L/acre.",
-    frequency: "Once during waterlogging and once during flowering, fruiting and heavy harvests.",
-    sizes: ["250 ml", "500 ml", "1 litre"]
-  },
-  {
-    id: 3,
-    name: "Belom Series - Fermented Liquid Organic Manure - 1Ltr & 5 Ltr",
-    description: "Fermented organic manure for plants",
-    price: 588.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Organic Manure",
-    tags: ["Organic", "Liquid"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1615485500607-1758f56c2c8a?w=400&h=400&fit=crop",
-    details: "Fermented liquid organic manure for enhanced plant growth."
-  },
-  {
-    id: 4,
-    name: "BIOBOLIC | Potent Echolic & Uterine Tonic",
-    description: "Uterine tonic for animal health",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Animal Health",
-    tags: ["Tonic", "Uterine Health"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1557735938-cb4b0d11c73a?w=400&h=400&fit=crop",
-    details: "Potent echolic and uterine tonic for large animals."
-  },
-  {
-    id: 5,
-    name: "BIOCOPS | supplemental source of copper",
-    description: "Copper supplement for animals",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Copper", "Mineral"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1589923186741-b7d59d6b2c4c?w=400&h=400&fit=crop",
-    details: "Supplemental copper source for animal nutrition."
-  },
-  {
-    id: 6,
-    name: "BIOFLORA | A herbal product for ruminant fertility",
-    description: "Herbal fertility support for ruminants",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Fertility",
-    tags: ["Herbal", "Fertility"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=400&fit=crop",
-    details: "Herbal product to enhance ruminant fertility."
-  },
-  {
-    id: 7,
-    name: "BIOMAST | A New approach for mastitis",
-    description: "Mastitis treatment solution",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Animal Health",
-    tags: ["Mastitis", "Treatment"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1573497019940-1c28c033a88e?w=400&h=400&fit=crop",
-    details: "Innovative approach for mastitis treatment."
-  },
-  {
-    id: 8,
-    name: "BIOMAST | Check mastitis at early stage",
-    description: "Early mastitis detection and prevention",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Animal Health",
-    tags: ["Mastitis", "Prevention"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=400&fit=crop",
-    details: "Early stage mastitis detection and prevention."
-  },
-  {
-    id: 9,
-    name: "BIOMISE | Proven Probiotics for Ruminants",
-    description: "Probiotic supplement for ruminant health",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Probiotics",
-    tags: ["Probiotics", "Digestive Health"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1551183053-bf91a717b63d?w=400&h=400&fit=crop",
-    details: "Proven probiotics for ruminant digestive health."
-  },
-  {
-    id: 10,
-    name: "BIOTEN | Heightens Bioavailable Minerals",
-    description: "Mineral bioavailability enhancer",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Minerals", "Bioavailability"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop",
-    details: "Enhances mineral bioavailability in animals."
-  },
-  {
-    id: 11,
-    name: "BIOTRICA | For Greater Tonicity of the uterus",
-    description: "Uterine tonicity support",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Animal Health",
-    tags: ["Uterine", "Tonic"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=400&fit=crop",
-    details: "Improves uterine tonicity in large animals."
-  },
-  {
-    id: 12,
-    name: "BIOVITAL - H | vitamin A,D,E & H suspension",
-    description: "Vitamin suspension for animals",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Vitamins",
-    tags: ["Vitamins", "Suspension"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Vitamin A, D, E & H suspension for animal health."
-  },
-  {
-    id: 13,
-    name: "BIOVITAL | Liquid vet",
-    description: "Liquid veterinary supplement",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Liquid", "Veterinary"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=400&h=400&fit=crop",
-    details: "Liquid veterinary supplement for comprehensive care."
-  },
-  {
-    id: 14,
-    name: "BLOGO | with Suspension base",
-    description: "Suspension-based animal supplement",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Suspension", "Supplement"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1557844352-761f16da8c67?w=400&h=400&fit=crop",
-    details: "Suspension-based supplement for animal health."
-  },
-  {
-    id: 15,
-    name: "BOC - A Revolutionary Bio-Organic Carbon Product",
-    description: "Bio-organic carbon for soil",
-    price: 1040.00,
-    originalPrice: 1200.00,
-    vendor: "Biofactor",
-    category: "Organic Carbon",
-    tags: ["Carbon", "Organic"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Revolutionary bio-organic carbon product for soil enhancement."
-  },
-  {
-    id: 16,
-    name: "Bsl4 Agri",
-    description: "Agricultural growth enhancer",
-    price: 1333.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Growth Enhancer",
-    tags: ["Growth", "Enhancer"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Agricultural growth enhancer for improved yields."
-  },
-  {
-    id: 17,
-    name: "Caliber | The Next Big Thing is Really Small",
-    description: "Microbial formulation",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Microbial",
-    tags: ["Microbial", "Formulation"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Advanced microbial formulation for agricultural use."
-  },
-  {
-    id: 18,
-    name: "Dawn",
-    description: "Early morning plant energizer",
-    price: 2699.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Plant Care",
-    tags: ["Energizer", "Morning"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Early morning plant energizer and growth promoter."
-  },
-  {
-    id: 19,
-    name: "E- Vac - EHP Remedy",
-    description: "EHP treatment solution",
-    price: 2911.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Disease Control",
-    tags: ["EHP", "Treatment"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Effective EHP remedy for agricultural use."
-  },
-  {
-    id: 20,
-    name: "Eight Petals - Home Gardening Kit",
-    description: "Complete home gardening solution",
-    price: 700.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Gardening",
-    tags: ["Gardening", "Home"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Complete home gardening kit with essential tools."
-  },
-  {
-    id: 21,
-    name: "FactminNeo",
-    description: "Mineral supplement",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Minerals", "Supplement"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Neo formulation mineral supplement."
-  },
-  {
-    id: 22,
-    name: "Ferti-stim | Bolus (vet)",
-    description: "Fertility stimulation bolus",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Fertility",
-    tags: ["Fertility", "Bolus"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Fertility stimulation bolus for veterinary use."
-  },
-  {
-    id: 23,
-    name: "G-Vam - Liquid",
-    description: "Liquid growth promoter",
-    price: 4126.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Growth Promoter",
-    tags: ["Growth", "Liquid"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Liquid growth promoter for plants."
-  },
-  {
-    id: 24,
-    name: "Gallant | A high potency iron tonic for animals",
-    description: "Iron tonic for animals",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Animal Health",
-    tags: ["Iron", "Tonic"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "High potency iron tonic for animal health."
-  },
-  {
-    id: 25,
-    name: "High- K Aqua",
-    description: "Aquatic potassium supplement",
-    price: 1119.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Aqua Culture",
-    tags: ["Potassium", "Aqua"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "High potassium supplement for aquatic systems."
-  },
-  {
-    id: 26,
-    name: "High-K Liquid Nutrient",
-    description: "Liquid potassium nutrient",
-    price: 1800.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Nutrients",
-    tags: ["Potassium", "Liquid"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "High potassium liquid nutrient formulation."
-  },
-  {
-    id: 27,
-    name: "I-Rise | The Next Big Thing is Really Small",
-    description: "Microbial growth promoter",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Microbial",
-    tags: ["Microbial", "Growth"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Microbial growth promoter for enhanced yields."
-  },
-  {
-    id: 28,
-    name: "IINM Chakra -",
-    description: "Circular farming solution",
-    price: 736.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Farming",
-    tags: ["Circular", "Farming"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Circular farming solution for sustainable agriculture."
-  },
-  {
-    id: 29,
-    name: "K Factor – Potassium Mobilising Bacteria",
-    description: "Potassium mobilizing bacteria",
-    price: 1106.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Bacteria",
-    tags: ["Potassium", "Bacteria"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Potassium mobilizing bacteria for soil health."
-  },
-  {
-    id: 30,
-    name: "KAL FACT | Chelated",
-    description: "Chelated mineral supplement",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Supplements",
-    tags: ["Chelated", "Minerals"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Chelated mineral supplement for better absorption."
-  },
-  {
-    id: 31,
-    name: "King- K",
-    description: "Premium potassium formulation",
-    price: 0.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Nutrients",
-    tags: ["Potassium", "Premium"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Premium potassium formulation for plants."
-  },
-  {
-    id: 32,
-    name: "Kipper - 5 Ltr",
-    description: "Large volume formulation",
-    price: 3807.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Formulations",
-    tags: ["Large", "Volume"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "5 liter formulation for agricultural use."
-  },
-  {
-    id: 33,
-    name: "LIVOFACT | Liquid vet",
-    description: "Liquid veterinary formulation",
-    price: 0.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Veterinary",
-    tags: ["Liquid", "Vet"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Liquid veterinary formulation for animal health."
-  },
-  {
-    id: 34,
-    name: "MINOFACT | A Complete Nutritional formula",
-    description: "Complete nutritional formula",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Nutrition",
-    tags: ["Complete", "Nutrition"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Complete nutritional formula for animals."
-  },
-  {
-    id: 35,
-    name: "Modiphy",
-    description: "Growth modification formula",
-    price: 1568.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Growth",
-    tags: ["Growth", "Modification"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Growth modification formula for plants."
-  },
-  {
-    id: 36,
-    name: "Native Neem - Natural Insecticide",
-    description: "Natural neem insecticide",
-    price: 866.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Insecticide",
-    tags: ["Neem", "Natural"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Natural neem-based insecticide for pest control."
-  },
-  {
-    id: 37,
-    name: "Nutrition & Virnix",
-    description: "Nutrition and viral protection",
-    price: 1716.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Nutrition",
-    tags: ["Nutrition", "Viral"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Combined nutrition and viral protection formula."
-  },
-  {
-    id: 38,
-    name: "Pellucid | A Perfect Blend For Ruminant Liver",
-    description: "Liver support for ruminants",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Liver Support",
-    tags: ["Liver", "Ruminant"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Perfect blend for ruminant liver health."
-  },
-  {
-    id: 39,
-    name: "Proceed -",
-    description: "Advanced growth formula",
-    price: 1080.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Growth",
-    tags: ["Advanced", "Growth"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Advanced growth formula for agriculture."
-  },
-  {
-    id: 40,
-    name: "Regalis - 1Kg",
-    description: "Plant growth regulator",
-    price: 2832.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Growth Regulator",
-    tags: ["Regulator", "Growth"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Plant growth regulator for controlled growth."
-  },
-  {
-    id: 41,
-    name: "Rumifact | Bolus (vet)",
-    description: "Ruminant digestive bolus",
-    price: 100.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Digestive",
-    tags: ["Ruminant", "Bolus"],
-    inStock: false,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Bolus for ruminant digestive health."
-  },
-  {
-    id: 42,
-    name: "Sea Factor",
-    description: "Seaweed-based formulation",
-    price: 1679.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Seaweed",
-    tags: ["Seaweed", "Natural"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Seaweed-based natural formulation for plants."
-  },
-  {
-    id: 43,
-    name: "V-Vacc",
-    description: "Vaccine for plants",
-    price: 2799.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Vaccine",
-    tags: ["Vaccine", "Protection"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Plant vaccine for disease protection."
-  },
-  {
-    id: 44,
-    name: "Virban 1 Ltr",
-    description: "Viral protection formula",
-    price: 2575.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Viral Protection",
-    tags: ["Viral", "Protection"],
-    inStock: true,
-    isBestSeller: false,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "1 liter viral protection formula for plants."
-  },
-  {
-    id: 45,
-    name: "Virban 2.0",
-    description: "Advanced viral protection",
-    price: 2499.00,
-    originalPrice: null,
-    vendor: "Biofactor",
-    category: "Viral Protection",
-    tags: ["Advanced", "Viral"],
-    inStock: true,
-    isBestSeller: true,
-    image: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-    details: "Advanced version of viral protection formula."
-  },
-]
+// Types based on your Supabase schema
+type ProductVariant = {
+  id: string;
+  title: string;
+  variant_type: string;
+  value: number | null;
+  unit: string | null;
+  price: number;
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+};
 
-// Add formulation and coverage to all products
-const completeProducts = largeAnimalProducts.map(product => ({
-  ...product,
-  formulation: product.formulation || "Standard",
-  coverage: product.coverage || "Standard Coverage"
-}));
+type Collection = {
+  id: string;
+  title: string;
+};
 
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  collections: Collection | null;
+  product_variants: ProductVariant[];
+};
+
+// Sort options
 const sortOptions = [
   { value: "name-asc", label: "Alphabetically, A-Z" },
   { value: "name-desc", label: "Alphabetically, Z-A" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
-  { value: "best-selling", label: "Best Selling" },
   { value: "in-stock", label: "In Stock First" }
 ];
 
@@ -698,17 +73,48 @@ const priceRanges = [
   { id: "range5", min: 5000, max: Infinity, label: "Over Rs. 5000" }
 ];
 
+// Helper functions
+const getDefaultVariant = (product: Product) => {
+  return product.product_variants?.[0];
+};
+
+const getProductCategory = (product: Product) => {
+  return product.collections?.title || "Uncategorized";
+};
+
+const isProductInStock = (product: Product) => {
+  const variant = getDefaultVariant(product);
+  return variant?.stock > 0;
+};
+
+const getProductImage = (product: Product) => {
+  const variant = getDefaultVariant(product);
+  return variant?.image_url || "/placeholder.jpg";
+};
+
+const getProductPrice = (product: Product) => {
+  const variant = getDefaultVariant(product);
+  return variant?.price || 0;
+};
+
+const getVariantDisplay = (variant: ProductVariant) => {
+  return `${variant.value || ''}${variant.unit || ''}`.trim();
+};
+
 // Filter Section Component
 const FilterSection = ({
   filters,
-  setFilters
+  setFilters,
+  searchQuery,
+  setSearchQuery
 }: {
   filters: {
     availability: string[];
     priceRanges: string[];
-    search: string;
   };
   setFilters: (filters: any) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
@@ -731,9 +137,9 @@ const FilterSection = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search products..."
-            className="pl-10 border-green-200 focus:border-green-400"
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            className="pl-10 border-amber-200 focus:border-amber-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
@@ -761,7 +167,7 @@ const FilterSection = ({
                     : filters.availability.filter(v => v !== 'in-stock');
                   setFilters({ ...filters, availability: newAvailability });
                 }}
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
               />
               <span className="text-sm text-gray-700">In Stock</span>
             </label>
@@ -775,7 +181,7 @@ const FilterSection = ({
                     : filters.availability.filter(v => v !== 'out-of-stock');
                   setFilters({ ...filters, availability: newAvailability });
                 }}
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
               />
               <span className="text-sm text-gray-700">Out of Stock</span>
             </label>
@@ -807,7 +213,7 @@ const FilterSection = ({
                       : filters.priceRanges.filter(v => v !== range.id);
                     setFilters({ ...filters, priceRanges: newPriceRanges });
                   }}
-                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                 />
                 <span className="text-sm text-gray-700">{range.label}</span>
               </label>
@@ -817,11 +223,16 @@ const FilterSection = ({
       </div>
 
       {/* Clear Filters Button */}
-      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.search) && (
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
         <Button
           variant="outline"
-          className="w-full border-green-200 text-green-700 hover:bg-green-50"
-          onClick={() => setFilters({ availability: [], priceRanges: [], search: '' })}
+          className="w-full border-amber-200 text-amber-700 hover:bg-amber-50"
+          onClick={() => {
+            setFilters({ availability: [], priceRanges: [] });
+            setSearchQuery('');
+            // Clear URL parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }}
         >
           <X className="w-4 h-4 mr-2" />
           Clear Filters
@@ -831,33 +242,42 @@ const FilterSection = ({
   );
 };
 
-// Product Card Component - FIXED: All buttons in same line
+// Product Card Component - Grid View
 const ProductCard = ({
   product,
   onClick,
-  quantities,
-  handleQuantityChange
+  quantity,
+  onQuantityChange
 }: {
-  product: typeof completeProducts[0];
+  product: Product;
   onClick: () => void;
-  quantities: { [key: number]: number };
-  handleQuantityChange: (productId: number, delta: number) => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
 }) => {
+  const variant = getDefaultVariant(product);
+  if (!variant) return null;
+
   const { addToCart } = useCart();
+  const productImage = getProductImage(product);
+  const productPrice = getProductPrice(product);
+  const productCategory = getProductCategory(product);
+  const isInStock = variant.stock > 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    const displayName = `${product.name} ${getVariantDisplay(variant)}`.trim();
+
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage,
-      quantity: quantities[product.id] || 1
+      productId: product.id,
+      variantId: variant.id,
+      name: displayName,
+      price: variant.price,
+      image: variant.image_url || "/placeholder.jpg",
+      category: productCategory,
+      stock: variant.stock,
+      quantity: quantity
     });
-    toast.success("Added to cart");
   };
 
   return (
@@ -865,26 +285,21 @@ const ProductCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
-      className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
+      className="group bg-white rounded-lg border border-gray-200 hover:border-amber-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
       onClick={onClick}
     >
       <div className="relative flex-1">
         {/* Product Image */}
-        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
+        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-amber-50 to-white">
           <img
-            src={product.image}
+            src={productImage}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1">
-            {product.isBestSeller && (
-              <Badge className="bg-green-600 text-white text-xs font-semibold">
-                Best Seller
-              </Badge>
-            )}
-            {!product.inStock && (
+            {!isInStock && (
               <Badge className="bg-red-500 text-white text-xs font-semibold">
                 Sold Out
               </Badge>
@@ -892,7 +307,7 @@ const ProductCard = ({
           </div>
 
           {/* Wishlist Button */}
-          <button
+          {/* <button
             className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
             onClick={(e) => {
               e.stopPropagation();
@@ -900,12 +315,12 @@ const ProductCard = ({
             }}
           >
             <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-          </button>
+          </button> */}
         </div>
 
         {/* Product Info */}
         <div className="p-4 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
+          <h3 className="font-semibold text-gray-900 group-hover:text-amber-700 transition-colors mb-2 line-clamp-2">
             {product.name}
           </h3>
 
@@ -913,23 +328,16 @@ const ProductCard = ({
 
           <div className="flex items-center text-sm text-gray-500 mb-3">
             <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-            <span className="truncate">{product.vendor}</span>
+            <span className="truncate">Large Animals</span>
           </div>
 
           <div className="flex items-center justify-between gap-4 mt-3">
             {/* Price Section */}
             <div className="flex-1">
               <div className="text-lg font-bold text-gray-900">
-                Rs. {product.price.toFixed(2)}
+                Rs. {productPrice.toFixed(2)}
               </div>
-              {product.originalPrice && (
-                <div className="text-sm text-gray-500 line-through">
-                  Rs. {product.originalPrice.toFixed(2)}
-                </div>
-              )}
             </div>
-
-
 
             {/* Quantity and Add to Cart */}
             <div className="flex items-center gap-2">
@@ -937,22 +345,22 @@ const ProductCard = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleQuantityChange(product.id, -1);
+                    onQuantityChange(product.id, -1);
                   }}
-                  className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  disabled={(quantities[product.id] || 1) <= 1}
+                  className="px-2 py-1 text-gray-600 hover:text-amber-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
                 >
                   <Minus className="w-3 h-3" />
                 </button>
                 <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                  {quantities[product.id] || 1}
+                  {quantity}
                 </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleQuantityChange(product.id, 1);
+                    onQuantityChange(product.id, 1);
                   }}
-                  className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                  className="px-2 py-1 text-gray-600 hover:text-amber-700 hover:bg-gray-50"
                 >
                   <Plus className="w-3 h-3" />
                 </button>
@@ -960,14 +368,14 @@ const ProductCard = ({
 
               <Button
                 size="sm"
-                className={`${!product.inStock
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 text-white"
+                className={`${!isInStock
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : "bg-amber-600 hover:bg-amber-700 text-white"
                   }`}
-                disabled={!product.inStock}
+                disabled={!isInStock}
                 onClick={handleAddToCart}
               >
-                {!product.inStock ? (
+                {!isInStock ? (
                   <>
                     <Clock className="w-3 h-3 mr-1" />
                     <span className="text-xs">Sold Out</span>
@@ -993,33 +401,49 @@ const ProductModal = ({
   isOpen,
   onClose
 }: {
-  product: typeof completeProducts[0] | null;
+  product: Product | null;
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
 
+  // Auto-select first variant when modal opens
+  useEffect(() => {
+    if (product?.product_variants?.length) {
+      setSelectedVariant(product.product_variants[0]);
+      setQuantity(1);
+    }
+  }, [product]);
+
   if (!product) return null;
+  if (!selectedVariant) return null;
 
   const handleAddToCart = () => {
+    const displayName = `${product.name} ${getVariantDisplay(selectedVariant)}`.trim();
+
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage
+      productId: product.id,
+      variantId: selectedVariant.id,
+      name: displayName,
+      price: selectedVariant.price,
+      image: selectedVariant.image_url || "/placeholder.jpg",
+      category: getProductCategory(product),
+      stock: selectedVariant.stock,
+      quantity: quantity
     });
-    toast.success("Added to cart");
     onClose();
   };
 
   const handleBuyNow = () => {
     handleAddToCart();
     window.location.href = "/cart";
+  };
+
+  // Get image for selected variant or use default
+  const getSelectedVariantImage = () => {
+    return selectedVariant.image_url || "/placeholder.jpg";
   };
 
   return (
@@ -1030,7 +454,7 @@ const ProductModal = ({
           <DialogDescription>
             <div className="flex items-center gap-2 mt-2">
               <Package className="w-4 h-4" />
-              <span className="text-sm text-gray-600">Vendor: {product.vendor}</span>
+              <span className="text-sm text-gray-600">Category: Large Animals</span>
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -1038,21 +462,21 @@ const ProductModal = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column - Image */}
           <div className="space-y-4">
-            <div className="relative h-80 rounded-lg overflow-hidden bg-gradient-to-br from-green-50 to-white">
+            <div className="relative h-80 rounded-lg overflow-hidden bg-gradient-to-br from-amber-50 to-white">
               <img
-                src={product.image}
+                src={getSelectedVariantImage()}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
-              {product.isBestSeller && (
-                <Badge className="absolute top-4 left-4 bg-green-600 text-white">
-                  Best Seller
+              {selectedVariant.stock === 0 && (
+                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                  Sold Out
                 </Badge>
               )}
             </div>
 
             {/* Share Button */}
-            <Button variant="outline" className="w-full border-green-200">
+            <Button variant="outline" className="w-full border-amber-200">
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </Button>
@@ -1063,28 +487,28 @@ const ProductModal = ({
             {/* Price */}
             <div>
               <div className="text-3xl font-bold text-gray-900">
-                Rs. {product.price.toFixed(2)}
+                Rs. {selectedVariant.price.toFixed(2)}
               </div>
               <p className="text-sm text-gray-500 mt-1">
                 Shipping calculated at checkout.
               </p>
             </div>
 
-            {/* Size Selection */}
-            {product.sizes && product.sizes.length > 0 && (
+            {/* Variant Selection */}
+            {product.product_variants && product.product_variants.length > 1 && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Size</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Options</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size) => (
+                  {product.product_variants.map((variantItem) => (
                     <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg border text-sm ${selectedSize === size
-                          ? "border-green-600 bg-green-50 text-green-700"
-                          : "border-gray-300 hover:border-green-300"
+                      key={variantItem.id}
+                      onClick={() => setSelectedVariant(variantItem)}
+                      className={`px-4 py-2 rounded-lg border text-sm ${selectedVariant.id === variantItem.id
+                        ? "border-amber-600 bg-amber-50 text-amber-700"
+                        : "border-gray-300 hover:border-amber-300"
                         }`}
                     >
-                      {size}
+                      {getVariantDisplay(variantItem)} - Rs. {variantItem.price}
                     </button>
                   ))}
                 </div>
@@ -1098,20 +522,20 @@ const ProductModal = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 rounded-full border border-gray-300 hover:border-green-300"
+                    className="p-2 rounded-full border border-gray-300 hover:border-amber-300"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="text-xl font-semibold w-8 text-center">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 rounded-full border border-gray-300 hover:border-green-300"
+                    className="p-2 rounded-full border border-gray-300 hover:border-amber-300"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 <span className="text-sm text-gray-500">
-                  {quantity} × Rs. {product.price.toFixed(2)} = Rs. {(product.price * quantity).toFixed(2)}
+                  {quantity} × Rs. {selectedVariant.price.toFixed(2)} = Rs. {(selectedVariant.price * quantity).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -1119,18 +543,18 @@ const ProductModal = ({
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white h-12 text-lg"
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white h-12 text-lg"
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={selectedVariant.stock === 0}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 Add to cart
               </Button>
               <Button
-                className="flex-1 border-green-600 text-green-600 hover:bg-green-50 h-12 text-lg"
+                className="flex-1 border-amber-600 text-amber-600 hover:bg-amber-50 h-12 text-lg"
                 variant="outline"
                 onClick={handleBuyNow}
-                disabled={!product.inStock}
+                disabled={selectedVariant.stock === 0}
               >
                 Buy it now
               </Button>
@@ -1139,42 +563,7 @@ const ProductModal = ({
             {/* Product Details */}
             <div className="pt-6 border-t">
               <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
-              <p className="text-gray-600 mb-4">{product.details}</p>
-
-              {product.advantages && (
-                <>
-                  <h4 className="font-semibold text-gray-900 mb-2">Advantages:</h4>
-                  <ul className="space-y-2 mb-4">
-                    {product.advantages.map((advantage, index) => (
-                      <li key={index} className="flex items-start">
-                        <Check className="w-4 h-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-gray-600">{advantage}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              {product.dosage && (
-                <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Dose:</h4>
-                  <p className="text-gray-600">{product.dosage}</p>
-                </div>
-              )}
-
-              {product.frequency && (
-                <div className="mb-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Frequency of application:</h4>
-                  <p className="text-gray-600">{product.frequency}</p>
-                </div>
-              )}
-
-              {product.sizes && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Available sizes:</h4>
-                  <p className="text-gray-600">{product.sizes.join(", ")}</p>
-                </div>
-              )}
+              <p className="text-gray-600 mb-4">{product.description}</p>
             </div>
           </div>
         </div>
@@ -1183,33 +572,41 @@ const ProductModal = ({
   );
 };
 
-// List View Item Component - FIXED: All buttons in same line
+// List View Item Component
 const ListViewItem = ({
   product,
   onClick,
-  quantities,
-  handleQuantityChange
+  quantity,
+  onQuantityChange
 }: {
-  product: typeof completeProducts[0];
+  product: Product;
   onClick: () => void;
-  quantities: { [key: number]: number };
-  handleQuantityChange: (productId: number, delta: number) => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
 }) => {
+  const variant = getDefaultVariant(product);
+  if (!variant) return null;
+
   const { addToCart } = useCart();
+  const productImage = getProductImage(product);
+  const productPrice = getProductPrice(product);
+  const isInStock = variant.stock > 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    const displayName = `${product.name} ${getVariantDisplay(variant)}`.trim();
+
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage,
-      quantity: quantities[product.id] || 1
+      productId: product.id,
+      variantId: variant.id,
+      name: displayName,
+      price: variant.price,
+      image: variant.image_url || "/placeholder.jpg",
+      category: getProductCategory(product),
+      stock: variant.stock,
+      quantity: quantity
     });
-    toast.success("Added to cart");
   };
 
   return (
@@ -1217,13 +614,13 @@ const ListViewItem = ({
       key={product.id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg border border-gray-200 hover:border-green-300 p-4 md:p-6 cursor-pointer"
+      className="bg-white rounded-lg border border-gray-200 hover:border-amber-300 p-4 md:p-6 cursor-pointer"
       onClick={onClick}
     >
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         <div className="md:w-1/4">
           <img
-            src={product.image}
+            src={productImage}
             alt={product.name}
             className="w-full h-48 md:h-full object-cover rounded-lg"
           />
@@ -1232,61 +629,57 @@ const ListViewItem = ({
           <div className="flex-1">
             <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
             <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {product.tags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="bg-green-50 text-green-700 text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
           </div>
 
-          {/* Price and Add to Cart in same line */}
+          {/* Price, Quantity and Add to Cart */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
             <div className="w-full sm:w-auto flex items-center gap-4">
               <div>
                 <div className="text-xl md:text-2xl font-bold text-gray-900">
-                  Rs. {product.price.toFixed(2)}
+                  Rs. {productPrice.toFixed(2)}
                 </div>
                 <div className="text-sm text-gray-500">
-                  Vendor: {product.vendor}
+                  Category: Large Animals
                 </div>
               </div>
-            </div>
-            <div className="w-full sm:w-auto flex items-center gap-2">
+
+              {/* Quantity Selector */}
               <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleQuantityChange(product.id, -1);
+                    onQuantityChange(product.id, -1);
                   }}
-                  className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  disabled={(quantities[product.id] || 1) <= 1}
+                  className="px-3 py-1 text-gray-600 hover:text-amber-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
                 >
                   <Minus className="w-3 h-3" />
                 </button>
-                <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                  {quantities[product.id] || 1}
+                <span className="px-3 py-1 border-x border-gray-300 min-w-8 text-center">
+                  {quantity}
                 </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleQuantityChange(product.id, 1);
+                    onQuantityChange(product.id, 1);
                   }}
-                  className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                  className="px-3 py-1 text-gray-600 hover:text-amber-700 hover:bg-gray-50"
                 >
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
+            </div>
+
+            <div className="w-full sm:w-auto">
               <Button
-                className={`w-full sm:w-auto ${!product.inStock
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700"
+                className={`w-full sm:w-auto ${!isInStock
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : "bg-amber-600 hover:bg-amber-700"
                   }`}
-                disabled={!product.inStock}
+                disabled={!isInStock}
                 onClick={handleAddToCart}
               >
-                {!product.inStock ? "Sold Out" : "Add to Cart"}
+                {!isInStock ? "Sold Out" : "Add to Cart"}
               </Button>
             </div>
           </div>
@@ -1301,51 +694,137 @@ export const LargeAnimalsProducts = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProduct, setSelectedProduct] = useState<typeof completeProducts[0] | null>(null);
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
-    search: ''
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { getCartCount } = useCart();
+
+  // State for product quantities
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
+  // Get location for URL parameters
+  const location = useLocation();
 
   const productsPerPage = 12;
 
-  const handleQuantityChange = (productId: number, delta: number) => {
-    setQuantities(prev => ({
-      ...prev,
-      [productId]: Math.max(1, (prev[productId] || 1) + delta)
-    }));
-  };
+  // Parse URL parameters on component mount and URL changes
+  useEffect(() => {
+    // Parse search query from URL
+    const urlParams = new URLSearchParams(location.search);
+    const query = urlParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+    }
+
+    // Handle highlighting a specific product
+    const highlightId = urlParams.get('highlight');
+    if (highlightId) {
+      // Find and highlight the product
+      const productToHighlight = products.find(p => p.id === highlightId);
+      if (productToHighlight) {
+        setSelectedProduct(productToHighlight);
+      }
+    }
+  }, [location.search, products]);
+
+  // Fetch products from Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            collections (
+              id,
+              title
+            ),
+            product_variants (
+              id,
+              title,
+              variant_type,
+              value,
+              unit,
+              price,
+              stock,
+              image_url,
+              is_active
+            )
+          `)
+          .eq("is_active", true)
+          .eq("product_variants.is_active", true);
+
+        if (error) throw error;
+
+        // Filter products to only show "Large Animal" collection
+        const largeAnimalProducts = (data || []).filter(product =>
+          product.collections?.title === "Large Animals"
+        );
+
+        console.log("Large Animal products:", largeAnimalProducts);
+        setProducts(largeAnimalProducts);
+
+        // Initialize quantities for all products
+        const initialQuantities: { [key: string]: number } = {};
+        largeAnimalProducts.forEach(product => {
+          initialQuantities[product.id] = 1;
+        });
+        setQuantities(initialQuantities);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        toast.error("Failed to load products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   // Apply filters and sorting
-  const filteredAndSortedProducts = completeProducts
+  const filteredAndSortedProducts = products
     .filter(product => {
-      // Search filter
-      if (filters.search && !product.name.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
+      // Search filter - search in name and description
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = product.name.toLowerCase().includes(query);
+        const descMatch = product.description.toLowerCase().includes(query);
+        if (!nameMatch && !descMatch) {
+          return false;
+        }
       }
 
       // Availability filter
       if (filters.availability.length > 0) {
         const inStockFilter = filters.availability.includes('in-stock');
         const outOfStockFilter = filters.availability.includes('out-of-stock');
+        const variant = getDefaultVariant(product);
+        const isInStock = variant?.stock > 0;
 
         if (inStockFilter && outOfStockFilter) {
-          // Show both
-        } else if (inStockFilter && !product.inStock) {
+          // Show both - no filtering needed
+        } else if (inStockFilter && !isInStock) {
           return false;
-        } else if (outOfStockFilter && product.inStock) {
+        } else if (outOfStockFilter && isInStock) {
           return false;
         }
       }
 
       // Price range filter
       if (filters.priceRanges.length > 0) {
+        const productPrice = getProductPrice(product);
         const matchesPriceRange = filters.priceRanges.some(rangeId => {
           const range = priceRanges.find(r => r.id === rangeId);
           if (!range) return false;
-          return product.price >= range.min && product.price <= range.max;
+          return productPrice >= range.min && productPrice <= range.max;
         });
         if (!matchesPriceRange) return false;
       }
@@ -1359,13 +838,15 @@ export const LargeAnimalsProducts = () => {
         case "name-desc":
           return b.name.localeCompare(a.name);
         case "price-asc":
-          return a.price - b.price;
+          return getProductPrice(a) - getProductPrice(b);
         case "price-desc":
-          return b.price - a.price;
-        case "best-selling":
-          return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0);
+          return getProductPrice(b) - getProductPrice(a);
         case "in-stock":
-          return (b.inStock ? 1 : 0) - (a.inStock ? 1 : 0);
+          const variantA = getDefaultVariant(a);
+          const variantB = getDefaultVariant(b);
+          const stockA = variantA?.stock || 0;
+          const stockB = variantB?.stock || 0;
+          return stockB - stockA;
         default:
           return 0;
       }
@@ -1381,20 +862,69 @@ export const LargeAnimalsProducts = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, sortBy]);
+  }, [filters, sortBy, searchQuery]);
+
+  // Handle quantity change for a product
+  const handleQuantityChange = (productId: string, delta: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) + delta)
+    }));
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading Large Animal products...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
+        <div className="bg-gradient-to-r from-amber-900 to-amber-900 text-white py-8">
           <div className="container mx-auto px-4">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Large Animal Products</h1>
-            <p className="text-green-100">
+            <p className="text-amber-100">
               Premium biofactor solutions for large animal health and care
             </p>
           </div>
         </div>
+
+        {/* Search Results Indicator */}
+        {searchQuery && (
+          <div className="container mx-auto px-4 pt-6">
+            <div className="bg-white rounded-lg border border-amber-200 p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Search Results</h3>
+                  <p className="text-gray-600 text-sm">
+                    Showing {filteredAndSortedProducts.length} results for "{searchQuery}" in Large Animals
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                  onClick={() => {
+                    setSearchQuery('');
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Clear Search
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -1407,11 +937,16 @@ export const LargeAnimalsProducts = () => {
                       <Filter className="w-5 h-5" />
                       Filters
                     </h2>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {filteredAndSortedProducts.filter(p => p.inStock).length} in stock
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                      {filteredAndSortedProducts.filter(p => getDefaultVariant(p)?.stock || 0 > 0).length} in stock
                     </Badge>
                   </div>
-                  <FilterSection filters={filters} setFilters={setFilters} />
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
                 </div>
               </div>
             </aside>
@@ -1423,10 +958,10 @@ export const LargeAnimalsProducts = () => {
                 <Button
                   onClick={() => setMobileFiltersOpen(true)}
                   variant="outline"
-                  className="w-full justify-center border-green-200 text-green-700"
+                  className="w-full justify-center border-amber-200 text-amber-700"
                 >
                   <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters ({Object.values(filters).flat().length + (filters.search ? 1 : 0)})
+                  Show Filters ({Object.values(filters).flat().length + (searchQuery ? 1 : 0)})
                 </Button>
               </div>
 
@@ -1437,7 +972,7 @@ export const LargeAnimalsProducts = () => {
                     <p className="text-sm text-gray-600">
                       Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
                     </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Products</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">Large Animal Products</h2>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
@@ -1446,7 +981,7 @@ export const LargeAnimalsProducts = () => {
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                        className="appearance-none bg-white border border-amber-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 w-full"
                       >
                         {sortOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1458,10 +993,10 @@ export const LargeAnimalsProducts = () => {
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <div className="flex items-center border border-amber-200 rounded-lg overflow-hidden w-full sm:w-auto">
                       <button
                         onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-amber-50 text-amber-700" : "text-gray-500"
                           }`}
                       >
                         <Grid className="w-5 h-5 inline" />
@@ -1469,7 +1004,7 @@ export const LargeAnimalsProducts = () => {
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-amber-50 text-amber-700" : "text-gray-500"
                           }`}
                       >
                         <List className="w-5 h-5 inline" />
@@ -1483,32 +1018,40 @@ export const LargeAnimalsProducts = () => {
               {/* Products Grid/List */}
               <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
                 {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
+                  currentProducts.map((product) => {
+                    // Check if product has variants
+                    if (!product.product_variants || product.product_variants.length === 0) {
+                      return null;
+                    }
+
+                    return viewMode === "grid" ? (
                       <ProductCard
                         key={product.id}
                         product={product}
                         onClick={() => setSelectedProduct(product)}
-                        quantities={quantities}
-                        handleQuantityChange={handleQuantityChange}
+                        quantity={quantities[product.id] || 1}
+                        onQuantityChange={handleQuantityChange}
                       />
                     ) : (
                       <ListViewItem
                         key={product.id}
                         product={product}
                         onClick={() => setSelectedProduct(product)}
-                        quantities={quantities}
-                        handleQuantityChange={handleQuantityChange}
+                        quantity={quantities[product.id] || 1}
+                        onQuantityChange={handleQuantityChange}
                       />
-                    )
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
+                    <p className="text-gray-500 text-lg">No Large Animal products found matching your criteria.</p>
                     <Button
                       variant="outline"
-                      className="mt-4 border-green-200 text-green-700"
-                      onClick={() => setFilters({ availability: [], priceRanges: [], search: '' })}
+                      className="mt-4 border-amber-200 text-amber-700"
+                      onClick={() => {
+                        setFilters({ availability: [], priceRanges: [] });
+                        setSearchQuery('');
+                      }}
                     >
                       Clear Filters
                     </Button>
@@ -1523,7 +1066,7 @@ export const LargeAnimalsProducts = () => {
                     variant="outline"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="border-green-200"
+                    className="border-amber-200"
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     Previous
@@ -1543,8 +1086,8 @@ export const LargeAnimalsProducts = () => {
                           variant={currentPage === pageNum ? "default" : "outline"}
                           onClick={() => setCurrentPage(pageNum)}
                           className={`${currentPage === pageNum
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "border-green-200"
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : "border-amber-200"
                             }`}
                         >
                           {pageNum}
@@ -1563,7 +1106,7 @@ export const LargeAnimalsProducts = () => {
                     variant="outline"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="border-green-200"
+                    className="border-amber-200"
                   >
                     Next
                     <ChevronRight className="w-4 h-4 ml-1" />
@@ -1596,12 +1139,17 @@ export const LargeAnimalsProducts = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold">Filters</h2>
                     <button onClick={() => setMobileFiltersOpen(false)}>
-                      <XIcon className="w-6 h-6" />
+                      <X className="w-6 h-6" />
                     </button>
                   </div>
-                  <FilterSection filters={filters} setFilters={setFilters} />
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
                   <Button
-                    className="w-full mt-6 bg-green-600 hover:bg-green-700"
+                    className="w-full mt-6 bg-amber-600 hover:bg-amber-700"
                     onClick={() => setMobileFiltersOpen(false)}
                   >
                     Apply Filters
@@ -1618,6 +1166,23 @@ export const LargeAnimalsProducts = () => {
           isOpen={!!selectedProduct}
           onClose={() => setSelectedProduct(null)}
         />
+
+        {/* Cart Count Indicator */}
+        <div className="fixed bottom-6 right-6 z-40">
+          <div className="relative">
+            <Link
+              to="/cart"
+              className="w-16 h-16 bg-amber-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-amber-700 transition-colors"
+            >
+              <ShoppingCart className="w-8 h-8" />
+            </Link>
+            {getCartCount() > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                {getCartCount()}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </Layout>
   );

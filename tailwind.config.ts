@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Playfair Display', 'Georgia', 'serif'],
         serif: ['Playfair Display', 'Georgia', 'serif'],
       },
       colors: {
@@ -56,7 +56,7 @@ export default {
         organic: "hsl(var(--organic-green))",
         cream: "hsl(var(--warm-cream))",
         dark: "hsl(var(--dark-surface))",
-        
+
         // Extended green palette
         green: {
           50: '#f0fdf4',
@@ -287,7 +287,7 @@ export default {
   },
   plugins: [
     require("tailwindcss-animate"),
-    function({ addUtilities }: { addUtilities: Function }) {
+    function ({ addUtilities }: { addUtilities: Function }) {
       const newUtilities = {
         '.perspective-1000': {
           perspective: '1000px',

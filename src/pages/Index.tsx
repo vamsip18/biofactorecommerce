@@ -1,12 +1,12 @@
 // src/pages/Index.tsx
 import { Layout } from "@/components/layout/Layout";
 import {
-  AquaCultureSection,
+  CategoryProductsSection,
   BestSellingProducts,
   HeroSection,
-  TrendingTopics,
+  // TrendingTopics,
   BestDealsProducts
- 
+
 } from "@/components/home/BasketPreviewSection";
 
 const Index = () => {
@@ -15,8 +15,8 @@ const Index = () => {
       <HeroSection />
       <BestSellingProducts />
       <BestDealsProducts />
-            <TrendingTopics />
-            <AquaCultureSection />
+      {/* <TrendingTopics /> */}
+      <CategoryProductsSection />
     </Layout>
   );
 };

@@ -1,761 +1,1222 @@
-// components/Probiotics.tsx
-import React, { useState, useEffect } from 'react';
-import { useCart } from '../contexts/CartContext';
-import { Layout } from '@/components/layout/Layout';
-import { Link } from 'react-router-dom';
+// src/components/products/Probiotics.tsx
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Layout } from "@/components/layout/Layout";
 import {
-  ShoppingCart, Filter, ChevronDown, X,
-  Star, Truck, Shield, Check,
-  Plus, Minus, Share2, Heart,
-  Grid, List, Search, Clock,
-  Package, Sliders, ArrowUpDown,
-  ChevronLeft, ChevronRight
+  Filter,
+  ChevronDown,
+  Grid,
+  List,
+  Search,
+  X,
+  ShoppingCart,
+  Heart,
+  Package,
+  Clock,
+  Sliders,
+  ArrowUpDown,
+  Minus,
+  Plus,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Check,
+  Truck,
+  Shield
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
-interface Product {
-  id: number;
-  name: string;
+// Types based on your Supabase schema
+type ProductVariant = {
+  id: string;
+  title: string;
+  variant_type: string;
+  value: number | null;
+  unit: string | null;
   price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  formulation: string;
-  coverage: string;
-  description: string;
-  features: string[];
-  availability: 'In Stock' | 'Sold Out';
-  rating: number;
-  reviews: number;
-  isNew?: boolean;
-  isBestSeller?: boolean;
-}
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+  sku: string;
+};
 
-const priceRanges = [
-  { id: "range1", min: 0, max: 500, label: "Under Rs. 500" },
-  { id: "range2", min: 500, max: 1000, label: "Rs. 500 - Rs. 1000" },
-  { id: "range3", min: 1000, max: 2000, label: "Rs. 1000 - Rs. 2000" },
-  { id: "range4", min: 2000, max: 5000, label: "Rs. 2000 - Rs. 5000" },
-  { id: "range5", min: 5000, max: Infinity, label: "Over Rs. 5000" }
+type Collection = {
+  id: string;
+  title: string;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  created_at?: string;
+  collections: Collection | null;
+  product_variants: ProductVariant[];
+};
+
+// Sort options
+const sortOptions = [
+  { value: "name-asc", label: "Alphabetically, A-Z" },
+  { value: "name-desc", label: "Alphabetically, Z-A" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "created-desc", label: "Newest First" }
 ];
 
-const Probiotics: React.FC = () => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const priceRanges = [
+  { id: "range1", min: 0, max: 1000, label: "Under Rs. 1000" },
+  { id: "range2", min: 1000, max: 2000, label: "Rs. 1000 - Rs. 2000" },
+  { id: "range3", min: 2000, max: 3000, label: "Rs. 2000 - Rs. 3000" },
+  { id: "range4", min: 3000, max: 4000, label: "Rs. 3000 - Rs. 4000" },
+  { id: "range5", min: 4000, max: 5000, label: "Rs. 4000 - Rs. 5000" },
+  { id: "range6", min: 5000, max: 10000, label: "Rs. 5000 - Rs. 10000" }
+];
+
+// Helper functions
+const getDefaultVariant = (product: Product) => {
+  return product.product_variants?.[0];
+};
+
+const getProductCategory = (product: Product) => {
+  return product.collections?.title || "Probiotics";
+};
+
+const isProductInStock = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.stock > 0;
+};
+
+const getProductImage = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.image_url || "/placeholder-probiotic.jpg";
+};
+
+const getProductPrice = (product: Product, variant?: ProductVariant) => {
+  const targetVariant = variant || getDefaultVariant(product);
+  return targetVariant?.price || 0;
+};
+
+const getVariantDisplay = (variant: ProductVariant) => {
+  return `${variant.value || ''}${variant.unit || ''}`.trim();
+};
+
+const getRatingDisplay = () => {
+  const defaultRating = 4.5;
+  const stars = [];
+  const fullStars = Math.floor(defaultRating);
+  const hasHalfStar = defaultRating % 1 >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else {
+      stars.push(<Star key={i} className="w-4 h-4 fill-gray-300 text-gray-300" />);
+    }
+  }
+
+  return stars;
+};
+
+// Filter Section Component
+const FilterSection = ({
+  filters,
+  setFilters,
+  searchQuery,
+  setSearchQuery
+}: {
+  filters: {
+    availability: string[];
+    priceRanges: string[];
+    features: string[];
+  };
+  setFilters: (filters: any) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) => {
+  const [expandedSections, setExpandedSections] = useState({
+    price: true,
+    availability: true,
+    features: true
+  });
+
+  const featuresOptions = [
+    { id: "powder", label: "Powder Formulation" },
+    { id: "liquid", label: "Liquid Formulation" },
+    { id: "granular", label: "Granular Formulation" },
+    { id: "water", label: "Water Treatment" },
+    { id: "disease", label: "Disease Control" },
+    { id: "growth", label: "Growth Promoter" }
+  ];
+
+  const toggleSection = (section: 'price' | 'availability' | 'features') => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search */}
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search probiotics..."
+            className="pl-10 border-blue-200 focus:border-blue-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Availability Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('availability')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Availability</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.availability && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('in-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked
+                    ? [...filters.availability, 'in-stock']
+                    : filters.availability.filter(v => v !== 'in-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">In Stock</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.availability.includes('out-of-stock')}
+                onChange={(e) => {
+                  const newAvailability = e.target.checked
+                    ? [...filters.availability, 'out-of-stock']
+                    : filters.availability.filter(v => v !== 'out-of-stock');
+                  setFilters({ ...filters, availability: newAvailability });
+                }}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Out of Stock</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Price Filter */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('price')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Price</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.price && (
+          <div className="space-y-2">
+            {priceRanges.map((range) => (
+              <label key={range.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.priceRanges.includes(range.id)}
+                  onChange={(e) => {
+                    const newPriceRanges = e.target.checked
+                      ? [...filters.priceRanges, range.id]
+                      : filters.priceRanges.filter(v => v !== range.id);
+                    setFilters({ ...filters, priceRanges: newPriceRanges });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{range.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+
+
+      {/* Clear Filters Button */}
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.features.length > 0 || searchQuery) && (
+        <Button
+          variant="outline"
+          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50"
+          onClick={() => {
+            setFilters({ availability: [], priceRanges: [], features: [] });
+            setSearchQuery('');
+            // Clear URL parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }}
+        >
+          <X className="w-4 h-4 mr-2" />
+          Clear Filters
+        </Button>
+      )}
+    </div>
+  );
+};
+
+// Product Card Component - Grid View
+const ProductCard = ({
+  product,
+  onClick,
+  quantity,
+  onQuantityChange
+}: {
+  product: Product;
+  onClick: () => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
+}) => {
+  const defaultVariant = getDefaultVariant(product);
+  const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+  const { addToCart } = useCart();
+
+  const productImage = getProductImage(product, activeVariant);
+  const productPrice = getProductPrice(product, activeVariant);
+  const productCategory = getProductCategory(product);
+  const isInStock = isProductInStock(product, activeVariant);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const displayName = `${product.name} ${getVariantDisplay(activeVariant)}`.trim();
+
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: activeVariant.id,
+        name: displayName,
+        price: activeVariant.price,
+        image: activeVariant.image_url || "/placeholder-probiotic.jpg",
+        category: productCategory,
+        quantity: quantity,
+        stock: activeVariant.stock || 10
+      });
+
+      toast.success(`${product.name} added to cart!`);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
+    }
+  };
+
+  // Determine if product matches certain features for badges
+  const isPowderForm = activeVariant.variant_type === 'weight' && activeVariant.unit === 'g';
+  const isLiquidForm = activeVariant.variant_type === 'volume' && activeVariant.unit === 'ml';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      className="group bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
+      onClick={onClick}
+    >
+      <div className="relative flex-1">
+        {/* Product Image */}
+        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50">
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          />
+
+          {/* Variant Hover Dots */}
+          {product.product_variants && product.product_variants.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+              {product.product_variants.map(v => (
+                <button
+                  key={v.id}
+                  onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    setActiveVariant(v);
+                  }}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${activeVariant.id === v.id ? "bg-blue-600 scale-110" : "bg-gray-300 hover:bg-blue-400"
+                    }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {!isInStock && (
+              <Badge className="bg-red-500 text-white text-xs font-semibold">
+                Sold Out
+              </Badge>
+            )}
+            {isPowderForm && (
+              <Badge className="bg-purple-500 text-white text-xs font-semibold">
+                Powder
+              </Badge>
+            )}
+            {isLiquidForm && (
+              <Badge className="bg-cyan-500 text-white text-xs font-semibold">
+                Liquid
+              </Badge>
+            )}
+          </div>
+
+          {/* Wishlist Button */}
+          {/* <button
+            className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.info("Added to wishlist");
+            }}
+          >
+            <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
+          </button> */}
+        </div>
+
+        {/* Product Info */}
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors mb-2 line-clamp-2">
+            {product.name}
+          </h3>
+
+          <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+
+          {/* Rating */}
+          <div className="flex items-center mb-2">
+            <div className="flex">
+              {getRatingDisplay()}
+            </div>
+            <span className="text-sm text-gray-500 ml-2">
+              (4.5)
+            </span>
+          </div>
+
+          <div className="flex items-center text-sm text-gray-500 mb-3">
+            <Package className="w-4 h-4 mr-1 flex-shrink-0" />
+            <span className="truncate">{productCategory}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 mt-3">
+            {/* Price Section */}
+            <div className="flex-1">
+              <div className="text-lg font-bold text-gray-900">
+                Rs. {productPrice.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-500">
+                {getVariantDisplay(activeVariant)}
+              </div>
+            </div>
+
+            {/* Quantity and Add to Cart */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, -1);
+                  }}
+                  className="px-2 py-1 text-gray-600 hover:text-blue-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                  {quantity}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, 1);
+                  }}
+                  className="px-2 py-1 text-gray-600 hover:text-blue-700 hover:bg-gray-50"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+
+              <Button
+                size="sm"
+                className={`${!isInStock
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                disabled={!isInStock}
+                onClick={handleAddToCart}
+              >
+                {!isInStock ? (
+                  <>
+                    <Clock className="w-3 h-3 mr-1" />
+                    <span className="text-xs">Sold Out</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    <span className="text-xs">Add</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Product Modal Component
+const ProductModal = ({
+  product,
+  isOpen,
+  onClose
+}: {
+  product: Product | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+
+  useEffect(() => {
+    if (product) {
+      const defaultVariant = getDefaultVariant(product);
+      setSelectedVariant(defaultVariant || null);
+    }
+  }, [product]);
+
+  if (!product || !selectedVariant) return null;
+
+  const handleAddToCart = async () => {
+    const displayName = `${product.name} ${getVariantDisplay(selectedVariant)}`.trim();
+
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: selectedVariant.id,
+        name: displayName,
+        price: selectedVariant.price,
+        image: selectedVariant.image_url || "/placeholder-probiotic.jpg",
+        category: getProductCategory(product),
+        quantity: quantity,
+        stock: selectedVariant.stock || 10
+      });
+
+      toast.success(`${product.name} added to cart!`);
+      onClose();
+    } catch (error) {
+      console.error("Error adding to cart from modal:", error);
+      toast.error("Failed to add to cart");
+    }
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    window.location.href = "/cart";
+  };
+
+  // Get variant-specific image
+  const variantImage = selectedVariant.image_url || "/placeholder-probiotic.jpg";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">{product.name}</DialogTitle>
+          <DialogDescription>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="flex">
+                {getRatingDisplay()}
+              </div>
+              <span className="text-sm text-gray-600">
+                (4.5)
+              </span>
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Image */}
+          <div className="space-y-4">
+            <div className="relative h-96 rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selectedVariant.id}
+                  src={variantImage}
+                  alt={product.name}
+                  initial={{ opacity: 0.4 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-full h-full object-cover"
+                />
+              </AnimatePresence>
+
+              {/* Badges */}
+              <div className="absolute top-4 left-4 flex flex-col gap-2">
+                {!isProductInStock(product, selectedVariant) && (
+                  <Badge className="bg-red-500 text-white">
+                    Sold Out
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Variant Thumbnails */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {product.product_variants.map((variantItem) => (
+                  <button
+                    key={variantItem.id}
+                    onClick={() => setSelectedVariant(variantItem)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 ${selectedVariant.id === variantItem.id
+                      ? "border-blue-600"
+                      : "border-gray-200 hover:border-blue-300"
+                      }`}
+                  >
+                    <img
+                      src={variantItem.image_url || "/placeholder-probiotic.jpg"}
+                      alt={getVariantDisplay(variantItem)}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Share Button */}
+            <Button variant="outline" className="w-full border-blue-200">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+          </div>
+
+          {/* Right Column - Product Details */}
+          <div className="space-y-6">
+            {/* Price */}
+            <div>
+              <div className="text-3xl font-bold text-gray-900">
+                Rs. {selectedVariant.price.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {getVariantDisplay(selectedVariant)}
+              </div>
+              <p className={`font-semibold mt-2 ${isProductInStock(product, selectedVariant) ? 'text-blue-600' : 'text-red-600'
+                }`}>
+                {isProductInStock(product, selectedVariant) ? 'In Stock' : 'Sold Out'}
+              </p>
+            </div>
+
+            {/* Variant Selection */}
+            {product.product_variants && product.product_variants.length > 1 && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Available Sizes</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {product.product_variants.map((variantItem) => (
+                    <button
+                      key={variantItem.id}
+                      onClick={() => setSelectedVariant(variantItem)}
+                      className={`px-4 py-3 rounded-lg border text-sm transition-all flex items-center gap-2 ${selectedVariant.id === variantItem.id
+                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        : "border-gray-300 hover:border-blue-300"
+                        }`}
+                    >
+                      {variantItem.image_url && (
+                        <img
+                          src={variantItem.image_url}
+                          alt=""
+                          className="w-8 h-8 rounded object-cover"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">{getVariantDisplay(variantItem)}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Rs. {variantItem.price}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity Selector */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Quantity</h3>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 rounded-full border border-gray-300 hover:border-blue-300"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="text-xl font-semibold w-8 text-center">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="p-2 rounded-full border border-gray-300 hover:border-blue-300"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-sm text-gray-500">
+                  {quantity} × Rs. {selectedVariant.price.toFixed(2)} = Rs. {(selectedVariant.price * quantity).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg"
+                onClick={handleAddToCart}
+                disabled={!isProductInStock(product, selectedVariant)}
+              >
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Add to cart
+              </Button>
+              <Button
+                className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 h-12 text-lg"
+                variant="outline"
+                onClick={handleBuyNow}
+                disabled={!isProductInStock(product, selectedVariant)}
+              >
+                Buy it now
+              </Button>
+            </div>
+
+            {/* Product Details */}
+            <div className="pt-6 border-t">
+              <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
+              <p className="text-gray-600 mb-4">{product.description}</p>
+
+              {/* Key Features */}
+              <h4 className="font-semibold text-gray-900 mb-3">Key Benefits</h4>
+              <ul className="space-y-2">
+                {[
+                  "Improves water quality and reduces ammonia",
+                  "Enhances digestion and feed conversion ratio",
+                  "Boosts immune system of aquatic species",
+                  "Promotes beneficial bacterial growth",
+                  "Safe for all fish and shrimp species"
+                ].map((feature, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <Check className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// List View Item Component
+const ListViewItem = ({
+  product,
+  onClick,
+  quantity,
+  onQuantityChange
+}: {
+  product: Product;
+  onClick: () => void;
+  quantity: number;
+  onQuantityChange: (productId: string, delta: number) => void;
+}) => {
+  const defaultVariant = getDefaultVariant(product);
+  const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
+  const { addToCart } = useCart();
+
+  const productImage = getProductImage(product, activeVariant);
+  const productPrice = getProductPrice(product, activeVariant);
+  const productCategory = getProductCategory(product);
+  const isInStock = isProductInStock(product, activeVariant);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const displayName = `${product.name} ${getVariantDisplay(activeVariant)}`.trim();
+
+    try {
+      await addToCart({
+        productId: product.id,
+        variantId: activeVariant.id,
+        name: displayName,
+        price: activeVariant.price,
+        image: activeVariant.image_url || "/placeholder-probiotic.jpg",
+        category: productCategory,
+        quantity: quantity,
+        stock: activeVariant.stock || 10
+      });
+
+      toast.success(`${product.name} added to cart!`);
+    } catch (error) {
+      console.error("Error adding to cart from list view:", error);
+      toast.error("Failed to add to cart");
+    }
+  };
+
+  return (
+    <motion.div
+      key={product.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg border border-gray-200 hover:border-blue-300 p-4 md:p-6 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        <div className="md:w-1/4 relative">
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-48 md:h-full object-cover rounded-lg"
+          />
+
+          {/* Variant Hover Dots */}
+          {product.product_variants && product.product_variants.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+              {product.product_variants.map(v => (
+                <button
+                  key={v.id}
+                  onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    setActiveVariant(v);
+                  }}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${activeVariant.id === v.id ? "bg-blue-600 scale-110" : "bg-gray-300 hover:bg-blue-400"
+                    }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="md:w-3/4 flex flex-col">
+          <div className="flex-1">
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+            <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center text-sm text-gray-600">
+                <Package className="w-4 h-4 mr-1" />
+                {productCategory}
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="flex">
+                  {getRatingDisplay()}
+                </div>
+                <span className="ml-1">(4.5)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Price, Quantity and Add to Cart */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
+            <div className="w-full sm:w-auto flex items-center gap-4">
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-gray-900">
+                  Rs. {productPrice.toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {getVariantDisplay(activeVariant)}
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, -1);
+                  }}
+                  className="px-3 py-1 text-gray-600 hover:text-blue-700 hover:bg-gray-50"
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="px-3 py-1 border-x border-gray-300 min-w-8 text-center">
+                  {quantity}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(product.id, 1);
+                  }}
+                  className="px-3 py-1 text-gray-600 hover:text-blue-700 hover:bg-gray-50"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <Button
+                className={`w-full sm:w-auto ${!isInStock
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                disabled={!isInStock}
+                onClick={handleAddToCart}
+              >
+                {!isInStock ? "Sold Out" : "Add to Cart"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export const ProbioticsProducts = () => {
+  const [sortBy, setSortBy] = useState("name-asc");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState('bestSelling');
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string[]>(['In Stock']);
-  const [showFilters, setShowFilters] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
-  const { addToCart, getCartCount } = useCart();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
-    search: ''
+    features: [] as string[],
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { getCartCount } = useCart();
 
-  // Sample products data
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Modiphy",
-      price: 1568,
-      image: "https://images.unsplash.com/photo-1581235720708-87e772807c71?w=400&h=400&fit=crop",
-      category: "Probiotic Supplement",
-      formulation: "Powder Formulation",
-      coverage: "For 1000 Liters",
-      description: "Advanced probiotic formula for enhanced aquatic health and improved water quality. Promotes beneficial bacterial growth.",
-      features: [
-        "Improves digestion",
-        "Reduces ammonia levels",
-        "Enhances immune response",
-        "Easy to use powder form"
-      ],
-      availability: "In Stock",
-      rating: 4.5,
-      reviews: 128,
-      isBestSeller: true
-    },
-    {
-      id: 2,
-      name: "Kipper - 5 Ltr",
-      price: 3807,
-      image: "https://images.unsplash.com/photo-1567095761054-7a02e69e5c43?w=400&h=400&fit=crop",
-      category: "Water Treatment",
-      formulation: "Liquid Formulation",
-      coverage: "5000 Liters",
-      description: "Concentrated probiotic solution for large-scale aquaculture applications.",
-      features: [
-        "Rapid water purification",
-        "Long-lasting effect",
-        "Safe for all fish species",
-        "Concentrated formula"
-      ],
-      availability: "In Stock",
-      rating: 4.3,
-      reviews: 89,
-      isNew: true
-    },
-    {
-      id: 3,
-      name: "V-Vacc",
-      price: 2799,
-      image: "https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=400&h=400&fit=crop",
-      category: "Vaccine Support",
-      formulation: "Liquid Formulation",
-      coverage: "For 2000 Fish",
-      description: "Probiotic vaccine support formula that enhances vaccine efficacy.",
-      features: [
-        "Vaccine compatibility",
-        "Immune system booster",
-        "Reduces stress",
-        "Improves survival rates"
-      ],
-      availability: "In Stock",
-      rating: 4.7,
-      reviews: 156
-    },
-    {
-      id: 4,
-      name: "Dawn",
-      price: 2699,
-      originalPrice: 2999,
-      image: "https://images.unsplash.com/photo-1560769624-6e81d6e60a33?w=400&h=400&fit=crop",
-      category: "Morning Treatment",
-      formulation: "Powder Formulation",
-      coverage: "For 1500 Liters",
-      description: "Early morning probiotic treatment for optimal fish health.",
-      features: [
-        "Morning application",
-        "Improves appetite",
-        "Reduces morning stress",
-        "Easy digestion"
-      ],
-      availability: "In Stock",
-      rating: 4.4,
-      reviews: 95
-    },
-    {
-      id: 5,
-      name: "E-Vac - EHP Remedy",
-      price: 2911,
-      image: "https://images.unsplash.com/photo-1576724196706-8a6c6b8a22b4?w=400&h=400&fit=crop",
-      category: "Disease Control",
-      formulation: "Granular Formulation",
-      coverage: "For 2500 Liters",
-      description: "Specialized probiotic formula for EHP (Enterocytozoon hepatopenaei) control.",
-      features: [
-        "EHP specific",
-        "Preventive & curative",
-        "Safe for shrimp",
-        "Improves FCR"
-      ],
-      availability: "In Stock",
-      rating: 4.8,
-      reviews: 203,
-      isBestSeller: true
-    },
-    {
-      id: 6,
-      name: "Virban 2.0",
-      price: 2499,
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
-      category: "Viral Protection",
-      formulation: "Liquid Formulation",
-      coverage: "1000 Liters",
-      description: "Advanced viral protection probiotic with enhanced stability and efficacy.",
-      features: [
-        "Broad-spectrum protection",
-        "Enhanced stability",
-        "Easy application",
-        "Long shelf life"
-      ],
-      availability: "In Stock",
-      rating: 4.6,
-      reviews: 178
-    },
-    {
-      id: 7,
-      name: "High-K Aqua",
-      price: 1119,
-      image: "https://images.unsplash.com/photo-1522926193341-e9ffd686c60f?w=400&h=400&fit=crop",
-      category: "Mineral Enriched",
-      formulation: "Powder Formulation",
-      coverage: "For 800 Liters",
-      description: "Potassium-enriched probiotic for improved osmoregulation.",
-      features: [
-        "High potassium content",
-        "Improves osmoregulation",
-        "Reduces stress",
-        "Affordable"
-      ],
-      availability: "Sold Out",
-      rating: 4.2,
-      reviews: 67
-    },
-    {
-      id: 8,
-      name: "Virban 1 Ltr",
-      price: 2575,
-      image: "https://images.unsplash.com/photo-1567095761054-7a02e69e5c43?w=400&h=400&fit=crop",
-      category: "Viral Protection",
-      formulation: "Liquid Formulation",
-      coverage: "1000 Liters",
-      description: "Standard viral protection probiotic formula.",
-      features: [
-        "Viral protection",
-        "Water quality improvement",
-        "Easy to measure",
-        "Cost-effective"
-      ],
-      availability: "In Stock",
-      rating: 4.4,
-      reviews: 112
-    },
-    {
-      id: 9,
-      name: "Regalis - 1Kg",
-      price: 2832,
-      image: "https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=400&h=400&fit=crop",
-      category: "Growth Promoter",
-      formulation: "Powder Formulation",
-      coverage: "For 3000 Liters",
-      description: "Growth-promoting probiotic for accelerated fish development.",
-      features: [
-        "Growth promotion",
-        "Improves FCR",
-        "Enhances color",
-        "All-natural formula"
-      ],
-      availability: "In Stock",
-      rating: 4.5,
-      reviews: 134
-    }
-  ];
+  // State for product quantities
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
+  // Get location for URL parameters
+  const location = useLocation();
 
   const productsPerPage = 12;
 
-  // Filter products based on selected filters
-  const filteredProducts = products.filter(product => {
-    const priceInRange = selectedPriceRanges.length === 0 || selectedPriceRanges.some(rangeId => {
-      const range = priceRanges.find(r => r.id === rangeId);
-      return range ? product.price >= range.min && product.price <= range.max : false;
-    });
-    const availabilityMatch = availability.length === 0 || availability.includes(product.availability);
-    const searchMatch = !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return priceInRange && availabilityMatch && searchMatch;
-  });
-
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'priceLowHigh':
-        return a.price - b.price;
-      case 'priceHighLow':
-        return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      default: // bestSelling
-        return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviews - a.reviews;
+  // Parse URL parameters on component mount and URL changes
+  useEffect(() => {
+    // Parse search query from URL
+    const urlParams = new URLSearchParams(location.search);
+    const query = urlParams.get('q');
+    if (query) {
+      setSearchQuery(query);
     }
-  });
+
+    // Handle highlighting a specific product
+    const highlightId = urlParams.get('highlight');
+    if (highlightId) {
+      // Find and highlight the product
+      const productToHighlight = products.find(p => p.id === highlightId);
+      if (productToHighlight) {
+        setSelectedProduct(productToHighlight);
+      }
+    }
+  }, [location.search, products]);
+
+  // Fetch probiotics products from Supabase - CORRECTED QUERY
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        console.log("Fetching probiotics products from Supabase...");
+
+        const { data, error } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            is_active,
+            created_at,
+            collections (
+              id,
+              title
+            ),
+            product_variants (
+              id,
+              title,
+              variant_type,
+              value,
+              unit,
+              price,
+              stock,
+              image_url,
+              is_active,
+              sku
+            )
+          `)
+          .eq("is_active", true);
+
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+
+        console.log("Raw data from Supabase:", data);
+
+        // Filter data on the frontend
+        const probioticsProducts = (data || [])
+          .map(product => ({
+            ...product,
+            // Filter out inactive variants
+            product_variants: product.product_variants?.filter(
+              (v: ProductVariant) => v.is_active === true
+            ) || []
+          }))
+          .filter(product => {
+            // Only include products with active variants
+            if (product.product_variants.length === 0) return false;
+
+            // Filter for probiotics
+            const collectionName = product.collections?.title?.toLowerCase() || '';
+            const productName = product.name.toLowerCase();
+            const productDescription = product.description?.toLowerCase() || '';
+
+            return collectionName.includes('probiotic') ||
+              productName.includes('probiotic') ||
+              productDescription.includes('probiotic') ||
+              productName.includes('modiphy') ||
+              productName.includes('e-vac') ||
+              productName.includes('virban') ||
+              productName.includes('kipper') ||
+              productName.includes('v-vacc') ||
+              productName.includes('dawn') ||
+              productName.includes('regalis');
+          });
+
+        console.log("Filtered probiotics products:", probioticsProducts);
+        setProducts(probioticsProducts);
+
+        // Initialize quantities for all products
+        const initialQuantities: { [key: string]: number } = {};
+        probioticsProducts.forEach(product => {
+          initialQuantities[product.id] = 1;
+        });
+        setQuantities(initialQuantities);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        toast.error("Failed to load probiotics products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Apply filters and sorting with enhanced search
+  const filteredAndSortedProducts = products
+    .filter(product => {
+      // Enhanced search filter - search in name, description, and variant titles
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = product.name.toLowerCase().includes(query);
+        const descMatch = product.description.toLowerCase().includes(query);
+
+        // Check if any variant title matches the search
+        const variantMatch = product.product_variants?.some(variant =>
+          variant.title?.toLowerCase().includes(query)
+        ) || false;
+
+        if (!nameMatch && !descMatch && !variantMatch) {
+          return false;
+        }
+      }
+
+      // Availability filter
+      if (filters.availability.length > 0) {
+        const inStockFilter = filters.availability.includes('in-stock');
+        const outOfStockFilter = filters.availability.includes('out-of-stock');
+
+        if (inStockFilter && outOfStockFilter) {
+          // Show both
+        } else if (inStockFilter && !isProductInStock(product)) {
+          return false;
+        } else if (outOfStockFilter && isProductInStock(product)) {
+          return false;
+        }
+      }
+
+      // Price range filter
+      if (filters.priceRanges.length > 0) {
+        const productPrice = getProductPrice(product);
+        const matchesPriceRange = filters.priceRanges.some(rangeId => {
+          const range = priceRanges.find(r => r.id === rangeId);
+          if (!range) return false;
+          return productPrice >= range.min && productPrice <= range.max;
+        });
+        if (!matchesPriceRange) return false;
+      }
+
+      // Features filter
+      if (filters.features.length > 0) {
+        const variant = getDefaultVariant(product);
+        if (!variant) return false;
+
+        const variantType = variant.variant_type;
+        const unit = variant.unit;
+        const name = product.name.toLowerCase();
+
+        const matchesFeature = filters.features.some(featureId => {
+          switch (featureId) {
+            case 'powder':
+              return variantType === 'weight' && unit === 'g' || name.includes('powder');
+            case 'liquid':
+              return variantType === 'volume' && unit === 'ml' || name.includes('liquid');
+            case 'granular':
+              return variantType === 'weight' && unit === 'g' || name.includes('granular');
+            case 'water':
+              return name.includes('water') || product.description.toLowerCase().includes('water treatment');
+            case 'disease':
+              return name.includes('disease') || product.description.toLowerCase().includes('disease');
+            case 'growth':
+              return name.includes('growth') || product.description.toLowerCase().includes('growth promoter');
+            default:
+              return false;
+          }
+        });
+
+        if (!matchesFeature) return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "price-asc":
+          return getProductPrice(a) - getProductPrice(b);
+        case "price-desc":
+          return getProductPrice(b) - getProductPrice(a);
+        case "created-desc":
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          }
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
 
   // Calculate pagination
-  const totalProducts = sortedProducts.length;
+  const totalProducts = filteredAndSortedProducts.length;
   const totalPages = Math.ceil(totalProducts / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const endIndex = startIndex + productsPerPage;
-  const currentProducts = sortedProducts.slice(startIndex, endIndex);
+  const currentProducts = filteredAndSortedProducts.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedPriceRanges, availability, searchQuery, sortBy]);
+  }, [filters, sortBy, searchQuery]);
 
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
-    setQuantity(1);
-    setIsModalOpen(true);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    document.body.style.overflow = 'unset';
-  };
-
-  const handleAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      formulation: product.formulation,
-      coverage: product.coverage,
-      quantity: quantities[product.id] || 1
-    });
-    toast.success("Added to cart");
-
-    // Reset quantity for this product
-    setQuantities(prev => ({
-      ...prev,
-      [product.id]: 1
-    }));
-  };
-
-  const handleBuyNow = (product: Product) => {
-    handleAddToCart(product);
-    window.location.href = "/cart";
-  };
-
-  const handleQuantityChange = (productId: number, delta: number) => {
+  // Handle quantity change for a product
+  const handleQuantityChange = (productId: string, delta: number) => {
     setQuantities(prev => ({
       ...prev,
       [productId]: Math.max(1, (prev[productId] || 1) + delta)
     }));
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: selectedProduct?.name,
-        text: `Check out ${selectedProduct?.name} - ${selectedProduct?.description}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
-    }
-  };
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  const renderStars = (rating: number) => {
+  if (loading) {
     return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`w-4 h-4 ${i < Math.floor(rating)
-              ? 'fill-yellow-400 text-yellow-400'
-              : 'fill-gray-300 text-gray-300'
-              }`}
-          />
-        ))}
-        <span className="text-sm text-gray-600 ml-1">({rating})</span>
-      </div>
+      // <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading probiotics products...</p>
+          </div>
+        </div>
+      /* </Layout> */
     );
-  };
-
-  // Filter Section Component
-  const FilterSection = () => {
-    const [expandedSections, setExpandedSections] = useState({
-      price: true,
-      availability: true
-    });
-
-    const toggleSection = (section: 'price' | 'availability') => {
-      setExpandedSections(prev => ({
-        ...prev,
-        [section]: !prev[section]
-      }));
-    };
-
-    return (
-      <div className="space-y-6">
-        {/* Search */}
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Availability Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('availability')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Availability</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
-              }`} />
-          </button>
-
-          {expandedSections.availability && (
-            <div className="space-y-2">
-              {['In Stock', 'Sold Out'].map((status) => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={availability.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAvailability([...availability, status]);
-                      } else {
-                        setAvailability(availability.filter(s => s !== status));
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{status}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Price Filter */}
-        <div className="border-t pt-4">
-          <button
-            onClick={() => toggleSection('price')}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h3 className="font-semibold text-gray-900">Price</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
-              }`} />
-          </button>
-
-          {expandedSections.price && (
-            <div className="space-y-2">
-              {priceRanges.map((range) => (
-                <label key={range.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedPriceRanges.includes(range.id)}
-                    onChange={(e) => {
-                      const nextRanges = e.target.checked
-                        ? [...selectedPriceRanges, range.id]
-                        : selectedPriceRanges.filter(id => id !== range.id);
-                      setSelectedPriceRanges(nextRanges);
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{range.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Clear Filters Button */}
-        {(selectedPriceRanges.length > 0 || availability.length !== 1 || availability[0] !== 'In Stock' || searchQuery) && (
-          <button
-            onClick={() => {
-              setSelectedPriceRanges([]);
-              setAvailability(['In Stock']);
-              setSearchQuery('');
-            }}
-            className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Clear All Filters
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  // Product Card Component - Grid View
-  const ProductCard = ({ product }: { product: Product }) => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
-        onClick={() => handleProductClick(product)}
-      >
-        <div className="relative flex-1">
-          {/* Product Image */}
-          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-
-            {/* Badges */}
-            <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && (
-                <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  NEW
-                </span>
-              )}
-              {product.isBestSeller && (
-                <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Best Seller
-                </span>
-              )}
-              {product.availability === 'Sold Out' && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Sold Out
-                </span>
-              )}
-            </div>
-
-            {/* Wishlist Button */}
-            <button
-              className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                toast.info("Added to wishlist");
-              }}
-            >
-              <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
-            </button>
-          </div>
-
-          {/* Product Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
-              {product.name}
-            </h3>
-
-            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
-
-            <div className="flex items-center text-sm text-gray-500 mb-2">
-              <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{product.category}</span>
-            </div>
-
-            {/* Rating */}
-            <div className="mb-3">
-              {renderStars(product.rating)}
-              <p className="text-sm text-gray-500 mt-1">{product.reviews} reviews</p>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 mt-3">
-              {/* Price Section */}
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900">
-                  Rs. {product.price.toLocaleString()}
-                </div>
-                {product.originalPrice && (
-                  <div className="text-sm text-gray-500 line-through">
-                    Rs. {product.originalPrice.toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              {/* Quantity and Add to Cart */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, -1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                    disabled={(quantities[product.id] || 1) <= 1}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                    {quantities[product.id] || 1}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, 1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(product);
-                  }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${product.availability === 'Sold Out'
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
-                >
-                  {product.availability === 'Sold Out' ? (
-                    <>
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Sold Out</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span className="text-sm">Add</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
-  // List View Item Component
-  const ListViewItem = ({ product }: { product: Product }) => {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg border border-gray-200 hover:border-green-300 p-4 md:p-6 cursor-pointer"
-        onClick={() => handleProductClick(product)}
-      >
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <div className="md:w-1/4">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-48 md:h-full object-cover rounded-lg"
-            />
-          </div>
-          <div className="md:w-3/4 flex flex-col">
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
-                <div className="flex gap-2">
-                  {product.isNew && (
-                    <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      NEW
-                    </span>
-                  )}
-                  {product.isBestSeller && (
-                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Best Seller
-                    </span>
-                  )}
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
-
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Package className="w-4 h-4 mr-1" />
-                  {product.category}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  {renderStars(product.rating)}
-                  <span className="ml-1">({product.reviews})</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Price and Add to Cart in same line */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
-              <div className="w-full sm:w-auto flex items-center gap-4">
-                <div>
-                  <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {product.price.toLocaleString()}
-                  </div>
-                  {product.originalPrice && (
-                    <div className="text-sm text-gray-500 line-through">
-                      Rs. {product.originalPrice.toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="w-full sm:w-auto flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, -1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                    disabled={(quantities[product.id] || 1) <= 1}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                    {quantities[product.id] || 1}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuantityChange(product.id, 1);
-                    }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(product);
-                  }}
-                  disabled={product.availability === 'Sold Out'}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${product.availability === 'Sold Out'
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
-                >
-                  {product.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
+  }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gray-50">
+    // <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
+        <div className="bg-gradient-to-r from-blue-800 to-cyan-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Probiotics</h1>
-            <p className="text-green-100">
-              Premium probiotic solutions for aquaculture health and water quality management
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Aquaculture Probiotics</h1>
+            <p className="text-blue-100 text-lg max-w-2xl">
+              Premium probiotic solutions for enhanced aquatic health, improved water quality, and optimal growth performance
             </p>
           </div>
         </div>
+
+        {/* Search Results Indicator */}
+        {searchQuery && (
+          <div className="container mx-auto px-4 pt-6">
+            <div className="bg-white rounded-xl border border-blue-200 p-4 mb-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Search Results</h3>
+                  <p className="text-gray-600 text-sm">
+                    Showing {filteredAndSortedProducts.length} results for "{searchQuery}" in Probiotics
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => {
+                    setSearchQuery('');
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Clear Search
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Filters - Desktop */}
             <aside className="lg:w-1/4 hidden lg:block">
               <div className="sticky top-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-white rounded-xl border border-blue-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                       <Filter className="w-5 h-5" />
                       Filters
                     </h2>
-                    <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {filteredProducts.length} products
-                    </span>
+                    <Badge variant="secondary" className="bg-cyan-100 text-cyan-800">
+                      {filteredAndSortedProducts.filter(p => isProductInStock(p)).length} in stock
+                    </Badge>
                   </div>
-                  <FilterSection />
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
                 </div>
               </div>
             </aside>
@@ -764,23 +1225,24 @@ const Probiotics: React.FC = () => {
             <main className="lg:w-3/4">
               {/* Mobile Filter Button */}
               <div className="lg:hidden mb-6">
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
+                <Button
+                  onClick={() => setMobileFiltersOpen(true)}
+                  variant="outline"
+                  className="w-full justify-center border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters
-                </button>
+                  Show Filters ({Object.values(filters).flat().length + (searchQuery ? 1 : 0)})
+                </Button>
               </div>
 
               {/* Results Header */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+              <div className="bg-white rounded-xl border border-blue-200 p-6 mb-8 shadow-sm">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} probiotics
                     </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Aquaculture Probiotics</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Probiotic Solutions</h2>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
@@ -789,21 +1251,22 @@ const Probiotics: React.FC = () => {
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                        className="appearance-none bg-white border border-blue-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full"
                       >
-                        <option value="bestSelling">Best Selling</option>
-                        <option value="priceLowHigh">Price: Low to High</option>
-                        <option value="priceHighLow">Price: High to Low</option>
-                        <option value="rating">Highest Rating</option>
+                        {sortOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                       <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <div className="flex items-center border border-blue-200 rounded-lg overflow-hidden w-full sm:w-auto">
                       <button
                         onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-blue-50 text-blue-700" : "text-gray-500"
                           }`}
                       >
                         <Grid className="w-5 h-5 inline" />
@@ -811,7 +1274,7 @@ const Probiotics: React.FC = () => {
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-blue-50 text-blue-700" : "text-gray-500"
                           }`}
                       >
                         <List className="w-5 h-5 inline" />
@@ -825,26 +1288,65 @@ const Probiotics: React.FC = () => {
               {/* Products Grid/List */}
               <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
                 {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
-                      <ProductCard key={product.id} product={product} />
+                  currentProducts.map((product) => {
+                    // Check if product has variants
+                    if (!product.product_variants || product.product_variants.length === 0) {
+                      return null;
+                    }
+
+                    return viewMode === "grid" ? (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onClick={() => setSelectedProduct(product)}
+                        quantity={quantities[product.id] || 1}
+                        onQuantityChange={handleQuantityChange}
+                      />
                     ) : (
-                      <ListViewItem key={product.id} product={product} />
-                    )
-                  ))
+                      <ListViewItem
+                        key={product.id}
+                        product={product}
+                        onClick={() => setSelectedProduct(product)}
+                        quantity={quantities[product.id] || 1}
+                        onQuantityChange={handleQuantityChange}
+                      />
+                    );
+                  })
                 ) : (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
-                    <button
-                      onClick={() => {
-                        setSelectedPriceRanges([]);
-                        setAvailability(['In Stock']);
-                        setSearchQuery('');
-                      }}
-                      className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
-                    >
-                      Clear Filters
-                    </button>
+                    <div className="max-w-md mx-auto">
+                      <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 text-lg mb-4">
+                        {products.length === 0
+                          ? "No probiotics products found in database. Please add some products with 'probiotic' in the name or description."
+                          : "No probiotics found matching your criteria."}
+                      </p>
+                      {products.length === 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-500">Try adding products with names like:</p>
+                          <ul className="text-sm text-gray-500 list-disc list-inside">
+                            <li>Modiphy</li>
+                            <li>E-Vac</li>
+                            <li>Virban</li>
+                            <li>Kipper</li>
+                            <li>Or add 'Probiotics' to the collection title</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                          onClick={() => {
+                            setFilters({ availability: [], priceRanges: [], features: [] });
+                            setSearchQuery('');
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -852,34 +1354,35 @@ const Probiotics: React.FC = () => {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex flex-wrap justify-center items-center gap-2">
-                  <button
+                  <Button
+                    variant="outline"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                    className="border-blue-200"
                   >
-                    <ChevronLeft className="w-4 h-4 inline mr-1" />
+                    <ChevronLeft className="w-4 h-4 mr-1" />
                     Previous
-                  </button>
+                  </Button>
 
                   {[...Array(totalPages)].map((_, index) => {
                     const pageNum = index + 1;
-                    // Show only first, last, and pages around current
                     if (
                       pageNum === 1 ||
                       pageNum === totalPages ||
                       (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
                     ) {
                       return (
-                        <button
+                        <Button
                           key={index}
+                          variant={currentPage === pageNum ? "default" : "outline"}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-4 py-2 rounded-lg ${currentPage === pageNum
-                            ? "bg-green-600 text-white hover:bg-green-700"
-                            : "border border-green-200 text-green-700 hover:bg-green-50"
+                          className={`${currentPage === pageNum
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "border-blue-200"
                             }`}
                         >
                           {pageNum}
-                        </button>
+                        </Button>
                       );
                     } else if (
                       pageNum === currentPage - 2 ||
@@ -890,14 +1393,15 @@ const Probiotics: React.FC = () => {
                     return null;
                   })}
 
-                  <button
+                  <Button
+                    variant="outline"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                    className="border-blue-200"
                   >
                     Next
-                    <ChevronRight className="w-4 h-4 inline ml-1" />
-                  </button>
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
                 </div>
               )}
             </main>
@@ -906,14 +1410,14 @@ const Probiotics: React.FC = () => {
 
         {/* Mobile Filters Drawer */}
         <AnimatePresence>
-          {showFilters && (
+          {mobileFiltersOpen && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 bg-black/50"
-                onClick={() => setShowFilters(false)}
+                onClick={() => setMobileFiltersOpen(false)}
               />
               <motion.div
                 initial={{ x: "-100%" }}
@@ -925,17 +1429,22 @@ const Probiotics: React.FC = () => {
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold">Filters</h2>
-                    <button onClick={() => setShowFilters(false)}>
+                    <Button variant="ghost" size="icon" onClick={() => setMobileFiltersOpen(false)}>
                       <X className="w-6 h-6" />
-                    </button>
+                    </Button>
                   </div>
-                  <FilterSection />
-                  <button
-                    className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
-                    onClick={() => setShowFilters(false)}
+                  <FilterSection
+                    filters={filters}
+                    setFilters={setFilters}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
+                  <Button
+                    className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setMobileFiltersOpen(false)}
                   >
                     Apply Filters
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </>
@@ -943,252 +1452,59 @@ const Probiotics: React.FC = () => {
         </AnimatePresence>
 
         {/* Product Modal */}
-        {isModalOpen && selectedProduct && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={closeModal}
-            />
-
-            {/* Modal Content */}
-            <div className="relative min-h-screen flex items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  {/* Close Button */}
-                  <button
-                    onClick={closeModal}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
-                  >
-                    <X className="w-8 h-8" />
-                  </button>
-
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Product Images */}
-                    <div>
-                      <div className="rounded-xl overflow-hidden mb-4">
-                        <img
-                          src={selectedProduct.image}
-                          alt={selectedProduct.name}
-                          className="w-full h-96 object-cover"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Product Details */}
-                    <div>
-                      {/* Badges */}
-                      <div className="flex gap-2 mb-4">
-                        {selectedProduct.isNew && (
-                          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            NEW
-                          </span>
-                        )}
-                        {selectedProduct.isBestSeller && (
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            BEST SELLER
-                          </span>
-                        )}
-                      </div>
-
-                      <h2 className="text-4xl font-bold text-gray-900 mb-2">
-                        {selectedProduct.name}
-                      </h2>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {renderStars(selectedProduct.rating)}
-                        <span className="text-gray-600">({selectedProduct.reviews} reviews)</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="mb-6">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-gray-900">
-                            Rs. {selectedProduct.price.toLocaleString()}
-                          </span>
-                          {selectedProduct.originalPrice && (
-                            <span className="text-xl text-gray-500 line-through">
-                              Rs. {selectedProduct.originalPrice.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-green-600 font-semibold mt-1">
-                          {selectedProduct.availability}
-                        </p>
-                      </div>
-
-                      {/* Shipping Info */}
-                      <div className="bg-green-50 rounded-xl p-4 mb-6">
-                        <p className="text-gray-600">
-                          <Truck className="inline w-5 h-5 mr-2" />
-                          Shipping calculated at checkout.
-                        </p>
-                      </div>
-
-                      {/* Quantity Selector */}
-                      <div className="mb-8">
-                        <p className="font-semibold text-gray-900 mb-3">Quantity</p>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Minus className="w-5 h-5" />
-                          </button>
-                          <span className="text-2xl font-bold w-12 text-center">{quantity}</span>
-                          <button
-                            onClick={() => setQuantity(quantity + 1)}
-                            className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                          <span className="text-gray-600 ml-4">
-                            Total: Rs. {(selectedProduct.price * quantity).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <button
-                          onClick={() => {
-                            handleAddToCart(selectedProduct);
-                            closeModal();
-                          }}
-                          className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          <ShoppingCart className="w-6 h-6" />
-                          {selectedProduct.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
-                        </button>
-                        <button
-                          onClick={() => handleBuyNow(selectedProduct)}
-                          className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
-                          disabled={selectedProduct.availability === 'Sold Out'}
-                        >
-                          Buy it now
-                        </button>
-                      </div>
-
-                      {/* Share Button */}
-                      <button
-                        onClick={handleShare}
-                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        <Share2 className="w-5 h-5" />
-                        Share
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
-                    <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
-
-                    <h4 className="text-xl font-bold text-gray-900 mb-4">Key Features</h4>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {selectedProduct.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <Check className="w-5 h-5 text-green-600" />
-                          <span className="text-gray-700">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Specifications */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
-                        <p className="text-gray-600">{selectedProduct.category}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Formulation</h4>
-                        <p className="text-gray-600">{selectedProduct.formulation}</p>
-                      </div>
-                      <div className="bg-green-50 p-6 rounded-xl">
-                        <h4 className="font-semibold text-gray-900 mb-2">Coverage</h4>
-                        <p className="text-gray-600">{selectedProduct.coverage}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* You May Also Like */}
-                  <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">You may also like</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {products
-                        .filter(p => p.id !== selectedProduct.id)
-                        .slice(0, 3)
-                        .map(product => (
-                          <div
-                            key={product.id}
-                            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow"
-                            onClick={() => {
-                              closeModal();
-                              setTimeout(() => handleProductClick(product), 100);
-                            }}
-                          >
-                            <div className="flex items-start gap-4">
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-20 h-20 object-cover rounded-lg"
-                              />
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                                <p className="text-gray-600 text-sm">{product.category}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="font-bold text-gray-900">
-                                    Rs. {product.price.toLocaleString()}
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleAddToCart(product);
-                                    }}
-                                    className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
-                                  >
-                                    Add
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ProductModal
+          product={selectedProduct}
+          isOpen={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
 
         {/* Cart Count Indicator */}
         <div className="fixed bottom-6 right-6 z-40">
           <div className="relative">
             <Link
               to="/cart"
-              className="w-16 h-16 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-green-700 transition-colors"
+              className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:shadow-xl transition-shadow"
             >
               <ShoppingCart className="w-8 h-8" />
             </Link>
             {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold animate-pulse">
                 {getCartCount()}
               </span>
             )}
           </div>
         </div>
 
-
+        {/* Info Section */}
+        <div className="container mx-auto px-4 py-12">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-blue-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Why Choose Our Probiotics?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">Scientifically Formulated</h3>
+                <p className="text-gray-600">Developed by aquaculture experts for maximum efficacy</p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="w-8 h-8 text-cyan-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">Safe & Natural</h3>
+                <p className="text-gray-600">100% natural ingredients, safe for all aquatic species</p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Truck className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">Fast Delivery</h3>
+                <p className="text-gray-600">Next-day delivery available across India</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </Layout>
+    /* </Layout> */
   );
 };
-
-export default Probiotics;

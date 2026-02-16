@@ -1,114 +1,160 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { Leaf, Users, Target, Globe, Award, ChevronRight, Star, Target as MissionIcon, Eye as VisionIcon, Compass, Shield, Recycle, FlaskConical, Microscope } from "lucide-react";
+import {
+  Headphones,
+  MessageCircle,
+  Phone,
+  Mail,
+  Clock,
+  ChevronRight,
+  HelpCircle,
+  FileText,
+  Shield,
+  Truck,
+  RefreshCw,
+  User,
+  Globe,
+  Star,
+  CheckCircle,
+  Award,
+  Heart,
+  Leaf
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
-// Import field application photo for the top section
-import fieldApplication from "@/assets/field-application.png";
+// Import customer service image
+import customerService from "@/assets/customer-service.png";
 
-const values = [
+const supportChannels = [
+  {
+    icon: Phone,
+    title: "Phone Support",
+    description: "Speak directly with our customer care specialists",
+    contact: "+41 44 123 45 67",
+    hours: "Mon-Fri: 8:00-18:00 CET",
+    color: "from-emerald-500 to-green-500",
+    buttonText: "Call Now"
+  },
+  {
+    icon: Mail,
+    title: "Email Support",
+    description: "Send us your questions and receive detailed responses",
+    contact: "support@biofactor.com",
+    hours: "Response within 24 hours",
+    color: "from-green-500 to-emerald-500",
+    buttonText: "Send Email"
+  },
+  {
+    icon: MessageCircle,
+    title: "Live Chat",
+    description: "Instant messaging with our support team",
+    contact: "Available on website",
+    hours: "Mon-Fri: 9:00-17:00 CET",
+    color: "from-lime-500 to-emerald-500",
+    buttonText: "Start Chat"
+  },
+];
+
+const faqs = [
+  {
+    question: "How do I order Biofactor products?",
+    answer: "You can order directly through our website, contact your regional distributor, or call our sales team. We offer both bulk orders for farms and smaller quantities for testing.",
+    category: "Ordering"
+  },
+  {
+    question: "What is the shelf life of your biofertilizers?",
+    answer: "Our products have a shelf life of 18-24 months when stored in cool, dry conditions. Always check the expiration date on the packaging and store away from direct sunlight.",
+    category: "Product Info"
+  },
+  {
+    question: "How do I apply Biofactor products to my crops?",
+    answer: "Application methods vary by product. We provide detailed instructions with each order, and our agronomy team offers personalized application guidance based on your crop type and soil conditions.",
+    category: "Application"
+  },
+  {
+    question: "Do you ship internationally?",
+    answer: "Yes, we ship to most countries. Shipping times and costs vary by location. Contact our logistics team for specific shipping information to your region.",
+    category: "Shipping"
+  },
+  {
+    question: "What is your return policy?",
+    answer: "Unopened products in original packaging can be returned within 30 days for a full refund. For quality concerns, please contact our support team immediately.",
+    category: "Returns"
+  },
+  {
+    question: "How do I become a distributor?",
+    answer: "We're always looking for qualified distributors. Please visit our 'Become a Partner' page or contact our partnership team for distribution opportunities.",
+    category: "Partnership"
+  },
+];
+
+const servicePromises = [
+  {
+    icon: Clock,
+    title: "24-Hour Response",
+    description: "We guarantee a response to all inquiries within 24 hours",
+    color: "bg-emerald-50 text-emerald-700"
+  },
   {
     icon: Shield,
-    title: "Scientific Precision",
-    description: "Every formulation is backed by rigorous research, third-party testing, and data-driven results.",
-    color: "from-emerald-500 to-green-500",
-    stat: "50+ Research Papers"
+    title: "Quality Guarantee",
+    description: "100% satisfaction or your money back",
+    color: "bg-green-50 text-green-700"
   },
   {
-    icon: Recycle,
-    title: "Sustainable Impact",
-    description: "We develop biofertilizers that improve soil health while reducing chemical dependency.",
-    color: "from-teal-500 to-emerald-500",
-    stat: "30% Higher Yield"
+    icon: Truck,
+    title: "Fast Shipping",
+    description: "Orders processed within 24-48 hours",
+    color: "bg-lime-50 text-lime-700"
   },
   {
-    icon: Users,
-    title: "Farmer Partnership",
-    description: "Working directly with farmers to develop solutions that meet real-world agricultural challenges.",
-    color: "from-blue-500 to-cyan-500",
-    stat: "500+ Farm Partners"
-  },
-  {
-    icon: Leaf,
-    title: "Regenerative Focus",
-    description: "Creating products that don't just sustain, but actively regenerate soil ecosystems.",
-    color: "from-lime-500 to-green-500",
-    stat: "Zero Chemical Runoff"
+    icon: RefreshCw,
+    title: "Easy Returns",
+    description: "Simple return process for unused products",
+    color: "bg-emerald-50 text-emerald-700"
   },
 ];
 
-const timeline = [
-  {
-    year: "2015",
-    title: "The Research Phase",
-    description: "Started with soil microbiome research at leading agricultural universities.",
-    icon: "🔬",
-    achievements: ["Microbial isolation", "Lab testing", "Initial formulations"]
-  },
-  {
-    year: "2018",
-    title: "First Field Trials",
-    description: "Conducted large-scale trials with partner farms across Switzerland.",
-    icon: "🌾",
-    achievements: ["10 farm partners", "Field validation", "GMP certification"]
-  },
-  {
-    year: "2021",
-    title: "Commercial Launch",
-    description: "Officially launched biofactor products to the agricultural market.",
-    icon: "🚀",
-    achievements: ["Product line launch", "National distribution", "100+ clients"]
-  },
-  {
-    year: "2024",
-    title: "Global Expansion",
-    description: "Expanding our technology to address agricultural challenges worldwide.",
-    icon: "🌍",
-    achievements: ["EU certification", "Research partnerships", "Soil health focus"]
-  },
-];
-
-// Online placeholder images for leadership team
 const teamMembers = [
   {
-    name: "Dr. Elena Schmidt",
-    role: "Chief Scientist & Founder",
-    bio: "PhD in Soil Microbiology from ETH Zurich. 15+ years researching soil ecosystems.",
-    image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop&crop=face",
-    quote: "The solution to healthy crops begins with understanding the soil microbiome."
+    name: "Sarah Müller",
+    role: "Customer Care Manager",
+    bio: "10+ years in agricultural customer service, fluent in 4 languages",
+    expertise: ["Order Management", "Technical Support", "Customer Relations"],
+    image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop&crop=face"
   },
   {
-    name: "Markus Weber",
-    role: "Director of Agricultural Operations",
-    bio: "Third-generation farmer with expertise in regenerative agriculture practices.",
-    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop&crop=face",
-    quote: "Real agricultural solutions come from the field, not just the laboratory."
+    name: "Thomas Bauer",
+    role: "Technical Support Specialist",
+    bio: "Agronomy background with 8 years field experience",
+    expertise: ["Product Application", "Soil Analysis", "Troubleshooting"],
+    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop&crop=face"
   },
   {
-    name: "Dr. Chen Li",
-    role: "Head of Research & Development",
-    bio: "Expert in microbial formulations and sustainable agricultural technology.",
-    image: "https://images.unsplash.com/photo-1551836026-d5c2c0b4d5a9?w=400&h=400&fit=crop&crop=face",
-    quote: "Nature provides the blueprint, science provides the precision."
+    name: "Lisa Schneider",
+    role: "Logistics Coordinator",
+    bio: "Expert in international shipping and supply chain management",
+    expertise: ["Shipping", "Inventory", "Customs Clearance"],
+    image: "https://images.unsplash.com/photo-1551836026-d5c2c0b4d5a9?w=400&h=400&fit=crop&crop=face"
   },
 ];
 
-const About = () => {
+const CustomerCare = () => {
   return (
     <Layout>
-      {/* Hero Section with Field Application Photo */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-emerald-900/10 to-white rounded-b-[60px]">
-        {/* Background field application image */}
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white rounded-b-[60px]">
+        {/* Background image */}
         <div className="absolute inset-0 z-0">
           <img
-            src={fieldApplication}
-            alt="Biofactor field research application"
-            className="w-full h-full object-cover opacity-20"
+            src={customerService}
+            alt="Biofactor customer care team"
+            className="w-full h-full object-cover opacity-10"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 via-emerald-900/10 to-white" />
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/30 via-emerald-50/10 to-white" />
         </div>
-        
+
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
             <motion.div
@@ -116,24 +162,33 @@ const About = () => {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              
-              
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-green-100"
+              >
+                <Headphones className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">
+                  Dedicated Support
+                </span>
+              </motion.div>
+
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                <span className="text-gray-900">Pioneering</span>
-                <span className="block bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  Biofactor Technology
+                <span className="text-gray-900">Customer Care</span>
+                <span className="block bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                  We're Here to Help
                 </span>
               </h1>
-              
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="text-gray-700 text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto"
               >
-                "We combine cutting-edge soil science with sustainable agriculture to create 
-                biofactor solutions that enhance soil vitality, improve crop resilience, 
-                and support regenerative farming practices."
+                "Our commitment extends beyond products. We provide exceptional support
+                to ensure your success with Biofactor solutions, from order to harvest."
               </motion.p>
 
               <motion.div
@@ -142,161 +197,292 @@ const About = () => {
                 transition={{ delay: 0.5 }}
                 className="flex flex-col sm:flex-row gap-4 justify-center pt-8"
               >
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg"
                   asChild
                 >
-                  <Link to="/technology" className="flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4" />
-                    Our Technology
+                  <a href="#contact" className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    Contact Support
                     <ChevronRight className="w-4 h-4" />
+                  </a>
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  asChild
+                >
+                  <Link to="/faq" className="flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    View FAQs
                   </Link>
                 </Button>
-                
               </motion.div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Mission & Vision Section */}
+      {/* Service Promises */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12">
-              {/* Mission Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Our Service
+                <span className="block bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                  Promises to You
+                </span>
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+                We're committed to providing exceptional support at every step
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {servicePromises.map((promise, index) => (
+                <motion.div
+                  key={promise.title}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -8 }}
+                  className="group"
+                >
+                  <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl border border-gray-200 hover:border-emerald-200 h-full transition-all duration-300">
+                    <div className={`inline-flex p-3 rounded-xl mb-4 ${promise.color.split(' ')[0]} ${promise.color.split(' ')[1]}`}>
+                      <promise.icon className="w-6 h-6" />
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      {promise.title}
+                    </h3>
+
+                    <p className="text-gray-600 text-sm">
+                      {promise.description}
+                    </p>
+
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-medium text-gray-700">Guaranteed</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Channels Section */}
+      <section id="contact" className="py-16 bg-gradient-to-b from-white to-emerald-50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 mb-4">
+              <MessageCircle className="w-5 h-5 text-emerald-600" />
+              <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
+                Get in Touch
+              </span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Multiple Ways to
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
+                Connect With Us
+              </span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Choose the contact method that works best for you
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {supportChannels.map((channel, index) => (
               <motion.div
+                key={channel.title}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={{ delay: index * 0.2 }}
+                whileHover={{
+                  y: -8,
+                  transition: { duration: 0.3 }
+                }}
                 className="group"
               >
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl p-8 h-full border border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                  {/* Icon & Header */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl text-white">
-                      <MissionIcon className="w-6 h-6" />
+                <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl border border-gray-200 hover:border-emerald-200 h-full transition-all duration-300">
+                  {/* Icon */}
+                  <motion.div
+                    className={`inline-flex p-4 rounded-xl mb-6 bg-gradient-to-br ${channel.color} text-white`}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <channel.icon className="w-6 h-6" />
+                  </motion.div>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {channel.title}
+                  </h3>
+
+                  <p className="text-gray-600 mb-6">
+                    {channel.description}
+                  </p>
+
+                  <div className="space-y-4 mb-8">
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Contact</div>
+                      <div className="font-semibold text-gray-900 text-lg">{channel.contact}</div>
                     </div>
                     <div>
-                      <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
-                        Our Mission
-                      </span>
-                      <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                        Revolutionizing Soil Health
-                      </h2>
+                      <div className="text-sm text-gray-500 mb-1">Hours</div>
+                      <div className="font-medium text-gray-700">{channel.hours}</div>
                     </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="space-y-4">
-                    <p className="text-gray-700 text-lg leading-relaxed">
-                      To develop scientifically-validated biofactor solutions that enhance 
-                      soil microbiology, improve crop nutrition, and enable sustainable 
-                      agricultural practices for farmers worldwide.
-                    </p>
-
-                    <div className="bg-white/70 p-5 rounded-xl border border-emerald-100">
-                      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                        <Compass className="w-4 h-4 text-emerald-600" />
-                        Scientific Objectives
-                      </h3>
-                      <ul className="space-y-2 text-gray-700">
-                        {[
-                          "Develop microbial formulations that enhance soil biodiversity",
-                          "Create nutrient delivery systems with optimal bioavailability",
-                          "Establish protocols for soil health monitoring and improvement",
-                          "Partner with research institutions for continuous innovation",
-                          "Provide farmers with data-driven agricultural solutions"
-                        ].map((item, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  <Button
+                    className={`w-full bg-gradient-to-r ${channel.color} hover:opacity-90 text-white`}
+                    asChild
+                  >
+                    <a href={channel.title === "Email Support" ? "mailto:support@biofactor.com" : "#"}>
+                      {channel.buttonText}
+                    </a>
+                  </Button>
                 </div>
               </motion.div>
+            ))}
+          </div>
 
-              {/* Vision Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="group"
-              >
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-3xl p-8 h-full border border-teal-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                  {/* Icon & Header */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl text-white">
-                      <VisionIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <span className="text-teal-700 font-semibold text-sm uppercase tracking-wider">
-                        Our Vision
-                      </span>
-                      <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                        The Future of Agriculture
-                      </h2>
-                    </div>
+          {/* Additional Contact Info */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="mt-12 text-center"
+          >
+            <div className="inline-block bg-gradient-to-r from-emerald-100 to-green-100 px-8 py-6 rounded-2xl border border-emerald-200 max-w-2xl mx-auto">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                <div className="text-left">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="w-4 h-4 text-emerald-600" />
+                    <span className="font-semibold text-gray-900">Office Address</span>
                   </div>
-
-                  {/* Content */}
-                  <div className="space-y-4">
-                    <p className="text-gray-700 text-lg leading-relaxed">
-                      To create a world where agriculture works in harmony with nature, 
-                      where soil health is prioritized, and where sustainable practices 
-                      ensure food security for future generations.
-                    </p>
-
-                    <div className="bg-white/70 p-5 rounded-xl border border-teal-100">
-                      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                        <Star className="w-4 h-4 text-teal-600" />
-                        2030 Goals
-                      </h3>
-                      <ul className="space-y-2 text-gray-700">
-                        {[
-                          "Help restore 1 million hectares of degraded soil worldwide",
-                          "Develop carbon-negative agricultural systems",
-                          "Establish global soil health monitoring network",
-                          "Train 10,000 farmers in regenerative practices",
-                          "Achieve 100% sustainable packaging and operations"
-                        ].map((item, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-2 flex-shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  <p className="text-gray-700">
+                    Biofactor AG<br />
+                    Technoparkstrasse 1<br />
+                    8005 Zurich, Switzerland
+                  </p>
                 </div>
-              </motion.div>
+                <div className="text-left">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                    <span className="font-semibold text-gray-900">Business Hours</span>
+                  </div>
+                  <p className="text-gray-700">
+                    Monday - Friday: 8:00 - 18:00 CET<br />
+                    Saturday: 9:00 - 13:00 CET
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 mb-4">
+                <HelpCircle className="w-5 h-5 text-emerald-600" />
+                <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
+                  Frequently Asked Questions
+                </span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Quick Answers to
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
+                  Common Questions
+                </span>
+              </h2>
+            </motion.div>
+
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group"
+                >
+                  <div className="bg-gradient-to-r from-emerald-50 to-white rounded-xl p-6 border border-emerald-200 hover:border-emerald-300 transition-all duration-300">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="inline-flex px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium mb-3">
+                          {faq.category}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                          {faq.question}
+                        </h3>
+                        <p className="text-gray-600">
+                          {faq.answer}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-2 transition-transform" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
 
-            {/* Connecting Statement */}
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="mt-12 text-center"
+              transition={{ delay: 0.8 }}
+              className="text-center mt-12"
             >
-              <div className="inline-block bg-gradient-to-r from-emerald-100 to-teal-100 px-8 py-6 rounded-2xl border border-emerald-200 max-w-2xl mx-auto">
-                <p className="text-emerald-700 font-medium text-lg">
-                  "Science guides our research. Nature inspires our solutions. 
-                  Farmers validate our impact."
-                </p>
-              </div>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                asChild
+              >
+                <Link to="/faq" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  View All FAQs
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </Button>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Values Section */}
+      {/* Team Section */}
       <section className="py-16 bg-gradient-to-b from-white to-emerald-50">
         <div className="container mx-auto px-4">
           <motion.div
@@ -306,87 +492,19 @@ const About = () => {
             className="text-center mb-12"
           >
             <div className="inline-flex items-center gap-2 mb-4">
-              <Award className="w-5 h-5 text-emerald-600" />
+              <User className="w-5 h-5 text-emerald-600" />
               <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
-                Our Core Values
+                Your Support Team
               </span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Principles That
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                Guide Our Work
+              Meet Our
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
+                Customer Care Experts
               </span>
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              The foundational beliefs that shape our research, products, and partnerships
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => (
-              <motion.div
-                key={value.title}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ 
-                  y: -8,
-                  transition: { duration: 0.3 }
-                }}
-                className="group"
-              >
-                <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl border border-gray-200 hover:border-emerald-200 h-full transition-all duration-300">
-                  {/* Icon */}
-                  <motion.div 
-                    className={`inline-flex p-3 rounded-xl mb-4 bg-gradient-to-br ${value.color} text-white`}
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <value.icon className="w-6 h-6" />
-                  </motion.div>
-
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    {value.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    {value.description}
-                  </p>
-                  
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="font-bold text-gray-900">{value.stat}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-16 bg-gradient-to-b from-white to-teal-50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-teal-600" />
-              <span className="text-teal-700 font-semibold text-sm uppercase tracking-wider">
-                Our Leadership Team
-              </span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Scientific Minds,
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
-                Agricultural Experience
-              </span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Experts in soil science, microbiology, and sustainable agriculture
+              Knowledgeable professionals dedicated to helping you succeed
             </p>
           </motion.div>
 
@@ -398,36 +516,40 @@ const About = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2 }}
-                whileHover={{ 
+                whileHover={{
                   y: -8,
                   transition: { duration: 0.3 }
                 }}
                 className="group"
               >
-                <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl border border-gray-200 hover:border-teal-200 h-full transition-all duration-300">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl border border-gray-200 hover:border-emerald-200 h-full transition-all duration-300">
                   {/* Image */}
-                  <div className="aspect-square overflow-hidden relative">
+                  <div className="aspect-square overflow-hidden">
                     <img
                       src={member.image}
                       alt={member.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent" />
                   </div>
 
                   {/* Content */}
                   <div className="p-6">
-                    <div className="mb-3">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
-                      <div className="text-teal-600 font-medium mb-2">{member.role}</div>
-                      <p className="text-gray-600 text-sm mb-3">{member.bio}</p>
-                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
+                    <div className="text-emerald-600 font-medium mb-3">{member.role}</div>
+                    <p className="text-gray-600 text-sm mb-4">{member.bio}</p>
 
-                    {/* Quote */}
-                    <div className="border-t border-gray-200 pt-3">
-                      <div className="flex items-start gap-2">
-                        <div className="text-lg text-teal-500">"</div>
-                        <p className="text-gray-700 italic text-sm">{member.quote}</p>
+                    {/* Expertise */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Areas of Expertise</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {member.expertise.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full"
+                          >
+                            {skill}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -436,52 +558,61 @@ const About = () => {
             ))}
           </div>
 
-          {/* Scientific Background Section */}
+          {/* Customer Satisfaction */}
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="mt-16 text-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-100 to-cyan-100 mb-6">
-              <Microscope className="w-4 h-4 text-teal-600" />
-              <span className="text-sm font-medium text-teal-700">Scientific Excellence</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-green-100 mb-6">
+              <Star className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-medium text-emerald-700">Customer Satisfaction</span>
             </div>
-            
+
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Backed by Research & Innovation
+              Rated Excellent by Farmers Worldwide
             </h3>
-            
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-8">
+
+            <div className="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-8">
               {[
                 {
-                  title: "University Partnerships",
-                  description: "Collaborating with leading agricultural research institutions",
-                  icon: "🏛️"
+                  value: "98%",
+                  label: "Customer Satisfaction",
+                  icon: Heart
                 },
                 {
-                  title: "Field Validation",
-                  description: "Extensive testing across diverse soil types and climates",
-                  icon: "🌍"
+                  value: "4.8/5",
+                  label: "Support Rating",
+                  icon: Star
                 },
                 {
-                  title: "Continuous Innovation",
-                  description: "Ongoing R&D to advance sustainable agriculture",
-                  icon: "🚀"
+                  value: "<2 hrs",
+                  label: "Average Response Time",
+                  icon: Clock
+                },
+                {
+                  value: "24/7",
+                  label: "Emergency Support",
+                  icon: Shield
                 }
-              ].map((item, index) => (
-                <div key={index} className="bg-white p-6 rounded-xl border border-teal-100 shadow-sm">
-                  <div className="text-3xl mb-3">{item.icon}</div>
-                  <h4 className="font-bold text-gray-900 mb-2">{item.title}</h4>
-                  <p className="text-gray-600 text-sm">{item.description}</p>
+              ].map((stat, index) => (
+                <div key={index} className="bg-white p-6 rounded-xl border border-emerald-100 shadow-sm">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <stat.icon className="w-5 h-5 text-emerald-600" />
+                    <div className="text-2xl font-bold text-emerald-700">{stat.value}</div>
+                  </div>
+                  <p className="text-gray-600 text-sm">{stat.label}</p>
                 </div>
               ))}
             </div>
           </motion.div>
         </div>
       </section>
+
+
     </Layout>
   );
 };
 
-export default About;
+export default CustomerCare;
