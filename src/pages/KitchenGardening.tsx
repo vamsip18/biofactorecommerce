@@ -76,8 +76,11 @@ const KitchenGardening = () => {
   const [sortBy, setSortBy] = useState('bestSelling');
   const [filters, setFilters] = useState({
     availability: [] as string[],
-    priceRanges: [] as string[]
+    priceRanges: [] as string[],
+    special: [] as string[]
   });
+  const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
+  const [topDealIds, setTopDealIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,6 +160,108 @@ const KitchenGardening = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchTopMeta = async () => {
+      if (products.length === 0) {
+        setTopSellingIds([]);
+        setTopDealIds([]);
+        return;
+      }
+
+      const productIds = products.map(product => product.id);
+
+      try {
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        if (orderItemsError) {
+          throw orderItemsError;
+        }
+
+        const totals = new Map<string, number>();
+        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+          if (!item.product_id) return;
+          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+        });
+
+        const topIds = [...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([id]) => id);
+
+        setTopSellingIds(topIds);
+      } catch (error) {
+        console.error("Error loading top selling products:", error);
+        setTopSellingIds([]);
+      }
+
+      try {
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
+
+        if (discountsError) {
+          throw discountsError;
+        }
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: {
+          status: string;
+          starts_at: string;
+          ends_at: string | null;
+        }) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+        const dealIds = new Set<string>();
+
+        products.forEach((product) => {
+          if (appliesToAll) {
+            dealIds.add(product.id);
+            return;
+          }
+
+          const collectionId = product.collections?.id;
+          const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+          const hasDeal = activeDiscounts.some((discount: {
+            applies_to: string;
+            applies_ids: string[] | null;
+          }) => {
+            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+            switch (discount.applies_to) {
+              case "products":
+                return discount.applies_ids.includes(product.id);
+              case "collections":
+                return collectionId ? discount.applies_ids.includes(collectionId) : false;
+              case "variants":
+                return variantIds.some(id => discount.applies_ids!.includes(id));
+              default:
+                return false;
+            }
+          });
+
+          if (hasDeal) {
+            dealIds.add(product.id);
+          }
+        });
+
+        setTopDealIds([...dealIds]);
+      } catch (error) {
+        console.error("Error loading active discounts:", error);
+        setTopDealIds([]);
+      }
+    };
+
+    fetchTopMeta();
+  }, [products]);
+
   // Helper function to get default variant
   const getDefaultVariant = (product: Product) => {
     return product.product_variants?.[0];
@@ -227,6 +332,19 @@ const KitchenGardening = () => {
         return productPrice >= range.min && productPrice <= range.max;
       });
       if (!matchesPriceRange) return false;
+    }
+
+    if (filters.special.length > 0) {
+      const isTopSelling = topSellingIds.includes(product.id);
+      const isTopDeal = topDealIds.includes(product.id);
+
+      if (filters.special.includes("top-selling") && !isTopSelling) {
+        return false;
+      }
+
+      if (filters.special.includes("top-deals") && !isTopDeal) {
+        return false;
+      }
     }
 
     // Search filtering
@@ -391,10 +509,16 @@ const KitchenGardening = () => {
   const FilterSection = () => {
     const [expandedSections, setExpandedSections] = useState({
       price: true,
-      availability: true
+      availability: true,
+      special: true
     });
 
-    const toggleSection = (section: 'price' | 'availability') => {
+    const specialOptions = [
+      { id: "top-selling", label: "Top Selling" },
+      { id: "top-deals", label: "Top Deals" }
+    ];
+
+    const toggleSection = (section: 'price' | 'availability' | 'special') => {
       setExpandedSections(prev => ({
         ...prev,
         [section]: !prev[section]
@@ -496,11 +620,44 @@ const KitchenGardening = () => {
           )}
         </div>
 
+        {/* Special Filters */}
+        <div className="border-t pt-4">
+          <button
+            onClick={() => toggleSection('special')}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h3 className="font-semibold text-gray-900">Special</h3>
+            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
+              }`} />
+          </button>
+
+          {expandedSections.special && (
+            <div className="space-y-2">
+              {specialOptions.map((option) => (
+                <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.special.includes(option.id)}
+                    onChange={(e) => {
+                      const nextSpecial = e.target.checked
+                        ? [...filters.special, option.id]
+                        : filters.special.filter(value => value !== option.id);
+                      setFilters({ ...filters, special: nextSpecial });
+                    }}
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-700">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Clear Filters Button */}
-        {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
+        {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.special.length > 0 || searchQuery) && (
           <button
             onClick={() => {
-              setFilters({ availability: [], priceRanges: [] });
+              setFilters({ availability: [], priceRanges: [], special: [] });
               setSearchQuery('');
               // Clear the URL parameter
               window.history.replaceState({}, document.title, window.location.pathname);
@@ -524,6 +681,21 @@ const KitchenGardening = () => {
     const productPrice = getProductPrice(product);
     const productCategory = getProductCategory(product);
     const isInStock = variant.stock > 0;
+    const isTopSelling = topSellingIds.includes(product.id);
+    const isTopDeal = topDealIds.includes(product.id);
+    const badgeItems = [
+      !isInStock
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopSelling
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
 
     return (
       <motion.div
@@ -544,11 +716,11 @@ const KitchenGardening = () => {
 
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {!isInStock && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Sold Out
+              {badgeItems.map((badge, index) => (
+                <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                  {badge.label}
                 </span>
-              )}
+              ))}
             </div>
 
             {/* Wishlist Button */}
@@ -618,7 +790,7 @@ const KitchenGardening = () => {
                   }}
                   disabled={!isInStock}
                   className={`px-3 py-2 rounded-lg font-medium flex items-center gap-1 ${!isInStock
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
@@ -650,6 +822,21 @@ const KitchenGardening = () => {
     const productImage = getProductImage(product);
     const productPrice = getProductPrice(product);
     const isInStock = variant.stock > 0;
+    const isTopSelling = topSellingIds.includes(product.id);
+    const isTopDeal = topDealIds.includes(product.id);
+    const badgeItems = [
+      !isInStock
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopSelling
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
 
     return (
       <motion.div
@@ -671,11 +858,11 @@ const KitchenGardening = () => {
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex gap-2">
-                  {!isInStock && (
-                    <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Sold Out
+                  {badgeItems.map((badge, index) => (
+                    <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                      {badge.label}
                     </span>
-                  )}
+                  ))}
                 </div>
               </div>
               <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
@@ -732,7 +919,7 @@ const KitchenGardening = () => {
                   }}
                   disabled={!isInStock}
                   className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${!isInStock
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
@@ -901,7 +1088,7 @@ const KitchenGardening = () => {
                     <p className="text-gray-500 text-lg">No Kitchen Gardening products found matching your criteria.</p>
                     <button
                       onClick={() => {
-                        setFilters({ availability: [], priceRanges: [] });
+                        setFilters({ availability: [], priceRanges: [], special: [] });
                         setSearchQuery('');
                       }}
                       className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
@@ -1289,7 +1476,7 @@ const KitchenGardening = () => {
           </div>
         </div>
       </div>
-    </Layout> 
+    </Layout>
   );
 };
 

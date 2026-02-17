@@ -209,6 +209,7 @@ const FilterSection = ({
   filters: {
     availability: string[];
     priceRanges: string[];
+    special: string[];
   };
   setFilters: (filters: any) => void;
   searchQuery: string;
@@ -216,10 +217,16 @@ const FilterSection = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
-    availability: true
+    availability: true,
+    special: true
   });
 
-  const toggleSection = (section: 'price' | 'availability') => {
+  const specialOptions = [
+    { id: "top-selling", label: "Top Selling" },
+    { id: "top-deals", label: "Top Deals" }
+  ];
+
+  const toggleSection = (section: 'price' | 'availability' | 'special') => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -320,13 +327,46 @@ const FilterSection = ({
         )}
       </div>
 
+      {/* Special Filters */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('special')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Special</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.special && (
+          <div className="space-y-2">
+            {specialOptions.map((option) => (
+              <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.special.includes(option.id)}
+                  onChange={(e) => {
+                    const nextSpecial = e.target.checked
+                      ? [...filters.special, option.id]
+                      : filters.special.filter(value => value !== option.id);
+                    setFilters({ ...filters, special: nextSpecial });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Clear Filters Button */}
-      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.special.length > 0 || searchQuery) && (
         <Button
           variant="outline"
           className="w-full border-green-200 text-green-700 hover:bg-green-50"
           onClick={() => {
-            setFilters({ availability: [], priceRanges: [] });
+            setFilters({ availability: [], priceRanges: [], special: [] });
             setSearchQuery('');
           }}
         >
@@ -343,12 +383,16 @@ const ProductCard = ({
   product,
   onClick,
   quantity,
-  updateQuantity
+  updateQuantity,
+  isTopSelling,
+  isTopDeal
 }: {
   product: Product;
   onClick: () => void;
   quantity: number;
   updateQuantity: (productId: string, newQuantity: number) => void;
+  isTopSelling: boolean;
+  isTopDeal: boolean;
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
@@ -394,6 +438,22 @@ const ProductCard = ({
     fungicide: 'bg-green-900',
     general: 'bg-green-500'
   };
+  const badgeItems = [
+    !isInStock
+      ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold" }
+      : null,
+    (isTopSelling || isProductBestSeller(product))
+      ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold" }
+      : null,
+    isTopDeal
+      ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold" }
+      : null,
+    isProductNew(product)
+      ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold" }
+      : null
+  ]
+    .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+    .slice(0, 2);
 
   return (
     <motion.div
@@ -414,24 +474,11 @@ const ProductCard = ({
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1">
-            {!isInStock && (
-              <Badge className="bg-gray-500 text-white text-xs font-semibold">
-                Sold Out
+            {badgeItems.map((badge, index) => (
+              <Badge key={`${product.id}-badge-${index}`} className={badge.className}>
+                {badge.label}
               </Badge>
-            )}
-            {isProductNew(product) && (
-              <Badge className="bg-blue-500 text-white text-xs font-semibold">
-                NEW
-              </Badge>
-            )}
-            {isProductBestSeller(product) && (
-              <Badge className="bg-green-600 text-white text-xs font-semibold">
-                Best Seller
-              </Badge>
-            )}
-            <Badge className={`${productTypeColors[productType]} text-white text-xs font-semibold`}>
-              {productType.charAt(0).toUpperCase() + productType.slice(1)}
-            </Badge>
+            ))}
           </div>
 
           {/* Wishlist Button */}
@@ -514,7 +561,7 @@ const ProductCard = ({
                 <Button
                   size="sm"
                   className={`${!isInStock
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    ? "bg-red-500 text-white-500 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700 text-white"
                     }`}
                   disabled={!isInStock}
@@ -676,23 +723,24 @@ const ProductModal = ({
               <div>
                 {/* Badges */}
                 <div className="flex gap-2 mb-4">
-                  {isProductNew(product) && (
-                    <Badge className="bg-blue-500 text-white">
-                      NEW
-                    </Badge>
-                  )}
-                  {isProductBestSeller(product) && (
-                    <Badge className="bg-green-600 text-white">
-                      BEST SELLER
-                    </Badge>
-                  )}
-                  <Badge className={`${productType === 'organic' ? 'bg-green-500' :
-                    productType === 'nutrition' ? 'bg-green-600' :
-                      productType === 'advanced' ? 'bg-green-700' :
-                        'bg-green-500'
-                    } text-white`}>
-                    {productType.charAt(0).toUpperCase() + productType.slice(1)}
-                  </Badge>
+                  {[
+                    !isProductInStock(product, selectedVariant)
+                      ? { label: "Sold Out", className: "bg-gray-500 text-white" }
+                      : null,
+                    isProductBestSeller(product)
+                      ? { label: "Best Seller", className: "bg-amber-500 text-white" }
+                      : null,
+                    isProductNew(product)
+                      ? { label: "NEW", className: "bg-blue-500 text-white" }
+                      : null
+                  ]
+                    .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+                    .slice(0, 2)
+                    .map((badge, index) => (
+                      <Badge key={`${product.id}-modal-badge-${index}`} className={badge.className}>
+                        {badge.label}
+                      </Badge>
+                    ))}
                 </div>
 
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -947,12 +995,16 @@ const ListViewItem = ({
   product,
   onClick,
   quantity,
-  updateQuantity
+  updateQuantity,
+  isTopSelling,
+  isTopDeal
 }: {
   product: Product;
   onClick: () => void;
   quantity: number;
   updateQuantity: (productId: string, newQuantity: number) => void;
+  isTopSelling: boolean;
+  isTopDeal: boolean;
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
@@ -961,6 +1013,22 @@ const ListViewItem = ({
   const productImage = getProductImage(product);
   const productPrice = getProductPrice(product);
   const isInStock = isProductInStock(product);
+  const badgeItems = [
+    !isInStock
+      ? { label: "Sold Out", className: "bg-red-500 text-white text-xs" }
+      : null,
+    (isTopSelling || isProductBestSeller(product))
+      ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs" }
+      : null,
+    isTopDeal
+      ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs" }
+      : null,
+    isProductNew(product)
+      ? { label: "NEW", className: "bg-blue-500 text-white text-xs" }
+      : null
+  ]
+    .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+    .slice(0, 2);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1008,12 +1076,11 @@ const ListViewItem = ({
             <div className="flex items-start justify-between mb-2">
               <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
               <div className="flex gap-2">
-                {isProductNew(product) && (
-                  <Badge className="bg-blue-500 text-white text-xs">NEW</Badge>
-                )}
-                {isProductBestSeller(product) && (
-                  <Badge className="bg-green-600 text-white text-xs">Best Seller</Badge>
-                )}
+                {badgeItems.map((badge, index) => (
+                  <Badge key={`${product.id}-badge-${index}`} className={badge.className}>
+                    {badge.label}
+                  </Badge>
+                ))}
               </div>
             </div>
             <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
@@ -1111,10 +1178,13 @@ const CropProtection = () => {
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
+    special: [] as string[],
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
+  const [topDealIds, setTopDealIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -1259,6 +1329,108 @@ const CropProtection = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchTopMeta = async () => {
+      if (products.length === 0) {
+        setTopSellingIds([]);
+        setTopDealIds([]);
+        return;
+      }
+
+      const productIds = products.map(product => product.id);
+
+      try {
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        if (orderItemsError) {
+          throw orderItemsError;
+        }
+
+        const totals = new Map<string, number>();
+        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+          if (!item.product_id) return;
+          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+        });
+
+        const topIds = [...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([id]) => id);
+
+        setTopSellingIds(topIds);
+      } catch (error) {
+        console.error("Error loading top selling products:", error);
+        setTopSellingIds([]);
+      }
+
+      try {
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
+
+        if (discountsError) {
+          throw discountsError;
+        }
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: {
+          status: string;
+          starts_at: string;
+          ends_at: string | null;
+        }) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+        const dealIds = new Set<string>();
+
+        products.forEach((product) => {
+          if (appliesToAll) {
+            dealIds.add(product.id);
+            return;
+          }
+
+          const collectionId = product.collections?.id;
+          const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+          const hasDeal = activeDiscounts.some((discount: {
+            applies_to: string;
+            applies_ids: string[] | null;
+          }) => {
+            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+            switch (discount.applies_to) {
+              case "products":
+                return discount.applies_ids.includes(product.id);
+              case "collections":
+                return collectionId ? discount.applies_ids.includes(collectionId) : false;
+              case "variants":
+                return variantIds.some(id => discount.applies_ids!.includes(id));
+              default:
+                return false;
+            }
+          });
+
+          if (hasDeal) {
+            dealIds.add(product.id);
+          }
+        });
+
+        setTopDealIds([...dealIds]);
+      } catch (error) {
+        console.error("Error loading active discounts:", error);
+        setTopDealIds([]);
+      }
+    };
+
+    fetchTopMeta();
+  }, [products]);
+
   // Update product quantity
   const updateProductQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -1292,6 +1464,19 @@ const CropProtection = () => {
         return productPrice >= range.min && productPrice <= range.max;
       });
       if (!matchesPriceRange) return false;
+    }
+
+    if (filters.special.length > 0) {
+      const isTopSelling = topSellingIds.includes(product.id);
+      const isTopDeal = topDealIds.includes(product.id);
+
+      if (filters.special.includes("top-selling") && !isTopSelling) {
+        return false;
+      }
+
+      if (filters.special.includes("top-deals") && !isTopDeal) {
+        return false;
+      }
     }
 
     return true;
@@ -1350,17 +1535,17 @@ const CropProtection = () => {
 
   return (
     // <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
-        {/* Header with Enhanced Search */}
-        <div className="bg-gradient-to-r from-green-800 to-green-900 text-white py-12">
-          <div className="container mx-auto px-4">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Crop Protection</h1>
-            <p className="text-green-100 text-lg max-w-2xl">
-              Advanced solutions to protect your crops from pests, diseases, and nutrient deficiencies
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
+      {/* Header with Enhanced Search */}
+      <div className="bg-gradient-to-r from-green-800 to-green-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Crop Protection</h1>
+          <p className="text-green-100 text-lg max-w-2xl">
+            Advanced solutions to protect your crops from pests, diseases, and nutrient deficiencies
+          </p>
 
-            {/* Enhanced Search Bar in Header */}
-            {/* <div className="mt-8 max-w-2xl mx-auto">
+          {/* Enhanced Search Bar in Header */}
+          {/* <div className="mt-8 max-w-2xl mx-auto">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -1382,351 +1567,355 @@ const CropProtection = () => {
 
 
             </div> */}
-          </div>
         </div>
+      </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Filters - Desktop */}
-            <aside className="lg:w-1/4 hidden lg:block">
-              <div className="sticky top-8">
-                <div className="bg-white rounded-xl border border-green-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Filter className="w-5 h-5" />
-                      Filters
-                    </h2>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {searchedProducts.filter(p => isProductInStock(p)).length} in stock
-                    </Badge>
-                  </div>
-                  <FilterSection
-                    filters={filters}
-                    setFilters={setFilters}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                  />
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters - Desktop */}
+          <aside className="lg:w-1/4 hidden lg:block">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-xl border border-green-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Filters
+                  </h2>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    {searchedProducts.filter(p => isProductInStock(p)).length} in stock
+                  </Badge>
                 </div>
-
-                {/* Search Tips */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    <Search className="w-4 h-4" />
-                    Search Tips
-                  </h3>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Search by product name, description, or SKU</li>
-                    <li>• Try searching for specific features</li>
-                    <li>• Use category names for filtering</li>
-                    <li>• Search for specific nutrients or benefits</li>
-                  </ul>
-                </div>
-              </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="lg:w-3/4">
-              {/* Mobile Filter Button */}
-              <div className="lg:hidden mb-6">
-                <Button
-                  onClick={() => setMobileFiltersOpen(true)}
-                  variant="outline"
-                  className="w-full justify-center border-green-200 text-green-700 hover:bg-green-50"
-                >
-                  <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters ({Object.values(filters).flat().length + (searchQuery ? 1 : 0)})
-                </Button>
+                <FilterSection
+                  filters={filters}
+                  setFilters={setFilters}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
               </div>
 
-              {/* Results Header */}
-              <div className="bg-white rounded-xl border border-green-200 p-6 mb-8 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
-                      {searchQuery && (
-                        <span className="text-green-600 ml-2">
-                          for "{searchQuery}"
-                        </span>
-                      )}
-                    </p>
-                    <h2 className="text-2xl font-bold text-gray-900">Crop Protection Products</h2>
-
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-                    {/* Sort By */}
-                    <div className="relative w-full sm:w-auto">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
-                      >
-                        {sortOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-
-                    {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
-                          }`}
-                      >
-                        <Grid className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">Grid</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
-                          }`}
-                      >
-                        <List className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">List</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {/* Search Tips */}
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  Search Tips
+                </h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Search by product name, description, or SKU</li>
+                  <li>• Try searching for specific features</li>
+                  <li>• Use category names for filtering</li>
+                  <li>• Search for specific nutrients or benefits</li>
+                </ul>
               </div>
+            </div>
+          </aside>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                  <p className="text-red-600">{error}</p>
-                  <Button
-                    variant="outline"
-                    className="mt-2 border-red-200 text-red-700 hover:bg-red-50"
-                    onClick={() => window.location.reload()}
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              )}
-
-              {/* Products Grid/List */}
-              <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
-                {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => {
-                    // Check if product has variants
-                    if (!product.product_variants || product.product_variants.length === 0) {
-                      console.log(`Product ${product.name} has no variants, skipping`);
-                      return null;
-                    }
-
-                    return viewMode === "grid" ? (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onClick={() => setSelectedProduct(product)}
-                        quantity={productQuantities[product.id] || 1}
-                        updateQuantity={updateProductQuantity}
-                      />
-                    ) : (
-                      <ListViewItem
-                        key={product.id}
-                        product={product}
-                        onClick={() => setSelectedProduct(product)}
-                        quantity={productQuantities[product.id] || 1}
-                        updateQuantity={updateProductQuantity}
-                      />
-                    );
-                  })
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <div className="max-w-md mx-auto">
-                      <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-white rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Shield className="w-12 h-12 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500 text-lg mb-4">
-                        {products.length === 0
-                          ? "No crop protection products found in database. Please add some products first."
-                          : "No products found matching your criteria."}
-                      </p>
-                      {products.length === 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-500">Add products to your Supabase database:</p>
-                          <ul className="text-sm text-gray-500 list-disc list-inside">
-                            <li>Create a collection named "Crop Protection"</li>
-                            <li>Add products with crop protection in name or description</li>
-                            <li>Ensure products have active variants</li>
-                          </ul>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="border-green-200 text-green-700 hover:bg-green-50"
-                          onClick={() => {
-                            setFilters({ availability: [], priceRanges: [] });
-                            setSearchQuery('');
-                          }}
-                        >
-                          Clear All Filters
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex flex-wrap justify-center items-center gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="border-green-200"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Previous
-                  </Button>
-
-                  {[...Array(totalPages)].map((_, index) => {
-                    const pageNum = index + 1;
-                    if (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                    ) {
-                      return (
-                        <Button
-                          key={index}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`${currentPage === pageNum
-                            ? "bg-green-600 hover:bg-green-700"
-                            : "border-green-200"
-                            }`}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    } else if (
-                      pageNum === currentPage - 2 ||
-                      pageNum === currentPage + 2
-                    ) {
-                      return <span key={index} className="text-gray-500">...</span>;
-                    }
-                    return null;
-                  })}
-
-                  <Button
-                    variant="outline"
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="border-green-200"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-              )}
-            </main>
-          </div>
-        </div>
-
-        {/* Mobile Filters Drawer */}
-        <AnimatePresence>
-          {mobileFiltersOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/50"
-                onClick={() => setMobileFiltersOpen(false)}
-              />
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ type: "tween" }}
-                className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-y-auto"
+          {/* Main Content */}
+          <main className="lg:w-3/4">
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden mb-6">
+              <Button
+                onClick={() => setMobileFiltersOpen(true)}
+                variant="outline"
+                className="w-full justify-center border-green-200 text-green-700 hover:bg-green-50"
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold">Filters</h2>
-                    <button onClick={() => setMobileFiltersOpen(false)}>
-                      <X className="w-6 h-6" />
+                <Sliders className="w-4 h-4 mr-2" />
+                Show Filters ({Object.values(filters).flat().length + (searchQuery ? 1 : 0)})
+              </Button>
+            </div>
+
+            {/* Results Header */}
+            <div className="bg-white rounded-xl border border-green-200 p-6 mb-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                    {searchQuery && (
+                      <span className="text-green-600 ml-2">
+                        for "{searchQuery}"
+                      </span>
+                    )}
+                  </p>
+                  <h2 className="text-2xl font-bold text-gray-900">Crop Protection Products</h2>
+
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                  {/* Sort By */}
+                  <div className="relative w-full sm:w-auto">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                    >
+                      {sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  {/* View Toggle */}
+                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
+                    >
+                      <Grid className="w-5 h-5 inline" />
+                      <span className="ml-2 text-sm hidden sm:inline">Grid</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
+                    >
+                      <List className="w-5 h-5 inline" />
+                      <span className="ml-2 text-sm hidden sm:inline">List</span>
                     </button>
                   </div>
-                  <FilterSection
-                    filters={filters}
-                    setFilters={setFilters}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                  />
-                  <Button
-                    className="w-full mt-6 bg-green-600 hover:bg-green-700"
-                    onClick={() => setMobileFiltersOpen(false)}
-                  >
-                    Apply Filters
-                  </Button>
                 </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+              </div>
+            </div>
 
-        {/* Product Modal */}
-        <ProductModal
-          product={selectedProduct}
-          isOpen={!!selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
-
-        {/* Cart Count Indicator */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <div className="relative">
-            <Link
-              to="/cart"
-              className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:shadow-xl transition-shadow"
-            >
-              <ShoppingCart className="w-8 h-8" />
-            </Link>
-            {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-white text-green-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold animate-pulse border border-green-300">
-                {getCartCount()}
-              </span>
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-600">{error}</p>
+                <Button
+                  variant="outline"
+                  className="mt-2 border-red-200 text-red-700 hover:bg-red-50"
+                  onClick={() => window.location.reload()}
+                >
+                  Try Again
+                </Button>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Info Section */}
-        <div className="container mx-auto px-4 py-12">
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-green-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Why Choose Our Crop Protection Solutions?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-8 h-8 text-green-600" />
+            {/* Products Grid/List */}
+            <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+              {currentProducts.length > 0 ? (
+                currentProducts.map((product) => {
+                  // Check if product has variants
+                  if (!product.product_variants || product.product_variants.length === 0) {
+                    console.log(`Product ${product.name} has no variants, skipping`);
+                    return null;
+                  }
+
+                  return viewMode === "grid" ? (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onClick={() => setSelectedProduct(product)}
+                      quantity={productQuantities[product.id] || 1}
+                      updateQuantity={updateProductQuantity}
+                      isTopSelling={topSellingIds.includes(product.id)}
+                      isTopDeal={topDealIds.includes(product.id)}
+                    />
+                  ) : (
+                    <ListViewItem
+                      key={product.id}
+                      product={product}
+                      onClick={() => setSelectedProduct(product)}
+                      quantity={productQuantities[product.id] || 1}
+                      updateQuantity={updateProductQuantity}
+                      isTopSelling={topSellingIds.includes(product.id)}
+                      isTopDeal={topDealIds.includes(product.id)}
+                    />
+                  );
+                })
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-white rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Shield className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 text-lg mb-4">
+                      {products.length === 0
+                        ? "No crop protection products found in database. Please add some products first."
+                        : "No products found matching your criteria."}
+                    </p>
+                    {products.length === 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500">Add products to your Supabase database:</p>
+                        <ul className="text-sm text-gray-500 list-disc list-inside">
+                          <li>Create a collection named "Crop Protection"</li>
+                          <li>Add products with crop protection in name or description</li>
+                          <li>Ensure products have active variants</li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="border-green-200 text-green-700 hover:bg-green-50"
+                        onClick={() => {
+                          setFilters({ availability: [], priceRanges: [], special: [] });
+                          setSearchQuery('');
+                        }}
+                      >
+                        Clear All Filters
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Proven Protection</h3>
-                <p className="text-gray-600">Clinically tested solutions with proven results against pests and diseases</p>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center items-center gap-2">
+                <Button
+                  variant="outline"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="border-green-200"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Button>
+
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNum = index + 1;
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={index}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`${currentPage === pageNum
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "border-green-200"
+                          }`}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  } else if (
+                    pageNum === currentPage - 2 ||
+                    pageNum === currentPage + 2
+                  ) {
+                    return <span key={index} className="text-gray-500">...</span>;
+                  }
+                  return null;
+                })}
+
+                <Button
+                  variant="outline"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="border-green-200"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Leaf className="w-8 h-8 text-green-600" />
+            )}
+          </main>
+        </div>
+      </div>
+
+      {/* Mobile Filters Drawer */}
+      <AnimatePresence>
+        {mobileFiltersOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50"
+              onClick={() => setMobileFiltersOpen(false)}
+            />
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "tween" }}
+              className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold">Filters</h2>
+                  <button onClick={() => setMobileFiltersOpen(false)}>
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Eco-Friendly Formulas</h3>
-                <p className="text-gray-600">Environmentally responsible formulas safe for crops, soil, and beneficial insects</p>
+                <FilterSection
+                  filters={filters}
+                  setFilters={setFilters}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
+                <Button
+                  className="w-full mt-6 bg-green-600 hover:bg-green-700"
+                  onClick={() => setMobileFiltersOpen(false)}
+                >
+                  Apply Filters
+                </Button>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sprout className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Enhanced Plant Health</h3>
-                <p className="text-gray-600">Not just protection but also nutrition for stronger, healthier crops</p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Product Modal */}
+      <ProductModal
+        product={selectedProduct}
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
+
+      {/* Cart Count Indicator */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <div className="relative">
+          <Link
+            to="/cart"
+            className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:shadow-xl transition-shadow"
+          >
+            <ShoppingCart className="w-8 h-8" />
+          </Link>
+          {getCartCount() > 0 && (
+            <span className="absolute -top-2 -right-2 bg-white text-green-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold animate-pulse border border-green-300">
+              {getCartCount()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Info Section */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-green-200">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Why Choose Our Crop Protection Solutions?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-green-600" />
               </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Proven Protection</h3>
+              <p className="text-gray-600">Clinically tested solutions with proven results against pests and diseases</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Leaf className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Eco-Friendly Formulas</h3>
+              <p className="text-gray-600">Environmentally responsible formulas safe for crops, soil, and beneficial insects</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sprout className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Enhanced Plant Health</h3>
+              <p className="text-gray-600">Not just protection but also nutrition for stronger, healthier crops</p>
             </div>
           </div>
         </div>
       </div>
+    </div>
     // </Layout>
   );
 };

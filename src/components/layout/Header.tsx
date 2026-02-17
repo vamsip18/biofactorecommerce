@@ -47,7 +47,7 @@ const navLinks = [
   { name: "Large Animals", href: "/large-animals" },
   { name: "Kitchen Gardening", href: "/kitchen-gardening" },
   { name: "Blog", href: "/blog" },
-  { name: "Customer Care", href: "/contact" }
+  { name: "Customer Care", href: "/customerCare" }
 ];
 
 const languages = [

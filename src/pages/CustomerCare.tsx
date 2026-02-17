@@ -81,7 +81,7 @@ const supportServices = [
   }
 ];
 
-const Contact = () => {
+const CustomerCare = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -143,6 +143,96 @@ const Contact = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Customer Care Quick Actions Section */}
+        <div className="mb-16 pt-12 border-t border-gray-200">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Quick Access
+            </h2>
+            <p className="text-gray-600">
+              Find answers to your most common questions
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Your Orders Card */}
+            <motion.a
+              href="/orders"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="group"
+            >
+              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-green-400 hover:shadow-lg transition-all cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-blue-100">
+                    <Package className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Your Orders
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Track your packages & manage your orders
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Track packages in real-time
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Edit or cancel orders
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                    Download invoices
+                  </li>
+                </ul>
+              </div>
+            </motion.a>
+
+            {/* Returns and Refunds Card */}
+            <motion.a
+              href="/returns"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="group"
+            >
+              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-amber-400 hover:shadow-lg transition-all cursor-pointer h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="p-3 rounded-lg bg-amber-100">
+                    <RotateCcw className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-amber-600 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Returns & Refunds
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Return or exchange items easily
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Return or exchange items
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Track refund status
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                    Print return labels
+                  </li>
+                </ul>
+              </div>
+            </motion.a>
+          </div>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Column - Contact Info */}
           <aside className="lg:w-1/3">
@@ -385,99 +475,9 @@ const Contact = () => {
 
           </main>
         </div>
-
-        {/* Customer Care Quick Actions Section */}
-        <div className="mt-16 pt-12 border-t border-gray-200">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Quick Access
-            </h2>
-            <p className="text-gray-600">
-              Find answers to your most common questions
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Your Orders Card */}
-            <motion.a
-              href="/orders"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="group"
-            >
-              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-green-400 hover:shadow-lg transition-all cursor-pointer h-full">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="p-3 rounded-lg bg-blue-100">
-                    <Package className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Your Orders
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Track your packages & manage your orders
-                </p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Track packages in real-time
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Edit or cancel orders
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Download invoices
-                  </li>
-                </ul>
-              </div>
-            </motion.a>
-
-            {/* Returns and Refunds Card */}
-            <motion.a
-              href="/returns"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="group"
-            >
-              <div className="bg-white rounded-lg border border-gray-200 p-8 hover:border-amber-400 hover:shadow-lg transition-all cursor-pointer h-full">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="p-3 rounded-lg bg-amber-100">
-                    <RotateCcw className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-amber-600 transition-colors" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Returns & Refunds
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Return or exchange items easily
-                </p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Return or exchange items
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Track refund status
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Print return labels
-                  </li>
-                </ul>
-              </div>
-            </motion.a>
-          </div>
-        </div>
       </div>
     </Layout>
   );
 };
 
-export default Contact;
+export default CustomerCare;

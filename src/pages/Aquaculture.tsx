@@ -74,7 +74,7 @@ const Aquaculture = () => {
         <Layout>
             <div className="w-full">
                 {/* Sticky Tabs Navigation */}
-                <div className="sticky top-[116px] md:top-[136px] z-30 bg-blue-50/95 backdrop-blur border-b border-blue-200 shadow-sm">
+                <div className="sticky top-[116px] md:top-[136px] z-30 bg-cyan-50/95 backdrop-blur border-b border-cyan-200 shadow-sm">
                     <div className="container mx-auto px-4">
                         <div className="relative flex items-center">
                             {/* Left Arrow */}
@@ -105,8 +105,8 @@ const Aquaculture = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`px-6 py-2.5 font-semibold text-sm whitespace-nowrap transition-all duration-200 border flex-shrink-0 rounded-full ${activeTab === tab.id
-                                            ? 'text-blue-800 border-blue-500 bg-white shadow-md ring-1 ring-blue-200'
-                                            : 'text-blue-700/80 border-transparent bg-white/60 hover:bg-white hover:text-blue-800 hover:border-blue-200'
+                                            ? 'text-cyan-800 border-cyan-500 bg-white shadow-md ring-1 ring-cyan-200'
+                                            : 'text-cyan-700/80 border-transparent bg-white/60 hover:bg-white hover:text-cyan-800 hover:border-cyan-200'
                                             }`}
                                     >
                                         {tab.label}

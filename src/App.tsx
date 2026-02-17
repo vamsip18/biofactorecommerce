@@ -14,7 +14,7 @@ import Blog from "./pages/Blog";
 import About from "./pages/About";
 import KitchenGardening from "./pages/KitchenGardening";
 import { LargeAnimalsProducts } from "./pages/large-animals";
-import Contact from "./pages/Contact";
+import CustomerCare from "./pages/CustomerCare";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/account/Login";
 import Register from "./pages/account/Register";
@@ -59,7 +59,8 @@ const App = () => (
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/customerCare" element={<CustomerCare />} />
+              <Route path="/returns" element={<CustomerCare />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/cart" element={<Cart />} />
 

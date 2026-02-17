@@ -43,7 +43,7 @@ type Product = {
   description: string;
   is_active: boolean;
   created_at?: string;
-  collections: Collection | null;
+  collections: Collection | Collection[] | null;
   product_variants: ProductVariant[];
 };
 
@@ -61,7 +61,13 @@ const getDefaultVariant = (product: Product) => {
 };
 
 const getProductCategory = (product: Product) => {
-  return product.collections?.title || "Drip Applications";
+  if (!product.collections) return "Drip Applications";
+
+  if (Array.isArray(product.collections)) {
+    return product.collections[0]?.title || "Drip Applications";
+  }
+
+  return product.collections.title || "Drip Applications";
 };
 
 const isProductInStock = (product: Product, variant?: ProductVariant) => {
@@ -262,6 +268,7 @@ const FilterSection = ({
   filters: {
     availability: string[];
     priceRanges: string[];
+    special: string[];
   };
   setFilters: (filters: any) => void;
   searchQuery: string;
@@ -269,10 +276,16 @@ const FilterSection = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
-    availability: true
+    availability: true,
+    special: true
   });
 
-  const toggleSection = (section: 'price' | 'availability') => {
+  const specialOptions = [
+    { id: "top-selling", label: "Top Selling" },
+    { id: "top-deals", label: "Top Deals" }
+  ];
+
+  const toggleSection = (section: 'price' | 'availability' | 'special') => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -374,11 +387,44 @@ const FilterSection = ({
         )}
       </div>
 
+      {/* Special Filters */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('special')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Special</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.special && (
+          <div className="space-y-2">
+            {specialOptions.map((option) => (
+              <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.special.includes(option.id)}
+                  onChange={(e) => {
+                    const nextSpecial = e.target.checked
+                      ? [...filters.special, option.id]
+                      : filters.special.filter(value => value !== option.id);
+                    setFilters({ ...filters, special: nextSpecial });
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Clear Filters Button */}
-      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.special.length > 0 || searchQuery) && (
         <button
           onClick={() => {
-            setFilters({ availability: [], priceRanges: [] });
+            setFilters({ availability: [], priceRanges: [], special: [] });
             setSearchQuery('');
           }}
           className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
@@ -401,13 +447,16 @@ const DripApplications = () => {
   const [sortBy, setSortBy] = useState('bestSelling');
   const [filters, setFilters] = useState({
     availability: [] as string[],
-    priceRanges: [] as string[]
+    priceRanges: [] as string[],
+    special: [] as string[]
   });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
+  const [topDealIds, setTopDealIds] = useState<string[]>([]);
   const { addToCart, getCartCount } = useCart();
 
   // State for quantity selectors in product cards
@@ -461,7 +510,14 @@ const DripApplications = () => {
           .filter(product => {
             if (product.product_variants.length === 0) return false;
 
-            const collectionName = product.collections?.title?.toLowerCase() || '';
+            let collectionName = '';
+            if (product.collections) {
+              if (Array.isArray(product.collections)) {
+                collectionName = (product.collections[0] as Collection)?.title?.toLowerCase() || '';
+              } else {
+                collectionName = (product.collections as Collection)?.title?.toLowerCase() || '';
+              }
+            }
             const productName = product.name.toLowerCase();
             const productDescription = product.description?.toLowerCase() || '';
 
@@ -499,6 +555,115 @@ const DripApplications = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchTopMeta = async () => {
+      if (products.length === 0) {
+        setTopSellingIds([]);
+        setTopDealIds([]);
+        return;
+      }
+
+      const productIds = products.map(product => product.id);
+
+      try {
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        if (orderItemsError) {
+          throw orderItemsError;
+        }
+
+        const totals = new Map<string, number>();
+        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+          if (!item.product_id) return;
+          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+        });
+
+        const topIds = [...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([id]) => id);
+
+        setTopSellingIds(topIds);
+      } catch (error) {
+        console.error("Error loading top selling products:", error);
+        setTopSellingIds([]);
+      }
+
+      try {
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
+
+        if (discountsError) {
+          throw discountsError;
+        }
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: {
+          status: string;
+          starts_at: string;
+          ends_at: string | null;
+        }) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+        const dealIds = new Set<string>();
+
+        products.forEach((product) => {
+          if (appliesToAll) {
+            dealIds.add(product.id);
+            return;
+          }
+
+          let collectionId: string | undefined;
+          if (product.collections) {
+            if (Array.isArray(product.collections)) {
+              collectionId = product.collections[0]?.id;
+            } else {
+              collectionId = product.collections.id;
+            }
+          }
+          const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+          const hasDeal = activeDiscounts.some((discount: {
+            applies_to: string;
+            applies_ids: string[] | null;
+          }) => {
+            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+            switch (discount.applies_to) {
+              case "products":
+                return discount.applies_ids.includes(product.id);
+              case "collections":
+                return collectionId ? discount.applies_ids.includes(collectionId) : false;
+              case "variants":
+                return variantIds.some(id => discount.applies_ids!.includes(id));
+              default:
+                return false;
+            }
+          });
+
+          if (hasDeal) {
+            dealIds.add(product.id);
+          }
+        });
+
+        setTopDealIds([...dealIds]);
+      } catch (error) {
+        console.error("Error loading active discounts:", error);
+        setTopDealIds([]);
+      }
+    };
+
+    fetchTopMeta();
+  }, [products]);
+
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
     if (filters.availability.length > 0) {
@@ -523,6 +688,19 @@ const DripApplications = () => {
         return productPrice >= range.min && productPrice <= range.max;
       });
       if (!matchesPriceRange) return false;
+    }
+
+    if (filters.special.length > 0) {
+      const isTopSelling = topSellingIds.includes(product.id);
+      const isTopDeal = topDealIds.includes(product.id);
+
+      if (filters.special.includes("top-selling") && !isTopSelling) {
+        return false;
+      }
+
+      if (filters.special.includes("top-deals") && !isTopDeal) {
+        return false;
+      }
     }
 
     return true;
@@ -633,7 +811,15 @@ const DripApplications = () => {
   }, []);
 
   // Product Card Component - Grid View with Quantity Selector
-  const ProductCard = ({ product }: { product: Product }) => {
+  const ProductCard = ({
+    product,
+    isTopSelling,
+    isTopDeal
+  }: {
+    product: Product;
+    isTopSelling: boolean;
+    isTopDeal: boolean;
+  }) => {
     const defaultVariant = getDefaultVariant(product);
     const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
 
@@ -643,6 +829,39 @@ const DripApplications = () => {
     const reviews = 156;
     const rating = 4.5;
     const productQuantity = productQuantities[product.id] || 1;
+    const badgeItems = [
+      !isInStock
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      (isTopSelling || isProductBestSeller(product))
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isProductNew(product)
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
+    // const badgeItems = [
+    //   !isInStock
+    //     ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+    //     : null,
+    //   (isTopSelling || isProductBestSeller(product))
+    //     ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+    //     : null,
+    //   isTopDeal
+    //     ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+    //     : null,
+    //   isProductNew(product)
+    //     ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+    //     : null
+    // ]
+    //   .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+    //   .slice(0, 2);
+
 
     return (
       <motion.div
@@ -680,21 +899,11 @@ const DripApplications = () => {
 
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {isProductNew(product) && (
-                <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  NEW
+              {badgeItems.map((badge, index) => (
+                <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                  {badge.label}
                 </span>
-              )}
-              {isProductBestSeller(product) && (
-                <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Best Seller
-                </span>
-              )}
-              {!isInStock && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Sold Out
-                </span>
-              )}
+              ))}
             </div>
 
             {/* Wishlist Button */}
@@ -777,7 +986,7 @@ const DripApplications = () => {
                     }}
                     disabled={!isInStock}
                     className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${!isInStock
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      ? 'bg-red-500 text-white-500 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
                   >
@@ -803,7 +1012,15 @@ const DripApplications = () => {
   };
 
   // List View Item Component with Quantity Selector
-  const ListViewItem = ({ product }: { product: Product }) => {
+  const ListViewItem = ({
+    product,
+    isTopSelling,
+    isTopDeal
+  }: {
+    product: Product;
+    isTopSelling: boolean;
+    isTopDeal: boolean;
+  }) => {
     const defaultVariant = getDefaultVariant(product);
     const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
 
@@ -813,6 +1030,22 @@ const DripApplications = () => {
     const reviews = 156;
     const rating = 4.5;
     const productQuantity = productQuantities[product.id] || 1;
+    const badgeItems = [
+      !isInStock
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      (isTopSelling || isProductBestSeller(product))
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isProductNew(product)
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
 
     return (
       <motion.div
@@ -851,16 +1084,11 @@ const DripApplications = () => {
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex gap-2">
-                  {isProductNew(product) && (
-                    <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      NEW
+                  {badgeItems.map((badge, index) => (
+                    <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                      {badge.label}
                     </span>
-                  )}
-                  {isProductBestSeller(product) && (
-                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Best Seller
-                    </span>
-                  )}
+                  ))}
                 </div>
               </div>
               <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
@@ -925,7 +1153,7 @@ const DripApplications = () => {
                   }}
                   disabled={!isInStock}
                   className={`flex-1 sm:w-auto px-6 py-2 rounded-lg font-medium ${!isInStock
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
@@ -967,29 +1195,29 @@ const DripApplications = () => {
   if (loading) {
     return (
       // <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading drip applications...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading drip applications...</p>
         </div>
+      </div>
       // </Layout>
     );
   }
 
   return (
     // <Layout>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Drip Applications</h1>
-            <p className="text-green-100">
-              Specialized formulations for efficient nutrient delivery through drip irrigation systems
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Drip Applications</h1>
+          <p className="text-green-100">
+            Specialized formulations for efficient nutrient delivery through drip irrigation systems
+          </p>
 
-            {/* Enhanced Search Bar in Header */}
-            {/* <div className="mt-6 max-w-2xl mx-auto">
+          {/* Enhanced Search Bar in Header */}
+          {/* <div className="mt-6 max-w-2xl mx-auto">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -1011,207 +1239,204 @@ const DripApplications = () => {
 
 
             </div> */}
-          </div>
         </div>
+      </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Filters - Desktop */}
-            <aside className="lg:w-1/4 hidden lg:block">
-              <div className="sticky top-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Filter className="w-5 h-5" />
-                      Filters
-                    </h2>
-                    <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {searchedProducts.length} products
-                    </span>
-                  </div>
-                  <FilterSection
-                    filters={filters}
-                    setFilters={setFilters}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                  />
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters - Desktop */}
+          <aside className="lg:w-1/4 hidden lg:block">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Filters
+                  </h2>
+                  <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+                    {filteredProducts.length} products
+                  </span>
+                </div>
+                <FilterSection
+                  filters={filters}
+                  setFilters={setFilters}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="lg:w-3/4">
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden mb-6">
+              <button
+                onClick={() => setShowFilters(true)}
+                className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
+              >
+                <Sliders className="w-4 h-4 mr-2" />
+                Show Filters
+              </button>
+            </div>
+
+            {/* Results Header */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                    {searchQuery && (
+                      <span className="text-green-600 ml-2">
+                        for "{searchQuery}"
+                      </span>
+                    )}
+                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900">Drip Irrigation Solutions</h2>
+
                 </div>
 
-                {/* Search Tips */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    <Search className="w-4 h-4" />
-                    Search Tips
-                  </h3>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Search by product name, description, or SKU</li>
-                    <li>• Try searching for specific features</li>
-                    <li>• Use category names for filtering</li>
-                    <li>• Search for specific nutrients or benefits</li>
-                  </ul>
-                </div>
-              </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="lg:w-3/4">
-              {/* Mobile Filter Button */}
-              <div className="lg:hidden mb-6">
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-                >
-                  <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters
-                </button>
-              </div>
-
-              {/* Results Header */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
-                      {searchQuery && (
-                        <span className="text-green-600 ml-2">
-                          for "{searchQuery}"
-                        </span>
-                      )}
-                    </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Drip Irrigation Solutions</h2>
-
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-                    {/* Sort By */}
-                    <div className="relative w-full sm:w-auto">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
-                      >
-                        <option value="bestSelling">Best Selling</option>
-                        <option value="priceLowHigh">Price: Low to High</option>
-                        <option value="priceHighLow">Price: High to Low</option>
-                        <option value="newest">Newest</option>
-                        <option value="rating">Highest Rating</option>
-                      </select>
-                      <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-
-                    {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
-                          }`}
-                      >
-                        <Grid className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">Grid</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
-                          }`}
-                      >
-                        <List className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">List</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Products Grid/List */}
-              <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
-                {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
-                      <ProductCard key={product.id} product={product} />
-                    ) : (
-                      <ListViewItem key={product.id} product={product} />
-                    )
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg mb-2">No products found matching your criteria.</p>
-                    <p className="text-gray-400 mb-4">Try different search terms or clear filters</p>
-                    <button
-                      onClick={() => {
-                        setFilters({ availability: [], priceRanges: [] });
-                        setSearchQuery('');
-                      }}
-                      className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                  {/* Sort By */}
+                  <div className="relative w-full sm:w-auto">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
                     >
-                      Clear All Filters
+                      <option value="bestSelling">Best Selling</option>
+                      <option value="priceLowHigh">Price: Low to High</option>
+                      <option value="priceHighLow">Price: High to Low</option>
+                      <option value="newest">Newest</option>
+                      <option value="rating">Highest Rating</option>
+                    </select>
+                    <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  {/* View Toggle */}
+                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
+                    >
+                      <Grid className="w-5 h-5 inline" />
+                      <span className="ml-2 text-sm hidden sm:inline">Grid</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
+                    >
+                      <List className="w-5 h-5 inline" />
+                      <span className="ml-2 text-sm hidden sm:inline">List</span>
                     </button>
                   </div>
-                )}
+                </div>
               </div>
+            </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex flex-wrap justify-center items-center gap-2">
+            {/* Products Grid/List */}
+            <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+              {currentProducts.length > 0 ? (
+                currentProducts.map((product) => (
+                  viewMode === "grid" ? (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      isTopSelling={topSellingIds.includes(product.id)}
+                      isTopDeal={topDealIds.includes(product.id)}
+                    />
+                  ) : (
+                    <ListViewItem
+                      key={product.id}
+                      product={product}
+                      isTopSelling={topSellingIds.includes(product.id)}
+                      isTopDeal={topDealIds.includes(product.id)}
+                    />
+                  )
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg mb-2">No products found matching your criteria.</p>
+                  <p className="text-gray-400 mb-4">Try different search terms or clear filters</p>
                   <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                    onClick={() => {
+                      setFilters({ availability: [], priceRanges: [], special: [] });
+                      setSearchQuery('');
+                    }}
+                    className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                   >
-                    <ChevronLeft className="w-4 h-4 inline mr-1" />
-                    Previous
-                  </button>
-
-                  {[...Array(totalPages)].map((_, index) => {
-                    const pageNum = index + 1;
-                    // Show only first 3, last 3, and pages around current
-                    if (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                    ) {
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`px-4 py-2 rounded-lg ${currentPage === pageNum
-                            ? "bg-green-600 text-white hover:bg-green-700"
-                            : "border border-green-200 text-green-700 hover:bg-green-50"
-                            }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    } else if (
-                      pageNum === currentPage - 2 ||
-                      pageNum === currentPage + 2
-                    ) {
-                      return (
-                        <span key={index} className="px-2 text-gray-400">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  })}
-
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 inline ml-1" />
+                    Clear All Filters
                   </button>
                 </div>
               )}
-            </main>
-          </div>
-        </div>
+            </div>
 
-        {/* Mobile Filters Drawer */}
-        <AnimatePresence>
-          {showFilters && (
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                >
+                  <ChevronLeft className="w-4 h-4 inline mr-1" />
+                  Previous
+                </button>
+
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNum = index + 1;
+                  // Show only first 3, last 3, and pages around current
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-4 py-2 rounded-lg ${currentPage === pageNum
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "border border-green-200 text-green-700 hover:bg-green-50"
+                          }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (
+                    pageNum === currentPage - 2 ||
+                    pageNum === currentPage + 2
+                  ) {
+                    return (
+                      <span key={index} className="px-2 text-gray-400">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 inline ml-1" />
+                </button>
+              </div>
+            )}
+          </main>
+        </div>
+      </div >
+
+      {/* Mobile Filters Drawer */}
+      <AnimatePresence>
+        {
+          showFilters && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -1249,11 +1474,13 @@ const DripApplications = () => {
                 </div>
               </motion.div>
             </>
-          )}
-        </AnimatePresence>
+          )
+        }
+      </AnimatePresence >
 
-        {/* Product Modal */}
-        {isModalOpen && selectedProduct && selectedVariant && (
+      {/* Product Modal */}
+      {
+        isModalOpen && selectedProduct && selectedVariant && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
             <div
@@ -1650,25 +1877,26 @@ const DripApplications = () => {
               </div>
             </div>
           </div>
-        )}
+        )
+      }
 
-        {/* Cart Count Indicator */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <div className="relative">
-            <Link
-              to="/cart"
-              className="w-16 h-16 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-green-700 transition-colors"
-            >
-              <ShoppingCart className="w-8 h-8" />
-            </Link>
-            {getCartCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                {getCartCount()}
-              </span>
-            )}
-          </div>
+      {/* Cart Count Indicator */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <div className="relative">
+          <Link
+            to="/cart"
+            className="w-16 h-16 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-green-700 transition-colors"
+          >
+            <ShoppingCart className="w-8 h-8" />
+          </Link>
+          {getCartCount() > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+              {getCartCount()}
+            </span>
+          )}
         </div>
       </div>
+    </div >
     // </Layout>
   );
 };

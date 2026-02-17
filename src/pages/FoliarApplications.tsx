@@ -57,6 +57,7 @@ const FoliarApplications = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [specialFilters, setSpecialFilters] = useState<string[]>([]);
   const { addToCart, getCartCount } = useCart();
   const [filters, setFilters] = useState({
     availability: [] as string[],
@@ -150,6 +151,21 @@ const FoliarApplications = () => {
 
   const productsPerPage = 12;
 
+  const topSellingIds = [...products]
+    .sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviews - a.reviews)
+    .slice(0, 4)
+    .map(product => product.id);
+
+  const topDealIds = [...products]
+    .filter(product => typeof product.originalPrice === "number" && product.originalPrice > product.price)
+    .sort((a, b) => {
+      const discountA = a.originalPrice ? (a.originalPrice - a.price) / a.originalPrice : 0;
+      const discountB = b.originalPrice ? (b.originalPrice - b.price) / b.originalPrice : 0;
+      return discountB - discountA;
+    })
+    .slice(0, 4)
+    .map(product => product.id);
+
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
     const priceInRange = selectedPriceRanges.length === 0 || selectedPriceRanges.some(rangeId => {
@@ -157,12 +173,20 @@ const FoliarApplications = () => {
       return range ? product.price >= range.min && product.price <= range.max : false;
     });
     const availabilityMatch = availability.length === 0 || availability.includes(product.availability);
+    const isTopSelling = topSellingIds.includes(product.id);
+    const isTopDeal = topDealIds.includes(product.id);
+    const wantsTopSelling = specialFilters.includes("top-selling");
+    const wantsTopDeals = specialFilters.includes("top-deals");
+    const specialMatch = specialFilters.length === 0
+      || (wantsTopSelling && wantsTopDeals && (isTopSelling || isTopDeal))
+      || (wantsTopSelling && !wantsTopDeals && isTopSelling)
+      || (wantsTopDeals && !wantsTopSelling && isTopDeal);
     const searchMatch = !searchQuery ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return priceInRange && availabilityMatch && searchMatch;
+    return priceInRange && availabilityMatch && specialMatch && searchMatch;
   });
 
   // Sort products
@@ -189,7 +213,7 @@ const FoliarApplications = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedPriceRanges, availability, searchQuery, sortBy]);
+  }, [selectedPriceRanges, availability, searchQuery, sortBy, specialFilters]);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -277,10 +301,11 @@ const FoliarApplications = () => {
   const FilterSection = () => {
     const [expandedSections, setExpandedSections] = useState({
       price: true,
-      availability: true
+      availability: true,
+      special: true
     });
 
-    const toggleSection = (section: 'price' | 'availability') => {
+    const toggleSection = (section: 'price' | 'availability' | 'special') => {
       setExpandedSections(prev => ({
         ...prev,
         [section]: !prev[section]
@@ -371,12 +396,58 @@ const FoliarApplications = () => {
           )}
         </div>
 
+        {/* Special Filters */}
+        <div className="border-t pt-4">
+          <button
+            onClick={() => toggleSection('special')}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h3 className="font-semibold text-gray-900">Special</h3>
+            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
+              }`} />
+          </button>
+
+          {expandedSections.special && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={specialFilters.includes('top-selling')}
+                  onChange={(e) => {
+                    const nextSpecial = e.target.checked
+                      ? [...specialFilters, 'top-selling']
+                      : specialFilters.filter(value => value !== 'top-selling');
+                    setSpecialFilters(nextSpecial);
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">Top Selling</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={specialFilters.includes('top-deals')}
+                  onChange={(e) => {
+                    const nextSpecial = e.target.checked
+                      ? [...specialFilters, 'top-deals']
+                      : specialFilters.filter(value => value !== 'top-deals');
+                    setSpecialFilters(nextSpecial);
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">Top Deals</span>
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Clear Filters Button */}
-        {(selectedPriceRanges.length > 0 || availability.length !== 1 || availability[0] !== 'In Stock' || searchQuery) && (
+        {(selectedPriceRanges.length > 0 || availability.length !== 1 || availability[0] !== 'In Stock' || specialFilters.length > 0 || searchQuery) && (
           <button
             onClick={() => {
               setSelectedPriceRanges([]);
               setAvailability(['In Stock']);
+              setSpecialFilters([]);
               setSearchQuery('');
             }}
             className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
@@ -390,7 +461,32 @@ const FoliarApplications = () => {
   };
 
   // Product Card Component - Grid View
-  const ProductCard = ({ product }: { product: Product }) => {
+  const ProductCard = ({
+    product,
+    isTopSelling,
+    isTopDeal
+  }: {
+    product: Product;
+    isTopSelling: boolean;
+    isTopDeal: boolean;
+  }) => {
+    const badgeItems = [
+      product.availability === "Sold Out"
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      (isTopSelling || product.isBestSeller)
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      product.isNew
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -410,21 +506,11 @@ const FoliarApplications = () => {
 
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1">
-              {product.isNew && (
-                <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  NEW
+              {badgeItems.map((badge, index) => (
+                <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                  {badge.label}
                 </span>
-              )}
-              {product.isBestSeller && (
-                <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Best Seller
-                </span>
-              )}
-              {product.availability === 'Sold Out' && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Sold Out
-                </span>
-              )}
+              ))}
             </div>
 
             {/* Wishlist Button */}
@@ -505,7 +591,7 @@ const FoliarApplications = () => {
                   }}
                   disabled={product.availability === 'Sold Out'}
                   className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${product.availability === 'Sold Out'
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
@@ -530,7 +616,32 @@ const FoliarApplications = () => {
   };
 
   // List View Item Component
-  const ListViewItem = ({ product }: { product: Product }) => {
+  const ListViewItem = ({
+    product,
+    isTopSelling,
+    isTopDeal
+  }: {
+    product: Product;
+    isTopSelling: boolean;
+    isTopDeal: boolean;
+  }) => {
+    const badgeItems = [
+      product.availability === "Sold Out"
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      (isTopSelling || product.isBestSeller)
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      isTopDeal
+        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null,
+      product.isNew
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        : null
+    ]
+      .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+      .slice(0, 2);
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -551,16 +662,11 @@ const FoliarApplications = () => {
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
                 <div className="flex gap-2">
-                  {product.isNew && (
-                    <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                      NEW
+                  {badgeItems.map((badge, index) => (
+                    <span key={`${product.id}-badge-${index}`} className={badge.className}>
+                      {badge.label}
                     </span>
-                  )}
-                  {product.isBestSeller && (
-                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      Best Seller
-                    </span>
-                  )}
+                  ))}
                 </div>
               </div>
               <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
@@ -623,7 +729,7 @@ const FoliarApplications = () => {
                   }}
                   disabled={product.availability === 'Sold Out'}
                   className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${product.availability === 'Sold Out'
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
@@ -736,13 +842,26 @@ const FoliarApplications = () => {
               {/* Products Grid/List */}
               <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
                 {currentProducts.length > 0 ? (
-                  currentProducts.map((product) => (
-                    viewMode === "grid" ? (
-                      <ProductCard key={product.id} product={product} />
+                  currentProducts.map((product) => {
+                    const isTopSelling = topSellingIds.includes(product.id);
+                    const isTopDeal = topDealIds.includes(product.id);
+
+                    return viewMode === "grid" ? (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        isTopSelling={isTopSelling}
+                        isTopDeal={isTopDeal}
+                      />
                     ) : (
-                      <ListViewItem key={product.id} product={product} />
-                    )
-                  ))
+                      <ListViewItem
+                        key={product.id}
+                        product={product}
+                        isTopSelling={isTopSelling}
+                        isTopDeal={isTopDeal}
+                      />
+                    );
+                  })
                 ) : (
                   <div className="col-span-full text-center py-12">
                     <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
@@ -750,6 +869,7 @@ const FoliarApplications = () => {
                       onClick={() => {
                         setSelectedPriceRanges([]);
                         setAvailability(['In Stock']);
+                        setSpecialFilters([]);
                         setSearchQuery('');
                       }}
                       className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
@@ -1171,7 +1291,7 @@ const FoliarApplications = () => {
 
 
       </div>
-      </>
+    </>
     /* </Layout> */
   );
 };

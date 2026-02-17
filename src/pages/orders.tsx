@@ -4,8 +4,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, Filter, Download, Eye, Package, Truck, CheckCircle, 
+import {
+  Search, Filter, Download, Eye, Package, Truck, CheckCircle,
   XCircle, Clock, RefreshCw, AlertCircle, ChevronRight, Calendar,
   User, MapPin, CreditCard, DollarSign, ArrowUpDown, MoreVertical,
   ShoppingBag, Home, MessageSquare
@@ -83,7 +83,7 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -97,7 +97,7 @@ const Orders = () => {
     }
 
     setLoading(true);
-    
+
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -144,7 +144,7 @@ const Orders = () => {
       }));
 
       setOrders(formattedOrders);
-      
+
     } catch (error) {
       console.error("Error loading orders:", error);
       toast.error("Failed to load orders");
@@ -186,7 +186,7 @@ const Orders = () => {
       if (dateFilter !== "all") {
         const now = new Date();
         const orderDate = new Date(order.createdAt);
-        
+
         switch (dateFilter) {
           case "today":
             return orderDate.toDateString() === now.toDateString();
@@ -211,7 +211,7 @@ const Orders = () => {
     });
 
   // Get status badge
-  const getStatusBadge = (status: Order['status']) => {
+  const getStatusBadge = (status?: Order['status'] | string) => {
     const config = {
       pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3" /> },
       processing: { color: "bg-blue-100 text-blue-800", icon: <Package className="w-3 h-3" /> },
@@ -220,28 +220,30 @@ const Orders = () => {
       cancelled: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3" /> },
       refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-3 h-3" /> }
     };
-    
+    const safeStatus = status && status in config ? (status as keyof typeof config) : "pending";
+
     return (
-      <Badge className={`${config[status].color} gap-1`}>
-        {config[status].icon}
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge className={`${config[safeStatus].color} gap-1`}>
+        {config[safeStatus].icon}
+        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
       </Badge>
     );
   };
 
   // Get payment status badge
-  const getPaymentBadge = (status: Order['paymentStatus']) => {
+  const getPaymentBadge = (status?: Order['paymentStatus'] | string) => {
     const config = {
       pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3" /> },
       paid: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3" /> },
       failed: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3" /> },
       refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-3 h-3" /> }
     };
-    
+    const safeStatus = status && status in config ? (status as keyof typeof config) : "pending";
+
     return (
-      <Badge className={`${config[status].color} gap-1`}>
-        {config[status].icon}
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge className={`${config[safeStatus].color} gap-1`}>
+        {config[safeStatus].icon}
+        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
       </Badge>
     );
   };
@@ -250,7 +252,7 @@ const Orders = () => {
   const handleOrderAction = async (orderId: string, action: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
-    
+
     switch (action) {
       case "view":
         navigate(`/order/${orderId}`);
@@ -360,7 +362,7 @@ const Orders = () => {
                 <p className="text-sm text-gray-500">All your purchases</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">Active Orders</CardTitle>
@@ -372,16 +374,16 @@ const Orders = () => {
                 <p className="text-sm text-gray-500">Currently being processed</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">
-                  ₹{orders.reduce((sum, order) => sum + order.total, 0).toLocaleString('en-IN', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
+                  ₹{orders.reduce((sum, order) => sum + order.total, 0).toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })}
                 </div>
                 <p className="text-sm text-gray-500">All time</p>
@@ -460,8 +462,8 @@ const Orders = () => {
                   <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No orders yet</h3>
                   <p className="text-gray-600 mb-6">
-                    {searchQuery 
-                      ? "No orders match your search criteria" 
+                    {searchQuery
+                      ? "No orders match your search criteria"
                       : "Start shopping to see your orders here"}
                   </p>
                   <Link to="/">
@@ -498,7 +500,7 @@ const Orders = () => {
                               </div>
                             </div>
                           </TableCell>
-                          
+
                           <TableCell>
                             <div className="space-y-1">
                               <div className="text-sm">
@@ -512,14 +514,14 @@ const Orders = () => {
                               </div>
                             </div>
                           </TableCell>
-                          
+
                           <TableCell>
                             <div className="space-y-1">
                               {order.items.slice(0, 2).map((item, index) => (
                                 <div key={index} className="text-sm flex items-center gap-2">
                                   <div className="w-6 h-6 rounded overflow-hidden">
-                                    <img 
-                                      src={item.image} 
+                                    <img
+                                      src={item.image}
                                       alt={item.name}
                                       className="w-full h-full object-cover"
                                     />
@@ -539,7 +541,7 @@ const Orders = () => {
                               )}
                             </div>
                           </TableCell>
-                          
+
                           <TableCell className="font-semibold">
                             <div className="flex items-center gap-1">
                               <DollarSign className="w-4 h-4 text-gray-500" />
@@ -549,7 +551,7 @@ const Orders = () => {
                               {order.shipping === 0 ? 'Free shipping' : `Shipping: ₹${order.shipping}`}
                             </div>
                           </TableCell>
-                          
+
                           <TableCell>
                             <div className="space-y-1">
                               {getStatusBadge(order.status)}
@@ -560,7 +562,7 @@ const Orders = () => {
                               )}
                             </div>
                           </TableCell>
-                          
+
                           <TableCell>
                             <div className="space-y-1">
                               {getPaymentBadge(order.paymentStatus)}
@@ -569,7 +571,7 @@ const Orders = () => {
                               </div>
                             </div>
                           </TableCell>
-                          
+
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button
@@ -581,7 +583,7 @@ const Orders = () => {
                                 <Eye className="w-3 h-3" />
                                 Details
                               </Button>
-                              
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button size="sm" variant="ghost">
@@ -604,7 +606,7 @@ const Orders = () => {
                                     Reorder Items
                                   </DropdownMenuItem>
                                   {order.status === 'pending' && (
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       onClick={() => handleOrderAction(order.id, "cancel")}
                                       className="text-red-600"
                                     >
@@ -689,22 +691,22 @@ const Orders = () => {
               Our customer support team is here to help you with any questions about your orders.
             </p>
             <div className="flex flex-wrap gap-4">
-              <a 
-                href="mailto:support@biofactor.com" 
+              <a
+                href="mailto:support@biofactor.com"
                 className="text-green-600 hover:text-green-700 flex items-center gap-2"
               >
                 <MessageSquare className="w-4 h-4" />
                 Email Support
               </a>
-              <a 
-                href="tel:+911234567890" 
+              <a
+                href="tel:+911234567890"
                 className="text-green-600 hover:text-green-700 flex items-center gap-2"
               >
                 <MessageSquare className="w-4 h-4" />
                 Call Support
               </a>
-              <Link 
-                to="/contact" 
+              <Link
+                to="/contact"
                 className="text-green-600 hover:text-green-700 flex items-center gap-2"
               >
                 <MessageSquare className="w-4 h-4" />

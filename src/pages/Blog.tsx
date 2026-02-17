@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { 
-  Calendar, ArrowRight, Clock, User, Tag, BookOpen, 
-  TrendingUp, Search, Filter, Heart, Share2, Eye, 
-  MessageCircle, ChevronRight, Bookmark, Star, ChevronLeft, 
-  Copy, Droplets, Leaf, Sprout, Wheat, TreePine, 
-  CloudRain, ThermometerSun, Shield, BarChart3, Grid, 
-  List, Sliders, ArrowUpDown, ChevronDown, X, Plus, 
+import {
+  Calendar, ArrowRight, Clock, User, Tag, BookOpen,
+  TrendingUp, Search, Filter, Heart, Share2, Eye,
+  MessageCircle, ChevronRight, Bookmark, Star, ChevronLeft,
+  Copy, Droplets, Leaf, Sprout, Wheat, TreePine,
+  CloudRain, ThermometerSun, Shield, BarChart3, Grid,
+  List, Sliders, ArrowUpDown, ChevronDown, X, Plus,
   Minus, ShoppingCart, Filter as FilterIcon
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -14,7 +14,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -905,7 +904,7 @@ const Blog = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Fetch blog posts from Supabase and combine with dummy data
+  // Fetch blog posts from static data
   useEffect(() => {
     fetchBlogPosts();
   }, []);
@@ -913,53 +912,6 @@ const Blog = () => {
   const fetchBlogPosts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('addlifeblogs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform Supabase data to match frontend structure
-      const transformedPosts = data?.map((post: any) => ({
-        id: post.id,
-        title: post.title,
-        excerpt: post.subheading || "No excerpt available",
-        content: post.content || '',
-        date: new Date(post.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        readTime: calculateReadTime(post.content || ''),
-        author: "BioFact Research Team",
-        authorRole: "Agricultural Scientist",
-        authorImage: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=100&h=100&fit=crop",
-        category: post.topic || "Organic Agriculture",
-        tags: post.tags || ["BioFact", "Fertilizers", "Sustainable Farming", "Soil Health", "Crop Nutrition"],
-        image: post.image_url || getRandomAgricultureImage(),
-        featured: Math.random() > 0.8,
-        views: Math.floor(Math.random() * 5000),
-        likes: Math.floor(Math.random() * 500),
-        comments: Math.floor(Math.random() * 100),
-        trending: Math.random() > 0.5,
-        color: getRandomColor(),
-        subheading: post.subheading,
-        primary_intent: post.primary_intent,
-        topic: post.topic,
-        country: post.country,
-        service: post.service,
-        created_at: post.created_at,
-        image_url: post.image_url
-      })) || [];
-
-      // Combine with dummy articles
-      const allPosts = [...dummyArticles, ...transformedPosts];
-      setBlogPosts(allPosts);
-    } catch (err: any) {
-      console.error('Error fetching blog posts:', err);
-      
-      // Fallback to dummy data if API fails
       const dummyPosts = dummyArticles.map(article => ({
         ...article,
         id: article.id,
@@ -1027,19 +979,19 @@ const Blog = () => {
   };
 
   const categories = [
-    "All", 
-    "Bio-Fertilizers", 
-    "Microbial Technology", 
-    "Organic Composting", 
-    "Precision Farming", 
+    "All",
+    "Bio-Fertilizers",
+    "Microbial Technology",
+    "Organic Composting",
+    "Precision Farming",
     "Climate Smart Agriculture"
   ];
 
   const popularTags = [
-    "BioFact", "Organic Farming", "Soil Health", "Sustainable Agriculture", 
-    "Microbial Inoculants", "PGPR", "Soil Microbiome", "Plant Immunity", 
-    "Biological Control", "Vermicompost", "Waste Management", "Organic Matter", 
-    "Liquid Fertilizers", "Drip Irrigation", "Fertigation", "Smart Farming", 
+    "BioFact", "Organic Farming", "Soil Health", "Sustainable Agriculture",
+    "Microbial Inoculants", "PGPR", "Soil Microbiome", "Plant Immunity",
+    "Biological Control", "Vermicompost", "Waste Management", "Organic Matter",
+    "Liquid Fertilizers", "Drip Irrigation", "Fertigation", "Smart Farming",
     "Carbon Farming", "Climate Change", "Soil Carbon", "Carbon Credits"
   ];
 
@@ -1047,8 +999,8 @@ const Blog = () => {
   const filteredPosts = blogPosts.filter(post => {
     if (selectedCategory !== "All" && post.category !== selectedCategory) return false;
     if (selectedTag && !post.tags?.includes(selectedTag)) return false;
-    if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
@@ -1072,13 +1024,13 @@ const Blog = () => {
   const currentPosts = sortedPosts.slice(startIndex, endIndex);
 
   const toggleLike = (id: string) => {
-    setLikedPosts(prev => 
+    setLikedPosts(prev =>
       prev.includes(id) ? prev.filter(postId => postId !== id) : [...prev, id]
     );
   };
 
   const toggleSave = (id: string) => {
-    setSavedPosts(prev => 
+    setSavedPosts(prev =>
       prev.includes(id) ? prev.filter(postId => postId !== id) : [...prev, id]
     );
   };
@@ -1138,22 +1090,20 @@ const Blog = () => {
             className="flex items-center justify-between w-full mb-3"
           >
             <h3 className="font-semibold text-gray-900">Category</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${
-              expandedSections.category ? 'rotate-180' : ''
-            }`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.category ? 'rotate-180' : ''
+              }`} />
           </button>
-          
+
           {expandedSections.category && (
             <div className="space-y-2">
               {categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                    selectedCategory === category
+                  className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${selectedCategory === category
                       ? 'bg-green-100 text-green-800 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {category}
                 </button>
@@ -1169,22 +1119,20 @@ const Blog = () => {
             className="flex items-center justify-between w-full mb-3"
           >
             <h3 className="font-semibold text-gray-900">Popular Tags</h3>
-            <ChevronDown className={`w-4 h-4 transition-transform ${
-              expandedSections.tags ? 'rotate-180' : ''
-            }`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.tags ? 'rotate-180' : ''
+              }`} />
           </button>
-          
+
           {expandedSections.tags && (
             <div className="flex flex-wrap gap-2">
               {popularTags.slice(0, 10).map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                    selectedTag === tag
+                  className={`px-3 py-1 rounded-full text-sm transition-colors ${selectedTag === tag
                       ? 'bg-green-600 text-white font-medium'
                       : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>
@@ -1225,7 +1173,7 @@ const Blog = () => {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          
+
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1">
             <span className={`px-3 py-1 bg-gradient-to-r ${post.color} text-white text-xs font-bold rounded-full`}>
@@ -1241,7 +1189,7 @@ const Blog = () => {
 
           {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2">
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleSave(post.id);
@@ -1258,11 +1206,11 @@ const Blog = () => {
           <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
             {post.title}
           </h3>
-          
+
           <p className="text-sm text-gray-500 mb-3 line-clamp-3">
             {post.excerpt}
           </p>
-          
+
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-4">
             {post.tags?.slice(0, 3).map((tag) => (
@@ -1346,7 +1294,7 @@ const Blog = () => {
               </div>
             </div>
             <p className="text-gray-600 mb-4 line-clamp-2">{post.excerpt}</p>
-            
+
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center text-sm text-gray-600">
                 <User className="w-4 h-4 mr-1" />
@@ -1362,7 +1310,7 @@ const Blog = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Footer */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
             <div className="w-full sm:w-auto flex items-center gap-4">
@@ -1443,7 +1391,7 @@ const Blog = () => {
                         <ChevronLeft className="w-5 h-5" />
                         Back to Articles
                       </Button>
-                      
+
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
@@ -1498,8 +1446,8 @@ const Blog = () => {
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-500/30">
-                            <img 
-                              src={selectedPost.authorImage} 
+                            <img
+                              src={selectedPost.authorImage}
                               alt={selectedPost.author}
                               className="w-full h-full object-cover"
                             />
@@ -1509,7 +1457,7 @@ const Blog = () => {
                             <div className="text-sm text-gray-600">{selectedPost.authorRole}</div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-6 text-gray-600">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-5 h-5" />
@@ -1565,7 +1513,7 @@ const Blog = () => {
                               </span>
                             ))}
                           </div>
-                          
+
                           <div className="flex items-center gap-4">
                             <Button
                               variant="outline"
@@ -1677,18 +1625,16 @@ const Blog = () => {
                   <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${
-                        viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
-                      }`}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
                     >
                       <Grid className="w-5 h-5 inline" />
                       <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${
-                        viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
-                      }`}
+                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        }`}
                     >
                       <List className="w-5 h-5 inline" />
                       <span className="ml-2 text-sm hidden sm:inline">List</span>
@@ -1785,24 +1731,23 @@ const Blog = () => {
                   <ChevronLeft className="w-4 h-4 inline mr-1" />
                   Previous
                 </button>
-                
+
                 {[...Array(totalPages)].map((_, index) => {
                   const pageNum = index + 1;
                   return (
                     <button
                       key={index}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-4 py-2 rounded-lg ${
-                        currentPage === pageNum 
-                          ? "bg-green-600 text-white hover:bg-green-700" 
+                      className={`px-4 py-2 rounded-lg ${currentPage === pageNum
+                          ? "bg-green-600 text-white hover:bg-green-700"
                           : "border border-green-200 text-green-700 hover:bg-green-50"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-                
+
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}

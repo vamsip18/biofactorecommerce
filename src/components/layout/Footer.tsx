@@ -2,7 +2,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Leaf, Mail, Phone, MapPin, Globe, Award, Shield } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/Biofactor-Logo.png";
+import termsPdf from "@/assets/docs/Terms.pdf";
+import privacyPdf from "@/assets/docs/Privacy.pdf";
+import shippingPdf from "@/assets/docs/Shipping.pdf";
+import refundPdf from "@/assets/docs/Refund.pdf";
 
 const footerLinks = {
   products: [
@@ -54,10 +58,10 @@ export const Footer = () => {
                 className="h-10 w-auto"
               />
               <div>
-                <div className="text-xl font-bold">Biofactor</div>
-                <div className="text-emerald-200 text-xs">
+                <div className="text-xl font-bold">BioFactor Biologicals</div>
+                {/* <div className="text-emerald-200 text-xs">
                   Advanced Agricultural Solutions
-                </div>
+                </div> */}
               </div>
             </motion.div>
 
@@ -95,7 +99,7 @@ export const Footer = () => {
               <div className="flex gap-2">
                 <MapPin className="w-4 h-4 text-emerald-300 mt-0.5" />
                 <div>
-                  Bio Factor Solutions<br />
+                  BioFactor Inputs Private limited<br />
                   Hyderabad, Telangana
                 </div>
               </div>
@@ -117,12 +121,13 @@ export const Footer = () => {
 
         {/* Bottom bar */}
         <div className="mt-8 pt-5 border-t border-emerald-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-emerald-200/60">
-          <span>© {new Date().getFullYear()} Biofactor AG. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} BioFactor Inputs Private limited. All rights reserved.</span>
 
-          <div className="flex gap-4">
-            <Link to="/terms" className="hover:text-white">Terms</Link>
-            <Link to="/privacy" className="hover:text-white">Privacy</Link>
-            <Link to="/sitemap" className="hover:text-white">Sitemap</Link>
+          <div className="flex flex-wrap gap-4">
+            <a href={termsPdf} download className="hover:text-white">Terms</a>
+            <a href={privacyPdf} download className="hover:text-white">Privacy</a>
+            <a href={shippingPdf} download className="hover:text-white">Shipping</a>
+            <a href={refundPdf} download className="hover:text-white">Refund</a>
           </div>
         </div>
       </div>

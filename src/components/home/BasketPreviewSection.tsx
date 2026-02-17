@@ -9,26 +9,231 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { getAllProducts, type Product, type ProductVariant } from "@/lib/supabase/products";
+import { supabase } from "@/lib/supabase";
 import 'swiper/css';
 import 'swiper/css/autoplay';
 // Import your images - update these with actual biofactor product images
 import biofactorHero from "@/assets/biofactor-hero.png";
-import virban from "@/assets/virban.webp";
-import vVacc from "@/assets/vVacc.webp";
-import modiphy from "@/assets/modiphy.webp";
-// Mock images - replace with actual imports
-const productImages = {
-  agriseal: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400&h=400&fit=crop",
-  eightPetals: "https://images.unsplash.com/photo-1597848212624-e5f4b41d7f50?w-400&h=400&fit=crop",
-  highKLiquid: "https://images.unsplash.com/photo-1615485500607-1758f56c2c8a?w=400&h=400&fit=crop",
-  gallant: "https://images.unsplash.com/photo-1557735938-cb4b0d11c73a?w=400&h=400&fit=crop",
-  nativeNeem: "https://images.unsplash.com/photo-1589923186741-b7d59d6b2c4c?w=400&h=400&fit=crop",
-  kFactor: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=400&fit=crop",
-  eVac: "https://images.unsplash.com/photo-1573497019940-1c28c033a88e?w=400&h=400&fit=crop",
-  highKAqua: "https://images.unsplash.com/photo-1615485500607-1758f56c2c8a?w=400&h=400&fit=crop",
-  virban: virban,
-  vVacc: vVacc,
-  modiphy: modiphy
+const MAX_CATEGORY_PRODUCTS = 6;
+
+const getActiveVariants = (product: Product): ProductVariant[] => {
+  return (product.variants || []).filter(variant => variant.is_active);
+};
+
+const getDefaultVariant = (product: Product): ProductVariant | null => {
+  const activeVariants = getActiveVariants(product);
+  if (activeVariants.length === 0) return null;
+
+  return activeVariants.reduce((lowest, variant) =>
+    variant.price < lowest.price ? variant : lowest
+  );
+};
+
+const formatPrice = (price: number) => {
+  if (!price || Number.isNaN(price)) return "Price on request";
+  return `Rs. ${price.toLocaleString()}`;
+};
+
+const matchesKeywords = (value: string, keywords: string[]) => {
+  return keywords.some(keyword => value.includes(keyword));
+};
+
+const productMatchesCategory = (product: Product, keywords: string[]) => {
+  const collectionName = product.collections?.title?.toLowerCase() || "";
+  const productName = product.name.toLowerCase();
+  const productDescription = product.description?.toLowerCase() || "";
+
+  return (
+    matchesKeywords(collectionName, keywords) ||
+    matchesKeywords(productName, keywords) ||
+    matchesKeywords(productDescription, keywords)
+  );
+};
+
+const getCategoryProducts = (products: Product[], keywords: string[]) => {
+  return products
+    .filter(product => productMatchesCategory(product, keywords))
+    .slice(0, MAX_CATEGORY_PRODUCTS);
+};
+
+const agricultureKeywords = [
+  "crop",
+  "protection",
+  "soil",
+  "drip",
+  "foliar",
+  "special",
+  "application",
+  "insecticide",
+  "fungicide",
+  "pesticide",
+  "neem",
+  "proceed",
+  "nutrition",
+  "bsl4",
+  "aadhar",
+  "g-vam",
+  "biofertilizer",
+  "mycorrhiza",
+  "k factor",
+  "boc",
+  "soil conditioner",
+  "organic carbon",
+  "chakra",
+  "iim chakra",
+  "high-k",
+  "virnix",
+  "agriseal",
+  "stress",
+  "carbon"
+];
+
+const aquacultureKeywords = [
+  "aquaculture",
+  "probiotic",
+  "disease",
+  "viral",
+  "fungal",
+  "bacterial",
+  "preventive",
+  "bio-enhancer",
+  "modiphy",
+  "e-vac",
+  "virban",
+  "kipper",
+  "v-vacc",
+  "dawn",
+  "regalis"
+];
+
+const largeAnimalsKeywords = [
+  "large animal",
+  "large animals",
+  "livestock",
+  "cattle"
+];
+
+const kitchenGardeningKeywords = [
+  "kitchen gardening",
+  "home gardening",
+  "home garden"
+];
+
+type CategoryKey = "agriculture" | "aquaculture" | "largeAnimals" | "kitchenGardening" | "other";
+
+const categoryStyles: Record<CategoryKey, {
+  label: string;
+  badge: string;
+  border: string;
+  hoverBorder: string;
+  price: string;
+  nameHover: string;
+  imageFrom: string;
+  qtyHover: string;
+  buttonGradient: string;
+  buttonHover: string;
+  solidButton: string;
+}> = {
+  agriculture: {
+    label: "Agri",
+    badge: "bg-green-600 text-white",
+    border: "border-green-200",
+    hoverBorder: "hover:border-green-300",
+    price: "text-green-700",
+    nameHover: "group-hover:text-green-700",
+    imageFrom: "from-green-50",
+    qtyHover: "hover:text-green-700",
+    buttonGradient: "from-green-700 to-green-600",
+    buttonHover: "hover:from-green-800 hover:to-green-700",
+    solidButton: "bg-green-600 hover:bg-green-700"
+  },
+  aquaculture: {
+    label: "Aqua",
+    badge: "bg-cyan-600 text-white",
+    border: "border-cyan-200",
+    hoverBorder: "hover:border-cyan-300",
+    price: "text-cyan-700",
+    nameHover: "group-hover:text-cyan-700",
+    imageFrom: "from-cyan-50",
+    qtyHover: "hover:text-cyan-700",
+    buttonGradient: "from-cyan-700 to-cyan-600",
+    buttonHover: "hover:from-cyan-800 hover:to-cyan-700",
+    solidButton: "bg-cyan-600 hover:bg-cyan-700"
+  },
+  largeAnimals: {
+    label: "Large Animals",
+    badge: "bg-amber-700 text-white",
+    border: "border-amber-200",
+    hoverBorder: "hover:border-amber-300",
+    price: "text-amber-700",
+    nameHover: "group-hover:text-amber-700",
+    imageFrom: "from-amber-50",
+    qtyHover: "hover:text-amber-700",
+    buttonGradient: "from-amber-700 to-amber-600",
+    buttonHover: "hover:from-amber-800 hover:to-amber-700",
+    solidButton: "bg-amber-700 hover:bg-amber-800"
+  },
+  kitchenGardening: {
+    label: "Kitchen Gardening",
+    badge: "bg-lime-600 text-white",
+    border: "border-lime-200",
+    hoverBorder: "hover:border-lime-300",
+    price: "text-lime-700",
+    nameHover: "group-hover:text-lime-700",
+    imageFrom: "from-lime-50",
+    qtyHover: "hover:text-lime-700",
+    buttonGradient: "from-lime-600 to-lime-500",
+    buttonHover: "hover:from-lime-700 hover:to-lime-600",
+    solidButton: "bg-lime-600 hover:bg-lime-700"
+  },
+  other: {
+    label: "Biofactor",
+    badge: "bg-green-600 text-white",
+    border: "border-green-200",
+    hoverBorder: "hover:border-green-300",
+    price: "text-green-700",
+    nameHover: "group-hover:text-green-700",
+    imageFrom: "from-green-50",
+    qtyHover: "hover:text-green-700",
+    buttonGradient: "from-green-700 to-green-600",
+    buttonHover: "hover:from-green-800 hover:to-green-700",
+    solidButton: "bg-green-600 hover:bg-green-700"
+  }
+};
+
+const getCategoryKey = (product: Product): CategoryKey => {
+  const collectionName = product.collections?.title?.toLowerCase() || "";
+
+  if (collectionName.includes("large animal")) return "largeAnimals";
+  if (collectionName.includes("kitchen")) return "kitchenGardening";
+  if (collectionName.includes("aqua")) return "aquaculture";
+  if (collectionName.includes("agri") || collectionName.includes("crop") || collectionName.includes("soil")) {
+    return "agriculture";
+  }
+
+  if (productMatchesCategory(product, largeAnimalsKeywords)) return "largeAnimals";
+  if (productMatchesCategory(product, kitchenGardeningKeywords)) return "kitchenGardening";
+  if (productMatchesCategory(product, aquacultureKeywords)) return "aquaculture";
+  if (productMatchesCategory(product, agricultureKeywords)) return "agriculture";
+  return "other";
+};
+
+const getDiscountScore = (discount: Record<string, any>): number => {
+  const candidates = [
+    discount.discount_percentage,
+    discount.percentage,
+    discount.percent,
+    discount.value,
+    discount.amount,
+    discount.discount_amount
+  ];
+  const numericValue = candidates.find(value => typeof value === "number" && !Number.isNaN(value));
+  if (!numericValue) return 0;
+
+  const valueType = String(discount.value_type || discount.discount_type || discount.type || "").toLowerCase();
+  if (valueType.includes("percent")) return numericValue;
+
+  return numericValue;
 };
 
 // Blog images
@@ -98,25 +303,34 @@ export const HeroSection = () => {
 };
 
 export const BestSellingProducts = () => {
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
 
-  const handleQuantityChange = (productId: number, delta: number) => {
+  const handleQuantityChange = (productId: string, delta: number) => {
     setQuantities(prev => ({
       ...prev,
       [productId]: Math.max(1, (prev[productId] || 1) + delta)
     }));
   };
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Product) => {
+    const defaultVariant = getDefaultVariant(product);
+    if (!defaultVariant) {
+      toast.error("This product is not available right now");
+      return;
+    }
+
     addToCart({
-      productId: String(product.id),
-      variantId: String(product.id),
-      name: product.name,
-      price: parseFloat(product.price.replace(/[^0-9.]/g, '')),
-      image: product.image,
-      category: "Home",
-      stock: product.soldOut ? 0 : 99,
+      productId: product.id,
+      variantId: defaultVariant.id,
+      name: `${product.name} ${defaultVariant.title || ""}`.trim(),
+      price: defaultVariant.price,
+      image: defaultVariant.image_url || product.image_url || biofactorHero,
+      category: product.collections?.title || "Home",
+      stock: defaultVariant.stock,
       quantity: quantities[product.id] || 1
     });
     toast.success("Added to cart");
@@ -128,69 +342,62 @@ export const BestSellingProducts = () => {
     }));
   };
 
-  const products = [
-    {
-      id: 1,
-      name: "AgriSeal - Protect Crops from Biotic Stress",
-      vendor: "Biofactor",
-      price: "Rs. 1,800.00",
-      image: productImages.agriseal,
-      tag: "Best Seller"
-    },
-    {
-      id: 2,
-      name: "Eight Petals - Home Gardening Kit",
-      vendor: "Biofactor",
-      price: "Rs. 1,200.00",
-      originalPrice: "Rs. 1,500.00",
-      image: productImages.eightPetals,
-      tag: "Popular"
-    },
-    {
-      id: 3,
-      name: "High-K Liquid Nutrient",
-      vendor: "Biofactor",
-      price: "Rs. 950.00",
-      image: productImages.highKLiquid,
-      tag: "New"
-    },
-    {
-      id: 4,
-      name: "Gallant | A high potency iron tonic for animals",
-      vendor: "Biofactor",
-      price: "Rs. 2,300.00",
-      image: productImages.gallant,
-      soldOut: true
-    },
-    {
-      id: 5,
-      name: "Native Neem - Natural Insecticide",
-      vendor: "Biofactor",
-      price: "Rs. 850.00",
-      image: productImages.nativeNeem
-    },
-    {
-      id: 6,
-      name: "K Factor – Potassium Mobilising Bacteria",
-      vendor: "Biofactor",
-      price: "Rs. 1,500.00",
-      image: productImages.kFactor
-    },
-    {
-      id: 7,
-      name: "E- Vac - EHP Remedy",
-      vendor: "Biofactor",
-      price: "Rs. 3,200.00",
-      image: productImages.eVac
-    },
-    {
-      id: 8,
-      name: "High- K Aqua",
-      vendor: "Biofactor",
-      price: "Rs. 1,750.00",
-      image: productImages.highKAqua
-    }
-  ];
+  useEffect(() => {
+    const fetchTopSellingProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { products: allProducts } = await getAllProducts(undefined, 200, 0);
+        const eligibleProducts = allProducts.filter(product =>
+          productMatchesCategory(product, agricultureKeywords) ||
+          productMatchesCategory(product, aquacultureKeywords) ||
+          productMatchesCategory(product, largeAnimalsKeywords) ||
+          productMatchesCategory(product, kitchenGardeningKeywords)
+        );
+
+        if (eligibleProducts.length === 0) {
+          setProducts([]);
+          return;
+        }
+
+        const productIds = eligibleProducts.map(product => product.id);
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        if (orderItemsError) {
+          throw orderItemsError;
+        }
+
+        const totals = new Map<string, number>();
+        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+          if (!item.product_id) return;
+          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+        });
+
+        const sortedProducts = [...eligibleProducts]
+          .sort((a, b) => {
+            const totalA = totals.get(a.id) || 0;
+            const totalB = totals.get(b.id) || 0;
+            if (totalA !== totalB) return totalB - totalA;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          })
+          .slice(0, 8);
+
+        setProducts(sortedProducts);
+      } catch (err) {
+        console.error("Failed to load top selling products:", err);
+        setError("Failed to load top selling products");
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopSellingProducts();
+  }, []);
 
   return (
     <section className="py-5 bg-green-50/40">
@@ -213,129 +420,133 @@ export const BestSellingProducts = () => {
         {/* Single Row Carousel */}
         <div className="relative">
           <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
-            {products.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
-              >
-                {/* Product Image */}
-                <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+            {isLoading ? (
+              <div className="w-full py-10 text-center text-gray-600">Loading top selling products...</div>
+            ) : error ? (
+              <div className="w-full py-10 text-center text-red-600">{error}</div>
+            ) : (
+              products.map((product, index) => {
+                const defaultVariant = getDefaultVariant(product);
+                if (!defaultVariant) return null;
+                const categoryStyle = categoryStyles[getCategoryKey(product)];
+                const imageUrl = defaultVariant.image_url || product.image_url || biofactorHero;
+                const isSoldOut = defaultVariant.stock <= 0;
 
-                  {/* Tag Badge */}
-                  {product.tag && (
-                    <div className="absolute top-3 left-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${product.tag === "Best Seller"
-                        ? "bg-green-600 text-white"
-                        : product.tag === "Popular"
-                          ? "bg-green-500 text-white"
-                          : "bg-emerald-400 text-white"
-                        }`}>
-                        {product.tag}
-                      </span>
-                    </div>
-                  )}
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                  >
+                    {/* Product Image */}
+                    <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
 
-                  {/* Wishlist Button */}
-                  {/* <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
+                      {/* Tag Badge */}
+                      <div className="absolute top-3 left-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${categoryStyle.badge}`}>
+                          {categoryStyle.label}
+                        </span>
+                      </div>
+
+                      {/* Wishlist Button */}
+                      {/* <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
                     <Heart className="w-4 h-4 text-gray-600 hover:text-green-600" />
                   </button> */}
 
-                  {/* Sold Out Overlay */}
-                  {product.soldOut && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                      <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
-                        Sold Out
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Info - Flex column with grow */}
-                <div className="p-5 flex flex-col flex-grow">
-                  <h3 className="font-semibold text-lg text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2 min-h-[56px]">
-                    {product.name}
-                  </h3>
-
-                  <div className="flex items-center text-sm text-gray-500 mb-3">
-                    <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-                    <span className="truncate">Vendor: {product.vendor}</span>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="text-xl font-bold text-gray-900">{product.price}</div>
-                      {product.originalPrice && (
-                        <div className="text-sm text-gray-500 line-through">{product.originalPrice}</div>
+                      {/* Sold Out Overlay */}
+                      {isSoldOut && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                          <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
+                            Sold Out
+                          </span>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Quantity and Add to Cart Button */}
-                  <div className="mt-auto flex items-center gap-2">
-                    {!product.soldOut && (
-                      <div className="flex items-center border border-gray-300 rounded-lg">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuantityChange(product.id, -1);
-                          }}
-                          className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                          disabled={(quantities[product.id] || 1) <= 1}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                          {quantities[product.id] || 1}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuantityChange(product.id, 1);
-                          }}
-                          className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                    {/* Product Info - Flex column with grow */}
+                    <div className="p-5 flex flex-col flex-grow">
+                      <h3 className={`font-semibold text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[56px]`}>
+                        {product.name}
+                      </h3>
+
+                      <div className="flex items-center text-sm text-gray-500 mb-3">
+                        <Package className="w-4 h-4 mr-1 flex-shrink-0" />
+                        <span className="truncate">Vendor: {product.collections?.title || "Biofactor"}</span>
                       </div>
-                    )}
-                    <Button
-                      className={`flex-1 ${product.soldOut
-                        ? "bg-red-100 text-red-700 cursor-not-allowed"
-                        : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white"
-                        }`}
-                      disabled={product.soldOut}
-                      onClick={() => !product.soldOut && handleAddToCart(product)}
-                    >
-                      {product.soldOut ? (
-                        <>
-                          <Clock className="w-4 h-4 mr-2" />
-                          Sold Out
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Add to Cart
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+
+                      {/* Price */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className={`text-xl font-bold ${categoryStyle.price}`}>{formatPrice(defaultVariant.price)}</div>
+                        </div>
+                      </div>
+
+                      {/* Quantity and Add to Cart Button */}
+                      <div className="mt-auto flex items-center gap-2">
+                        {!isSoldOut && (
+                          <div className="flex items-center border border-gray-300 rounded-lg">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(product.id, -1);
+                              }}
+                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                              disabled={(quantities[product.id] || 1) <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                              {quantities[product.id] || 1}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(product.id, 1);
+                              }}
+                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <Button
+                          className={`flex-1 ${isSoldOut
+                            ? "bg-red-100 text-red-700 cursor-not-allowed"
+                            : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
+                            }`}
+                          disabled={isSoldOut}
+                          onClick={() => !isSoldOut && handleAddToCart(product)}
+                        >
+                          {isSoldOut ? (
+                            <>
+                              <Clock className="w-4 h-4 mr-2" />
+                              Sold Out
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Add to Cart
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* View All Button - Centered Below Products */}
-        <div className="text-center mt-12">
+        {/* <div className="text-center mt-12">
           <Link to="/products">
             <Button
               variant="outline"
@@ -346,7 +557,7 @@ export const BestSellingProducts = () => {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
     </section>
   );
@@ -354,25 +565,34 @@ export const BestSellingProducts = () => {
 
 
 export const BestDealsProducts = () => {
-  const [quantities, setQuantities] = useState<{ [key: number]: number }>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
 
-  const handleQuantityChange = (productId: number, delta: number) => {
+  const handleQuantityChange = (productId: string, delta: number) => {
     setQuantities(prev => ({
       ...prev,
       [productId]: Math.max(1, (prev[productId] || 1) + delta)
     }));
   };
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: Product) => {
+    const defaultVariant = getDefaultVariant(product);
+    if (!defaultVariant) {
+      toast.error("This product is not available right now");
+      return;
+    }
+
     addToCart({
-      productId: String(product.id),
-      variantId: String(product.id),
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: "Deal",
-      stock: product.soldOut ? 0 : 99,
+      productId: product.id,
+      variantId: defaultVariant.id,
+      name: `${product.name} ${defaultVariant.title || ""}`.trim(),
+      price: defaultVariant.price,
+      image: defaultVariant.image_url || product.image_url || biofactorHero,
+      category: product.collections?.title || "Deal",
+      stock: defaultVariant.stock,
       quantity: quantities[product.id] || 1
     });
     toast.success("Added to cart");
@@ -384,49 +604,108 @@ export const BestDealsProducts = () => {
     }));
   };
 
-  const products = [
-    {
-      id: 1,
-      name: "AgriSeal - Protect Crops from Biotic Stress",
-      vendor: "Biofactor",
-      price: 1800,
-      originalPrice: 2200,
-      image: productImages.agriseal,
-    },
-    {
-      id: 2,
-      name: "Eight Petals - Home Gardening Kit",
-      vendor: "Biofactor",
-      price: 1200,
-      originalPrice: 1500,
-      image: productImages.eightPetals,
-    },
-    {
-      id: 3,
-      name: "High-K Liquid Nutrient",
-      vendor: "Biofactor",
-      price: 950,
-      originalPrice: 1200,
-      image: productImages.highKLiquid,
-    },
-    {
-      id: 4,
-      name: "Gallant | A high potency iron tonic for animals",
-      vendor: "Biofactor",
-      price: 2300,
-      originalPrice: 2800,
-      image: productImages.gallant,
-      soldOut: true
-    },
-    {
-      id: 5,
-      name: "Native Neem - Natural Insecticide",
-      vendor: "Biofactor",
-      price: 850,
-      originalPrice: 1100,
-      image: productImages.nativeNeem
-    }
-  ];
+  useEffect(() => {
+    const fetchBestDealsProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { products: allProducts } = await getAllProducts(undefined, 200, 0);
+        const eligibleProducts = allProducts.filter(product =>
+          productMatchesCategory(product, agricultureKeywords) ||
+          productMatchesCategory(product, aquacultureKeywords) ||
+          productMatchesCategory(product, largeAnimalsKeywords) ||
+          productMatchesCategory(product, kitchenGardeningKeywords)
+        );
+
+        if (eligibleProducts.length === 0) {
+          setProducts([]);
+          return;
+        }
+
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("*");
+
+        if (discountsError) {
+          throw discountsError;
+        }
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: {
+          status: string;
+          starts_at: string;
+          ends_at: string | null;
+        }) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+        const dealIds = new Set<string>();
+        const dealScores = new Map<string, number>();
+
+        eligibleProducts.forEach((product) => {
+          const collectionId = product.collections?.id;
+          const variantIds = product.variants?.map(variant => variant.id) || [];
+
+          activeDiscounts.forEach((discount: { applies_to: string; applies_ids: string[] | null }) => {
+            if (appliesToAll) {
+              dealIds.add(product.id);
+            }
+
+            if (!appliesToAll) {
+              if (!discount.applies_ids || discount.applies_ids.length === 0) return;
+
+              switch (discount.applies_to) {
+                case "products":
+                  if (!discount.applies_ids.includes(product.id)) return;
+                  break;
+                case "collections":
+                  if (!collectionId || !discount.applies_ids.includes(collectionId)) return;
+                  break;
+                case "variants":
+                  if (!variantIds.some(id => discount.applies_ids!.includes(id))) return;
+                  break;
+                default:
+                  return;
+              }
+
+              dealIds.add(product.id);
+            }
+
+            const discountScore = getDiscountScore(discount as Record<string, any>);
+            const currentScore = dealScores.get(product.id) || 0;
+            if (discountScore > currentScore) {
+              dealScores.set(product.id, discountScore);
+            }
+          });
+        });
+
+        const scoredDeals = eligibleProducts
+          .filter(product => dealIds.has(product.id))
+          .map(product => ({ product, score: dealScores.get(product.id) || 0 }));
+
+        const dealsList = scoredDeals
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return new Date(b.product.created_at).getTime() - new Date(a.product.created_at).getTime();
+          })
+          .map(item => item.product);
+
+        setProducts(dealsList);
+      } catch (err) {
+        console.error("Failed to load best deals:", err);
+        setError("Failed to load best deals");
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBestDealsProducts();
+  }, []);
 
   return (
     <section className="py-5 bg-green-50/40">
@@ -447,121 +726,117 @@ export const BestDealsProducts = () => {
         {/* Single Row Carousel */}
         <div className="relative">
           <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
-            {products.map((product, index) => {
-              const discount = product.originalPrice
-                ? Math.round(
-                  ((product.originalPrice - product.price) /
-                    product.originalPrice) *
-                  100
-                )
-                : 0;
+            {isLoading ? (
+              <div className="w-full py-10 text-center text-gray-600">Loading best deals...</div>
+            ) : error ? (
+              <div className="w-full py-10 text-center text-red-600">{error}</div>
+            ) : (
+              products.map((product, index) => {
+                const defaultVariant = getDefaultVariant(product);
+                if (!defaultVariant) return null;
+                const categoryStyle = categoryStyles[getCategoryKey(product)];
+                const imageUrl = defaultVariant.image_url || product.image_url || biofactorHero;
+                const isSoldOut = defaultVariant.stock <= 0;
 
-              return (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
-                >
-                  {/* Product Image */}
-                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                  >
+                    {/* Product Image */}
+                    <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
 
-                    {/* Discount Badge */}
-                    {discount > 0 && (
+                      {/* Discount Badge */}
                       <div className="absolute top-3 left-3">
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-600 text-white shadow">
-                          {discount}% OFF
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow ${categoryStyle.badge}`}>
+                          {categoryStyle.label}
                         </span>
                       </div>
-                    )}
 
-                    {/* Sold Out Overlay */}
-                    {product.soldOut && (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                        <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
-                          Sold Out
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="font-semibold text-lg text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2 min-h-[56px]">
-                      {product.name}
-                    </h3>
-
-                    <div className="text-sm text-gray-500 mb-3">
-                      Vendor: {product.vendor}
-                    </div>
-
-                    {/* Price Section */}
-                    <div className="mb-4">
-                      <div className="text-xl font-bold text-green-700">
-                        Rs. {product.price.toLocaleString()}
-                      </div>
-
-                      {product.originalPrice && (
-                        <div className="text-sm text-gray-500 line-through">
-                          Rs. {product.originalPrice.toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quantity and Grab Deal Button */}
-                    <div className="mt-auto flex items-center gap-2">
-                      {!product.soldOut && (
-                        <div className="flex items-center border border-gray-300 rounded-lg">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleQuantityChange(product.id, -1);
-                            }}
-                            className="px-2 py-1 text-gray-600 hover:text-red-700 hover:bg-gray-50"
-                            disabled={(quantities[product.id] || 1) <= 1}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                            {quantities[product.id] || 1}
+                      {/* Sold Out Overlay */}
+                      {isSoldOut && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                          <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
+                            Sold Out
                           </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleQuantityChange(product.id, 1);
-                            }}
-                            className="px-2 py-1 text-gray-600 hover:text-red-700 hover:bg-gray-50"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
                         </div>
                       )}
-                      <Button
-                        className={`flex-1 ${product.soldOut
-                          ? "bg-red-100 text-red-700 cursor-not-allowed"
-                          : "bg-red-600 hover:bg-red-700 text-white"
-                          }`}
-                        disabled={product.soldOut}
-                        onClick={() => !product.soldOut && handleAddToCart(product)}
-                      >
-                        {product.soldOut ? "Sold Out" : "Grab Deal"}
-                      </Button>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+
+                    {/* Product Info */}
+                    <div className="p-5 flex flex-col flex-grow">
+                      <h3 className={`font-semibold text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[56px]`}>
+                        {product.name}
+                      </h3>
+
+                      <div className="text-sm text-gray-500 mb-3">
+                        Vendor: {product.collections?.title || "Biofactor"}
+                      </div>
+
+                      {/* Price Section */}
+                      <div className="mb-4">
+                        <div className={`text-xl font-bold ${categoryStyle.price}`}>
+                          {formatPrice(defaultVariant.price)}
+                        </div>
+                      </div>
+
+                      {/* Quantity and Grab Deal Button */}
+                      <div className="mt-auto flex items-center gap-2">
+                        {!isSoldOut && (
+                          <div className="flex items-center border border-gray-300 rounded-lg">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(product.id, -1);
+                              }}
+                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                              disabled={(quantities[product.id] || 1) <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                              {quantities[product.id] || 1}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuantityChange(product.id, 1);
+                              }}
+                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <Button
+                          className={`flex-1 ${isSoldOut
+                            ? "bg-red-100 text-red-700 cursor-not-allowed"
+                            : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
+                            }`}
+                          disabled={isSoldOut}
+                          onClick={() => !isSoldOut && handleAddToCart(product)}
+                        >
+                          {isSoldOut ? "Sold Out" : "Grab Deal"}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* View All Button */}
-        <div className="text-center mt-12">
+        {/* <div className="text-center mt-12">
           <Link to="/products">
             <Button
               variant="outline"
@@ -572,7 +847,7 @@ export const BestDealsProducts = () => {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
     </section>
   );
@@ -697,48 +972,6 @@ const BlogCard = ({ blog, index }: { blog: any; index: number }) => {
 //   );
 // };
 
-const MAX_CATEGORY_PRODUCTS = 6;
-
-const getActiveVariants = (product: Product): ProductVariant[] => {
-  return (product.variants || []).filter(variant => variant.is_active);
-};
-
-const getDefaultVariant = (product: Product): ProductVariant | null => {
-  const activeVariants = getActiveVariants(product);
-  if (activeVariants.length === 0) return null;
-
-  return activeVariants.reduce((lowest, variant) =>
-    variant.price < lowest.price ? variant : lowest
-  );
-};
-
-const formatPrice = (price: number) => {
-  if (!price || Number.isNaN(price)) return "Price on request";
-  return `Rs. ${price.toLocaleString()}`;
-};
-
-const matchesKeywords = (value: string, keywords: string[]) => {
-  return keywords.some(keyword => value.includes(keyword));
-};
-
-const productMatchesCategory = (product: Product, keywords: string[]) => {
-  const collectionName = product.collections?.title?.toLowerCase() || "";
-  const productName = product.name.toLowerCase();
-  const productDescription = product.description?.toLowerCase() || "";
-
-  return (
-    matchesKeywords(collectionName, keywords) ||
-    matchesKeywords(productName, keywords) ||
-    matchesKeywords(productDescription, keywords)
-  );
-};
-
-const getCategoryProducts = (products: Product[], keywords: string[]) => {
-  return products
-    .filter(product => productMatchesCategory(product, keywords))
-    .slice(0, MAX_CATEGORY_PRODUCTS);
-};
-
 // Home category rows section
 export const CategoryProductsSection = () => {
   const [categoryProducts, setCategoryProducts] = useState({
@@ -759,69 +992,6 @@ export const CategoryProductsSection = () => {
         setError(null);
 
         const { products } = await getAllProducts(undefined, 200, 0);
-
-        const agricultureKeywords = [
-          "crop",
-          "protection",
-          "soil",
-          "drip",
-          "foliar",
-          "special",
-          "application",
-          "insecticide",
-          "fungicide",
-          "pesticide",
-          "neem",
-          "proceed",
-          "nutrition",
-          "bsl4",
-          "aadhar",
-          "g-vam",
-          "biofertilizer",
-          "mycorrhiza",
-          "k factor",
-          "boc",
-          "soil conditioner",
-          "organic carbon",
-          "chakra",
-          "iim chakra",
-          "high-k",
-          "virnix",
-          "agriseal",
-          "stress",
-          "carbon"
-        ];
-
-        const aquacultureKeywords = [
-          "aquaculture",
-          "probiotic",
-          "disease",
-          "viral",
-          "fungal",
-          "bacterial",
-          "preventive",
-          "bio-enhancer",
-          "modiphy",
-          "e-vac",
-          "virban",
-          "kipper",
-          "v-vacc",
-          "dawn",
-          "regalis"
-        ];
-
-        const largeAnimalsKeywords = [
-          "large animal",
-          "large animals",
-          "livestock",
-          "cattle"
-        ];
-
-        const kitchenGardeningKeywords = [
-          "kitchen gardening",
-          "home gardening",
-          "home garden"
-        ];
 
         const agriculture = getCategoryProducts(products, agricultureKeywords);
         const aquaculture = getCategoryProducts(products, aquacultureKeywords);
@@ -1049,7 +1219,7 @@ export const CategoryProductsSection = () => {
           title: "AGRICULTURE",
           subtitle: "Agriculture Best Sellers",
           icon: <Leaf className="w-5 h-5" />,
-          link: "/agriculture/crop-protection",
+          link: "/agriculture",
           sectionClass: "bg-green-50/60",
           badgeClass: "bg-green-900/10 border-green-900/20",
           iconClass: "text-green-700",
@@ -1063,14 +1233,14 @@ export const CategoryProductsSection = () => {
           title: "AQUACULTURE",
           subtitle: "Aquaculture Best Sellers",
           icon: <Droplets className="w-5 h-5" />,
-          link: "/aquaculture/probiotics",
-          sectionClass: "bg-blue-50/60",
-          badgeClass: "bg-blue-900/10 border-blue-900/20",
-          iconClass: "text-blue-700",
-          titleClass: "text-blue-900",
-          accentText: "group-hover:text-blue-700",
-          buttonClass: "bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 text-white",
-          outlineClass: "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300"
+          link: "/aquaculture",
+          sectionClass: "bg-cyan-50/60",
+          badgeClass: "bg-cyan-900/10 border-cyan-900/20",
+          iconClass: "text-cyan-700",
+          titleClass: "text-cyan-900",
+          accentText: "group-hover:text-cyan-700",
+          buttonClass: "bg-gradient-to-r from-cyan-700 to-cyan-600 hover:from-cyan-800 hover:to-cyan-700 text-white",
+          outlineClass: "border-cyan-200 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800 hover:border-cyan-300"
         })}
 
         {renderProductsRow(categoryProducts.largeAnimals, {

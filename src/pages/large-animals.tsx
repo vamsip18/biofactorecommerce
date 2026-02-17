@@ -111,6 +111,7 @@ const FilterSection = ({
   filters: {
     availability: string[];
     priceRanges: string[];
+    special: string[];
   };
   setFilters: (filters: any) => void;
   searchQuery: string;
@@ -118,10 +119,16 @@ const FilterSection = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     price: true,
-    availability: true
+    availability: true,
+    special: true
   });
 
-  const toggleSection = (section: 'price' | 'availability') => {
+  const specialOptions = [
+    { id: "top-selling", label: "Top Selling" },
+    { id: "top-deals", label: "Top Deals" }
+  ];
+
+  const toggleSection = (section: 'price' | 'availability' | 'special') => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -222,13 +229,46 @@ const FilterSection = ({
         )}
       </div>
 
+      {/* Special Filters */}
+      <div className="border-t pt-4">
+        <button
+          onClick={() => toggleSection('special')}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <h3 className="font-semibold text-gray-900">Special</h3>
+          <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
+            }`} />
+        </button>
+
+        {expandedSections.special && (
+          <div className="space-y-2">
+            {specialOptions.map((option) => (
+              <label key={option.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.special.includes(option.id)}
+                  onChange={(e) => {
+                    const nextSpecial = e.target.checked
+                      ? [...filters.special, option.id]
+                      : filters.special.filter(value => value !== option.id);
+                    setFilters({ ...filters, special: nextSpecial });
+                  }}
+                  className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                />
+                <span className="text-sm text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Clear Filters Button */}
-      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || searchQuery) && (
+      {(filters.priceRanges.length > 0 || filters.availability.length > 0 || filters.special.length > 0 || searchQuery) && (
         <Button
           variant="outline"
           className="w-full border-amber-200 text-amber-700 hover:bg-amber-50"
           onClick={() => {
-            setFilters({ availability: [], priceRanges: [] });
+            setFilters({ availability: [], priceRanges: [], special: [] });
             setSearchQuery('');
             // Clear URL parameter
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -247,12 +287,16 @@ const ProductCard = ({
   product,
   onClick,
   quantity,
-  onQuantityChange
+  onQuantityChange,
+  isTopSelling,
+  isTopDeal
 }: {
   product: Product;
   onClick: () => void;
   quantity: number;
   onQuantityChange: (productId: string, delta: number) => void;
+  isTopSelling: boolean;
+  isTopDeal: boolean;
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
@@ -262,6 +306,19 @@ const ProductCard = ({
   const productPrice = getProductPrice(product);
   const productCategory = getProductCategory(product);
   const isInStock = variant.stock > 0;
+  const badgeItems = [
+    !isInStock
+      ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold" }
+      : null,
+    isTopSelling
+      ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold" }
+      : null,
+    isTopDeal
+      ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold" }
+      : null
+  ]
+    .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+    .slice(0, 2);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -299,11 +356,11 @@ const ProductCard = ({
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1">
-            {!isInStock && (
-              <Badge className="bg-red-500 text-white text-xs font-semibold">
-                Sold Out
+            {badgeItems.map((badge, index) => (
+              <Badge key={`${product.id}-badge-${index}`} className={badge.className}>
+                {badge.label}
               </Badge>
-            )}
+            ))}
           </div>
 
           {/* Wishlist Button */}
@@ -369,7 +426,7 @@ const ProductCard = ({
               <Button
                 size="sm"
                 className={`${!isInStock
-                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  ? "bg-red-500 text-white-500 cursor-not-allowed"
                   : "bg-amber-600 hover:bg-amber-700 text-white"
                   }`}
                 disabled={!isInStock}
@@ -577,12 +634,16 @@ const ListViewItem = ({
   product,
   onClick,
   quantity,
-  onQuantityChange
+  onQuantityChange,
+  isTopSelling,
+  isTopDeal
 }: {
   product: Product;
   onClick: () => void;
   quantity: number;
   onQuantityChange: (productId: string, delta: number) => void;
+  isTopSelling: boolean;
+  isTopDeal: boolean;
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
@@ -591,6 +652,19 @@ const ListViewItem = ({
   const productImage = getProductImage(product);
   const productPrice = getProductPrice(product);
   const isInStock = variant.stock > 0;
+  const badgeItems = [
+    !isInStock
+      ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold" }
+      : null,
+    isTopSelling
+      ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold" }
+      : null,
+    isTopDeal
+      ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold" }
+      : null
+  ]
+    .filter((badge): badge is { label: string; className: string } => Boolean(badge))
+    .slice(0, 2);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -627,7 +701,14 @@ const ListViewItem = ({
         </div>
         <div className="md:w-3/4 flex flex-col">
           <div className="flex-1">
-            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h3 className="text-lg md:text-xl font-semibold text-gray-900">{product.name}</h3>
+              {badgeItems.map((badge, index) => (
+                <Badge key={`${product.id}-badge-${index}`} className={badge.className}>
+                  {badge.label}
+                </Badge>
+              ))}
+            </div>
             <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
           </div>
 
@@ -673,7 +754,7 @@ const ListViewItem = ({
             <div className="w-full sm:w-auto">
               <Button
                 className={`w-full sm:w-auto ${!isInStock
-                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  ? "bg-red-500 text-white-500 cursor-not-allowed"
                   : "bg-amber-600 hover:bg-amber-700"
                   }`}
                 disabled={!isInStock}
@@ -698,10 +779,13 @@ export const LargeAnimalsProducts = () => {
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
+    special: [] as string[],
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
+  const [topDealIds, setTopDealIds] = useState<string[]>([]);
   const { getCartCount } = useCart();
 
   // State for product quantities
@@ -789,6 +873,108 @@ export const LargeAnimalsProducts = () => {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const fetchTopMeta = async () => {
+      if (products.length === 0) {
+        setTopSellingIds([]);
+        setTopDealIds([]);
+        return;
+      }
+
+      const productIds = products.map(product => product.id);
+
+      try {
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        if (orderItemsError) {
+          throw orderItemsError;
+        }
+
+        const totals = new Map<string, number>();
+        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+          if (!item.product_id) return;
+          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+        });
+
+        const topIds = [...totals.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([id]) => id);
+
+        setTopSellingIds(topIds);
+      } catch (error) {
+        console.error("Error loading top selling products:", error);
+        setTopSellingIds([]);
+      }
+
+      try {
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
+
+        if (discountsError) {
+          throw discountsError;
+        }
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: {
+          status: string;
+          starts_at: string;
+          ends_at: string | null;
+        }) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+        const dealIds = new Set<string>();
+
+        products.forEach((product) => {
+          if (appliesToAll) {
+            dealIds.add(product.id);
+            return;
+          }
+
+          const collectionId = product.collections?.id;
+          const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+          const hasDeal = activeDiscounts.some((discount: {
+            applies_to: string;
+            applies_ids: string[] | null;
+          }) => {
+            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+            switch (discount.applies_to) {
+              case "products":
+                return discount.applies_ids.includes(product.id);
+              case "collections":
+                return collectionId ? discount.applies_ids.includes(collectionId) : false;
+              case "variants":
+                return variantIds.some(id => discount.applies_ids!.includes(id));
+              default:
+                return false;
+            }
+          });
+
+          if (hasDeal) {
+            dealIds.add(product.id);
+          }
+        });
+
+        setTopDealIds([...dealIds]);
+      } catch (error) {
+        console.error("Error loading active discounts:", error);
+        setTopDealIds([]);
+      }
+    };
+
+    fetchTopMeta();
+  }, [products]);
+
   // Apply filters and sorting
   const filteredAndSortedProducts = products
     .filter(product => {
@@ -827,6 +1013,19 @@ export const LargeAnimalsProducts = () => {
           return productPrice >= range.min && productPrice <= range.max;
         });
         if (!matchesPriceRange) return false;
+      }
+
+      if (filters.special.length > 0) {
+        const isTopSelling = topSellingIds.includes(product.id);
+        const isTopDeal = topDealIds.includes(product.id);
+
+        if (filters.special.includes("top-selling") && !isTopSelling) {
+          return false;
+        }
+
+        if (filters.special.includes("top-deals") && !isTopDeal) {
+          return false;
+        }
       }
 
       return true;
@@ -1031,6 +1230,8 @@ export const LargeAnimalsProducts = () => {
                         onClick={() => setSelectedProduct(product)}
                         quantity={quantities[product.id] || 1}
                         onQuantityChange={handleQuantityChange}
+                        isTopSelling={topSellingIds.includes(product.id)}
+                        isTopDeal={topDealIds.includes(product.id)}
                       />
                     ) : (
                       <ListViewItem
@@ -1039,6 +1240,8 @@ export const LargeAnimalsProducts = () => {
                         onClick={() => setSelectedProduct(product)}
                         quantity={quantities[product.id] || 1}
                         onQuantityChange={handleQuantityChange}
+                        isTopSelling={topSellingIds.includes(product.id)}
+                        isTopDeal={topDealIds.includes(product.id)}
                       />
                     );
                   })
@@ -1049,7 +1252,7 @@ export const LargeAnimalsProducts = () => {
                       variant="outline"
                       className="mt-4 border-amber-200 text-amber-700"
                       onClick={() => {
-                        setFilters({ availability: [], priceRanges: [] });
+                        setFilters({ availability: [], priceRanges: [], special: [] });
                         setSearchQuery('');
                       }}
                     >
