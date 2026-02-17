@@ -438,10 +438,10 @@ export const BestSellingProducts = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                    className={`flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
                   >
                     {/* Product Image */}
-                    <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                    <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
                       <img
                         src={imageUrl}
                         alt={product.name}
@@ -744,10 +744,10 @@ export const BestDealsProducts = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                    className={`flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
                   >
                     {/* Product Image */}
-                    <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                    <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
                       <img
                         src={imageUrl}
                         alt={product.name}
@@ -1100,9 +1100,9 @@ export const CategoryProductsSection = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex-shrink-0 w-[280px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
+                  className="flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
                 >
-                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-white to-gray-50">
+                  <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-white to-gray-50">
                     <img
                       src={imageUrl}
                       alt={product.name}

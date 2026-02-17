@@ -460,12 +460,12 @@ const ProductCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
-      className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
+      className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
       onClick={onClick}
     >
       <div className="relative flex-1">
         {/* Product Image */}
-        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
+        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
           <img
             src={productImage}
             alt={product.name}
@@ -1068,7 +1068,7 @@ const ListViewItem = ({
           <img
             src={productImage}
             alt={product.name}
-            className="w-full h-48 md:h-full object-cover rounded-lg"
+            className="w-full aspect-square object-cover rounded-lg"
           />
         </div>
         <div className="md:w-3/4 flex flex-col">
@@ -1522,14 +1522,14 @@ const CropProtection = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading crop protection products...</p>
-          </div>
+      // <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading crop protection products...</p>
         </div>
-      </Layout>
+      </div>
+      // </Layout>
     );
   }
 

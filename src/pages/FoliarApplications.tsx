@@ -492,12 +492,12 @@ const FoliarApplications = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
+        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
         onClick={() => handleProductClick(product)}
       >
         <div className="relative flex-1">
           {/* Product Image */}
-          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
+          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
               src={product.image}
               alt={product.name}
@@ -654,7 +654,7 @@ const FoliarApplications = () => {
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-48 md:h-full object-cover rounded-lg"
+              className="w-full aspect-square object-cover rounded-lg"
             />
           </div>
           <div className="md:w-3/4 flex flex-col">
