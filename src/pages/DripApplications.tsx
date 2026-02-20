@@ -990,7 +990,7 @@ const DripApplications = () => {
           </div>
 
           {/* Product Info */}
-          <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+          <div className="p-3 sm:p-4 flex flex-col gap-2">
             <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
               {product.name}
             </h3>

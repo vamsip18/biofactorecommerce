@@ -548,7 +548,7 @@ const ProductCard = ({
         </div>
 
         {/* Product Info */}
-        <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+        <div className="p-3 sm:p-4 flex flex-col gap-2">
           <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
             {product.name}
           </h3>
@@ -727,7 +727,7 @@ const ProductModal = ({
         title: product.name,
         text: `Check out ${product.name} - ${product.description}`,
         url: window.location.href
-      }).catch(err => console.log('Share failed:', err));
+      });
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Product link copied to clipboard!');
@@ -1301,7 +1301,6 @@ const CropProtection = () => {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching crop protection products from Supabase...");
 
         const { data, error } = await supabase
           .from("products")
@@ -1336,10 +1335,7 @@ const CropProtection = () => {
           throw error;
         }
 
-        console.log("Raw data from Supabase:", data);
-
         if (!data || data.length === 0) {
-          console.log("No data returned from Supabase");
           setProducts([]);
           return;
         }
@@ -1356,7 +1352,6 @@ const CropProtection = () => {
           .filter(product => {
             // Only include products with active variants
             if (!product.product_variants || product.product_variants.length === 0) {
-              console.log(`Product ${product.name} has no active variants`);
               return false;
             }
 
@@ -1386,14 +1381,9 @@ const CropProtection = () => {
               productDescription.includes('neem') ||
               productDescription.includes('proceed');
 
-            if (!isCropProtection) {
-              console.log(`Product ${product.name} is not a crop protection product`);
-            }
-
             return isCropProtection;
           });
 
-        console.log("Filtered crop protection products:", cropProtectionProducts);
         setProducts(cropProtectionProducts);
 
         // Initialize quantities
@@ -1798,7 +1788,6 @@ const CropProtection = () => {
                 currentProducts.map((product) => {
                   // Check if product has variants
                   if (!product.product_variants || product.product_variants.length === 0) {
-                    console.log(`Product ${product.name} has no variants, skipping`);
                     return null;
                   }
 

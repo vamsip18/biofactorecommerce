@@ -41,17 +41,6 @@ const BasketPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle basket submission
-    console.log({
-      selectedOption,
-      householdSize,
-      dietType,
-      mealsPerWeek,
-      selectedBasketSize,
-      selectedFrequency,
-      deliveryDay,
-      firstDeliveryDate,
-      fruitsPerDay
-    });
   };
 
   return (
@@ -59,7 +48,7 @@ const BasketPage = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-[#F9DD58] rounded-b-[60px]">
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
@@ -68,19 +57,19 @@ const BasketPage = () => {
               className="mb-8"
             >
               <h1 className="text-black text-3xl md:text-4xl font-serif italic leading-tight mb-8">
-                {selectedOption === 'vegetables-fruits' ? 
-                  'Basket of Vegetables and Fruits' : 
+                {selectedOption === 'vegetables-fruits' ?
+                  'Basket of Vegetables and Fruits' :
                   'Box of Fruits'
                 }
               </h1>
-              
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="text-black text-3xl md:text-4xl font-serif italic leading-tight mb-8"
               >
-                {selectedOption === 'vegetables-fruits' ? 
+                {selectedOption === 'vegetables-fruits' ?
                   'Fresh organic vegetables and fruits delivered to your doorstep' :
                   'Organic fruit baskets delivered to your home.'
                 }
@@ -88,7 +77,7 @@ const BasketPage = () => {
             </motion.div>
 
             {/* Option Selector */}
-            
+
           </div>
         </div>
       </section>
@@ -99,38 +88,36 @@ const BasketPage = () => {
           <form onSubmit={handleSubmit}>
             <div className="max-w-6xl mx-auto">
               <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="inline-flex p-1 bg-blue-800/30 backdrop-blur-sm rounded-2xl mb-12"
-            >
-              <button
-                onClick={() => setSelectedOption('vegetables-fruits')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  selectedOption === 'vegetables-fruits'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
-                    : 'text-blue-200 hover:text-white hover:bg-blue-800/50'
-                }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="inline-flex p-1 bg-blue-800/30 backdrop-blur-sm rounded-2xl mb-12"
               >
-                <div className="flex items-center gap-2">
-                  <Carrot className="w-5 h-5" />
-                  Vegetables & Fruits
-                </div>
-              </button>
-              <button
-                onClick={() => setSelectedOption('fruits-only')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  selectedOption === 'fruits-only'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
-                    : 'text-blue-200 hover:text-white hover:bg-blue-800/50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Apple className="w-5 h-5" />
-                  Fruits Only
-                </div>
-              </button>
-            </motion.div>
+                <button
+                  onClick={() => setSelectedOption('vegetables-fruits')}
+                  className={`px-6 py-3 rounded-xl font-medium transition-all ${selectedOption === 'vegetables-fruits'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
+                      : 'text-blue-200 hover:text-white hover:bg-blue-800/50'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Carrot className="w-5 h-5" />
+                    Vegetables & Fruits
+                  </div>
+                </button>
+                <button
+                  onClick={() => setSelectedOption('fruits-only')}
+                  className={`px-6 py-3 rounded-xl font-medium transition-all ${selectedOption === 'fruits-only'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
+                      : 'text-blue-200 hover:text-white hover:bg-blue-800/50'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Apple className="w-5 h-5" />
+                    Fruits Only
+                  </div>
+                </button>
+              </motion.div>
               {/* Step 1: Configuration */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -286,11 +273,10 @@ const BasketPage = () => {
                               key={amount}
                               type="button"
                               onClick={() => setFruitsPerDay(amount)}
-                              className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 transition-all ${
-                                fruitsPerDay === amount
+                              className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 transition-all ${fruitsPerDay === amount
                                   ? 'border-blue-500 bg-blue-50'
                                   : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                              }`}
+                                }`}
                             >
                               <span className="text-2xl font-bold text-gray-900">{amount}</span>
                               <span className="text-sm text-gray-600">/ day</span>
@@ -327,11 +313,10 @@ const BasketPage = () => {
                         key={basket.id}
                         whileHover={{ y: -5 }}
                         onClick={() => setSelectedBasketSize(basket.id)}
-                        className={`cursor-pointer rounded-xl p-6 border-2 transition-all ${
-                          selectedBasketSize === basket.id
+                        className={`cursor-pointer rounded-xl p-6 border-2 transition-all ${selectedBasketSize === basket.id
                             ? 'border-blue-500 bg-white shadow-lg'
                             : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                        }`}
+                          }`}
                       >
                         {basket.recommended && selectedOption === 'vegetables-fruits' && (
                           <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold rounded-full">
@@ -403,21 +388,20 @@ const BasketPage = () => {
                 {selectedOption === 'vegetables-fruits' && (
                   <div className="mt-8 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-8 border-2 border-blue-100">
                     <h3 className="text-xl font-bold text-gray-900 mb-6">B. Choose basket sending frequency</h3>
-                    
+
                     <div className="grid md:grid-cols-3 gap-6">
                       {frequencies.map((frequency) => (
                         <motion.div
                           key={frequency.id}
                           whileHover={{ y: -5 }}
                           onClick={() => setSelectedFrequency(frequency.id)}
-                          className={`cursor-pointer rounded-xl p-6 border-2 transition-all ${
-                            selectedFrequency === frequency.id
+                          className={`cursor-pointer rounded-xl p-6 border-2 transition-all ${selectedFrequency === frequency.id
                               ? 'border-blue-500 bg-white shadow-lg'
                               : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                          }`}
+                            }`}
                         >
                           <h4 className="text-lg font-bold text-gray-900 mb-4">{frequency.name}</h4>
-                          
+
                           <div className="text-center mb-4">
                             <div className="text-2xl font-bold text-gray-900">
                               CHF {frequency.weeklyPrice}/week
@@ -442,8 +426,8 @@ const BasketPage = () => {
                 )}
               </motion.div>
 
-              
-              
+
+
             </div>
           </form>
         </div>

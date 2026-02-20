@@ -52,8 +52,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeCart = async () => {
       try {
-        console.log("Initializing cart for user:", user?.email || 'guest');
-
         if (user) {
           // Load from Supabase for logged-in user
           await loadFromSupabase(user.id);
@@ -63,7 +61,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           if (savedCart) {
             try {
               const parsedCart = JSON.parse(savedCart);
-              console.log("Loaded guest cart from localStorage:", parsedCart.length, "items");
               setCartItems(parsedCart);
             } catch (e) {
               console.error("Error parsing localStorage cart:", e);
@@ -93,8 +90,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const loadFromSupabase = async (userId: string) => {
     try {
-      console.log("Loading cart from Supabase for user:", userId);
-
       // Get or create cart
       let { data: cart, error: cartError } = await supabase
         .from('carts')
@@ -109,7 +104,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!cart) {
-        console.log("No active cart found, creating new one...");
         const { data: newCart, error: createError } = await supabase
           .from('carts')
           .insert({ user_id: userId })
@@ -117,13 +111,34 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           .single();
 
         if (createError) {
-          console.error("Error creating cart:", createError);
-          throw createError;
-        }
-        cart = newCart;
-      }
+          // If duplicate key error (cart already exists), fetch it again
+          if (createError.code === '23505') {
+            const { data: existingCart, error: fetchError } = await supabase
+              .from('carts')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('status', 'active')
+              .maybeSingle();
 
-      console.log("Cart ID:", cart.id);
+            if (fetchError) {
+              console.error("Error fetching existing cart:", fetchError);
+              throw fetchError;
+            }
+
+            if (!existingCart) {
+              console.error("Cart should exist but not found");
+              throw new Error("Failed to find or create cart");
+            }
+
+            cart = existingCart;
+          } else {
+            console.error("Error creating cart:", createError);
+            throw createError;
+          }
+        } else {
+          cart = newCart;
+        }
+      }
 
       // Load cart items
       const { data: items, error: itemsError } = await supabase
@@ -151,8 +166,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         throw itemsError;
       }
 
-      console.log("Cart items from Supabase:", items);
-
       if (items && items.length > 0) {
         // Fetch active discounts
         const { data: discounts } = await supabase
@@ -167,17 +180,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
 
         const transformedItems: CartItem[] = items.map((item: any) => {
-          const collections = Array.isArray(item.product?.collections) 
-            ? item.product.collections[0] 
+          const collections = Array.isArray(item.product?.collections)
+            ? item.product.collections[0]
             : item.product?.collections;
-          
+
           const variantPrice = item.variant?.price || 0;
-          
+
           // Calculate discounted price if any active discounts
-          const discountedPrice = activeDiscounts.length > 0 
+          const discountedPrice = activeDiscounts.length > 0
             ? getDiscountedPrice(variantPrice, activeDiscounts, item.product)
             : variantPrice;
-          
+
           const hasDiscount = discountedPrice < variantPrice;
 
           return {
@@ -194,13 +207,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           };
         });
 
-        console.log("Transformed cart items:", transformedItems);
         setCartItems(transformedItems);
 
         // Clear localStorage when loading from Supabase
         localStorage.setItem('cart', JSON.stringify([]));
       } else {
-        console.log("No items in Supabase cart");
         setCartItems([]);
         localStorage.removeItem('cart');
       }
@@ -209,7 +220,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       // Fallback to localStorage
       const savedCart = localStorage.getItem('cart');
       if (savedCart) {
-        console.log("Falling back to localStorage cart");
         setCartItems(JSON.parse(savedCart));
       }
       throw error;
@@ -218,13 +228,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const syncCartWithSupabase = async (userId: string) => {
     try {
-      console.log("Syncing cart with Supabase for user:", userId);
-
       // Get localStorage cart
       const savedCart = localStorage.getItem('cart');
       const localCart: CartItem[] = savedCart ? JSON.parse(savedCart) : [];
-
-      console.log("Local cart items to sync:", localCart.length);
 
       if (localCart.length === 0) {
         // No local items, just load from Supabase
@@ -289,8 +295,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       // Now load the merged cart from Supabase
       await loadFromSupabase(userId);
 
-      console.log("Cart sync completed successfully");
-
     } catch (error) {
       console.error('Error syncing cart:', error);
       // On error, keep localStorage intact for retry
@@ -305,8 +309,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = async (item: Omit<CartItem, 'id'>) => {
     try {
-      console.log("Adding to cart:", item);
-
       if (user) {
         // Add to Supabase for logged-in user
         let { data: cart } = await supabase

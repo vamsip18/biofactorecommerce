@@ -91,8 +91,6 @@ const Register = () => {
     setError(null);
 
     try {
-      console.log("Starting registration for:", formData.email);
-
       // Create auth user
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email.trim(),
@@ -123,8 +121,6 @@ const Register = () => {
           throw new Error(signUpError.message || "Registration failed. Please try again.");
         }
       }
-
-      console.log("Registration response:", data);
 
       // Clear form
       setFormData({

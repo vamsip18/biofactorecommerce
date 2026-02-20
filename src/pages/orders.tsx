@@ -11,6 +11,7 @@ import {
   ShoppingBag, Home, MessageSquare
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
@@ -48,11 +49,15 @@ import {
 
 interface OrderItem {
   id: string;
+  product_id?: string;
+  variant_id?: string;
   name: string;
   quantity: number;
   price: number;
   image: string;
   variant: string;
+  category?: string;
+  stock?: number;
 }
 
 interface Order {
@@ -93,6 +98,7 @@ const normalizeOrderStatus = (status?: string): Order['status'] => {
 const Orders = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const t = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,11 +154,15 @@ const Orders = () => {
         ),
         items: (order.order_items || []).map((item: any) => ({
           id: item.id,
+          product_id: item.product_id,
+          variant_id: item.variant_id,
           name: item.product_name || 'Product',
           quantity: item.quantity || 1,
           price: Number(item.price) || 0,
           image: item.image || "/placeholder.jpg",
           variant: item.variant_title || 'Standard',
+          category: item.category || 'general',
+          stock: item.stock || 100,
         })),
       }));
 
@@ -226,19 +236,20 @@ const Orders = () => {
   // Get status badge
   const getStatusBadge = (status?: Order['status'] | string) => {
     const config = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3" /> },
-      processing: { color: "bg-blue-100 text-blue-800", icon: <Package className="w-3 h-3" /> },
-      shipped: { color: "bg-indigo-100 text-indigo-800", icon: <Truck className="w-3 h-3" /> },
-      delivered: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3" /> },
-      cancelled: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3" /> },
-      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-3 h-3" /> }
+      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      processing: { color: "bg-blue-100 text-blue-800", icon: <Package className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      shipped: { color: "bg-indigo-100 text-indigo-800", icon: <Truck className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      delivered: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      cancelled: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> }
     };
     const safeStatus = status && status in config ? (status as keyof typeof config) : "pending";
 
     return (
-      <Badge className={`${config[safeStatus].color} gap-1`}>
+      <Badge className={`${config[safeStatus].color} gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5`}>
         {config[safeStatus].icon}
-        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
+        <span className="hidden sm:inline">{safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}</span>
+        <span className="sm:hidden">{safeStatus.charAt(0).toUpperCase()}</span>
       </Badge>
     );
   };
@@ -246,17 +257,18 @@ const Orders = () => {
   // Get payment status badge
   const getPaymentBadge = (status?: Order['paymentStatus'] | string) => {
     const config = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3" /> },
-      paid: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3" /> },
-      failed: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3" /> },
-      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-3 h-3" /> }
+      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      paid: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      failed: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> },
+      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> }
     };
     const safeStatus = status && status in config ? (status as keyof typeof config) : "pending";
 
     return (
-      <Badge className={`${config[safeStatus].color} gap-1`}>
+      <Badge className={`${config[safeStatus].color} gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5`}>
         {config[safeStatus].icon}
-        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
+        <span className="hidden sm:inline">{safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}</span>
+        <span className="sm:hidden">{safeStatus.charAt(0).toUpperCase()}</span>
       </Badge>
     );
   };
@@ -310,7 +322,27 @@ const Orders = () => {
         toast.info(`Downloading invoice for ${order.orderNumber}`);
         break;
       case "reorder":
-        toast.info(`Adding items from ${order.orderNumber} to cart`);
+        // Add all items from the order to cart
+        try {
+          for (const item of order.items) {
+            await addToCart({
+              productId: item.product_id || item.id,
+              variantId: item.variant_id || item.id,
+              variantTitle: item.variant,
+              name: item.name,
+              price: item.price,
+              image: item.image,
+              category: item.category || 'general',
+              quantity: item.quantity,
+              stock: item.stock || 100,
+            });
+          }
+          toast.success(`Added ${order.items.length} item${order.items.length > 1 ? 's' : ''} to cart`);
+          navigate('/cart');
+        } catch (error) {
+          console.error('Error adding items to cart:', error);
+          toast.error('Failed to add items to cart');
+        }
         break;
       case "help":
         navigate("/contact", { state: { orderNumber: order.orderNumber } });
@@ -361,7 +393,7 @@ const Orders = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-4 sm:py-8">
-        <div className="container mx-auto px-3 sm:px-4">
+        <div className="container mx-auto px-2 sm:px-4">
           {/* Header */}
           <div className="mb-4 sm:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -501,42 +533,43 @@ const Orders = () => {
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3 sm:hidden">
+                  <div className="space-y-2.5 sm:hidden">
                     {filteredOrders.map((order) => (
-                      <div key={order.id} className="rounded-lg border border-gray-200 bg-white p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-semibold text-gray-900">{order.orderNumber}</span>
+                      <div key={order.id} className="rounded-lg border border-gray-200 bg-white p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <Package className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                            <span className="text-xs font-semibold text-gray-900 truncate">{order.orderNumber}</span>
                           </div>
-                          {getStatusBadge(order.status)}
+                          <div className="flex-shrink-0">
+                            {getStatusBadge(order.status)}
+                          </div>
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
+                        <div className="mt-1 text-[10px] text-gray-500">
                           {new Date(order.createdAt).toLocaleDateString('en-IN')}
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-gray-600">
                           <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
                           <span className="text-gray-300">•</span>
-                          <span>₹{order.total.toFixed(2)}</span>
+                          <span className="font-medium">₹{order.total.toFixed(2)}</span>
                         </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="text-xs text-gray-500 capitalize">
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="text-[10px] text-gray-500 capitalize truncate">
                             {order.paymentMethod}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleOrderAction(order.id, "view")}
-                              className="h-8 px-2 text-xs"
+                              className="h-7 px-2 text-[10px]"
                             >
-                              <Eye className="w-3 h-3 mr-1" />
-                              {t.orders.details}
+                              <Eye className="w-3 h-3" />
                             </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreVertical className="w-4 h-4" />
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                  <MoreVertical className="w-3.5 h-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
@@ -546,15 +579,15 @@ const Orders = () => {
                                   <Download className="w-4 h-4 mr-2" />
                                   {t.orders.downloadInvoice}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
+                                {/* <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
                                   <Truck className="w-4 h-4 mr-2" />
                                   {t.orders.trackOrder}
-                                </DropdownMenuItem>
+                                </DropdownMenuItem> */}
                                 <DropdownMenuItem onClick={() => handleOrderAction(order.id, "reorder")}>
                                   <ShoppingBag className="w-4 h-4 mr-2" />
                                   {t.account.reorder}
                                 </DropdownMenuItem>
-                                {order.status === 'pending' && (
+                                {['pending', 'processing'].includes(order.status) && (
                                   <DropdownMenuItem
                                     onClick={() => handleOrderAction(order.id, "cancel")}
                                     className="text-red-600"
@@ -574,8 +607,8 @@ const Orders = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="hidden sm:block rounded-md border">
-                    <Table>
+                  <div className="hidden sm:block overflow-x-auto rounded-md border">
+                    <Table className="min-w-[800px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>{t.orders.orderNumber}</TableHead>
@@ -592,9 +625,9 @@ const Orders = () => {
                           <TableRow key={order.id} className="hover:bg-gray-50/50">
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4 text-green-600" />
-                                <div>
-                                  <div>{order.orderNumber}</div>
+                                <Package className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <div className="truncate">{order.orderNumber}</div>
                                   <div className="text-xs text-gray-500">
                                     {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                                   </div>
@@ -617,20 +650,20 @@ const Orders = () => {
                             </TableCell>
 
                             <TableCell>
-                              <div className="space-y-1">
+                              <div className="space-y-1 max-w-xs">
                                 {order.items.slice(0, 2).map((item, index) => (
                                   <div key={index} className="text-sm flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded overflow-hidden">
+                                    <div className="w-6 h-6 rounded overflow-hidden flex-shrink-0">
                                       <img
                                         src={item.image}
                                         alt={item.name}
                                         className="w-full h-full object-cover"
                                       />
                                     </div>
-                                    <div>
-                                      <div className="font-medium">{item.quantity} × {item.name}</div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-medium truncate">{item.quantity} × {item.name}</div>
                                       {item.variant && (
-                                        <div className="text-xs text-gray-500">{item.variant}</div>
+                                        <div className="text-xs text-gray-500 truncate">{item.variant}</div>
                                       )}
                                     </div>
                                   </div>
@@ -706,7 +739,7 @@ const Orders = () => {
                                       <ShoppingBag className="w-4 h-4 mr-2" />
                                       {t.account.reorder}
                                     </DropdownMenuItem>
-                                    {order.status === 'pending' && (
+                                    {['pending', 'processing'].includes(order.status) && (
                                       <DropdownMenuItem
                                         onClick={() => handleOrderAction(order.id, "cancel")}
                                         className="text-red-600"
@@ -733,17 +766,17 @@ const Orders = () => {
 
               {/* Pagination */}
               {filteredOrders.length > 0 && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 sm:mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mt-4 sm:mt-6 px-2 sm:px-0">
                   <div className="text-xs sm:text-sm text-gray-500">
                     Showing {filteredOrders.length} of {orders.length} orders
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" size="sm" disabled className="text-xs">
                       Previous
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="text-xs">
                       Next
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
                     </Button>
                   </div>
                 </div>
@@ -787,12 +820,12 @@ const Orders = () => {
           </Card>
 
           {/* Support Information */}
-          <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Need Help With Your Orders?</h3>
-            <p className="text-sm text-gray-600 mb-3 sm:mb-4">
+          <div className="mt-6 sm:mt-8 p-3 sm:p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2">Need Help With Your Orders?</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
               Our customer support team is here to help you with any questions about your orders.
             </p>
-            <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
+            <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-4 text-xs sm:text-sm">
               <a
                 href="mailto:support@biofactor.com"
                 className="text-green-600 hover:text-green-700 flex items-center gap-2"

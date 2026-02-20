@@ -35,7 +35,6 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
-      console.log("User already logged in, redirecting to:", redirectTo);
       // Small delay to ensure everything is loaded
       const timer = setTimeout(() => {
         navigate(redirectTo, { replace: true });
@@ -68,8 +67,6 @@ const Login = () => {
       const email = formData.email.trim();
       const password = formData.password;
 
-      console.log("Attempting login for:", email);
-
       // Clear any existing errors
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -93,8 +90,6 @@ const Login = () => {
         }
       }
 
-      console.log("Login response:", data);
-
       // Wait a moment for auth state to update
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -107,8 +102,6 @@ const Login = () => {
       if (!session) {
         throw new Error("Login successful but session not established. Please refresh the page.");
       }
-
-      console.log("Login successful, session verified!");
 
       toast.success("Login successful! Redirecting...");
 

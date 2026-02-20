@@ -308,7 +308,7 @@ const Cart = () => {
                 </div>
 
                 {/* User Status Info */}
-                {!currentUser ? (
+                {/* {!currentUser ? (
                   <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
@@ -327,7 +327,7 @@ const Cart = () => {
                       </p>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Checkout Button */}
                 <Button

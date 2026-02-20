@@ -399,7 +399,7 @@ const ProductCard = ({
       className="group bg-white rounded-lg border border-gray-200 hover:border-amber-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
       onClick={onClick}
     >
-      <div className="relative flex-1">
+      <div className="relative">
         {/* Product Image */}
         <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-amber-50 to-white">
           <img
@@ -430,7 +430,7 @@ const ProductCard = ({
         </div>
 
         {/* Product Info */}
-        <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+        <div className="p-3 sm:p-4 flex flex-col gap-2">
           <h3 className="font-semibold text-gray-900 group-hover:text-amber-700 transition-colors line-clamp-2">
             {product.name}
           </h3>
@@ -459,7 +459,7 @@ const ProductCard = ({
               </div>
             </div>
 
-            <div className={`${!isInStock ? 'hidden' : 'flex flex-col sm:flex-row'} gap-1 sm:gap-2 min-w-0`}>
+            <div className={`${!isInStock ? 'hidden' : 'flex flex-row'} gap-1 sm:gap-2 min-w-0`}>
               <div className="flex items-center border border-gray-300 rounded-lg text-xs shrink-0">
                 <button
                   onClick={(e) => {
@@ -572,7 +572,7 @@ const ProductModal = ({
         title: product.name,
         text: `Check out ${product.name} - ${product.description}`,
         url: window.location.href
-      }).catch(err => console.log('Share failed:', err));
+      });
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Product link copied to clipboard!');
@@ -964,7 +964,6 @@ export const LargeAnimalsProducts = () => {
           product.collections?.title === "Large Animals"
         );
 
-        console.log("Large Animal products:", largeAnimalProducts);
         setProducts(largeAnimalProducts);
 
         // Initialize quantities for all products

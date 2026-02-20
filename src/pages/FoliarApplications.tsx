@@ -546,7 +546,7 @@ const FoliarApplications = () => {
           </div>
 
           {/* Product Info */}
-          <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+          <div className="p-3 sm:p-4 flex flex-col gap-2">
             <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
               {product.name}
             </h3>
@@ -578,7 +578,7 @@ const FoliarApplications = () => {
                 </div>
               </div>
 
-              <div className={`${product.availability === 'Sold Out' ? 'hidden' : 'flex flex-col sm:flex-row'} gap-1 sm:gap-2 min-w-0`}>
+              <div className={`${product.availability === 'Sold Out' ? 'hidden' : 'flex flex-row'} gap-1 sm:gap-2 min-w-0`}>
                 <div className="flex items-center border border-gray-300 rounded-lg text-xs shrink-0">
                   <button
                     onClick={(e) => {

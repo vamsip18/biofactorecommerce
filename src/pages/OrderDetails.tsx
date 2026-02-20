@@ -3,10 +3,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowLeft, Download, Printer, Mail, Phone, MapPin, 
+import {
+  ArrowLeft, Download, Printer, Mail, Phone, MapPin,
   Calendar, Package, Truck, CheckCircle, Clock, XCircle,
-  RefreshCw, CreditCard, User, Home, ShoppingBag, 
+  RefreshCw, CreditCard, User, Home, ShoppingBag,
   ChevronRight, AlertCircle, ExternalLink, MessageSquare, FileText
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -94,7 +94,7 @@ const OrderDetails = () => {
   // Helper function to get default product image
   const getDefaultProductImage = (productName: string) => {
     const lowerName = productName?.toLowerCase() || '';
-    
+
     if (lowerName.includes('soil') || lowerName.includes('booster')) {
       return 'https://images.unsplash.com/photo-1592982537447-7444dc31f8e8?w=400&h=400&fit=crop';
     }
@@ -113,7 +113,7 @@ const OrderDetails = () => {
     if (lowerName.includes('animal') || lowerName.includes('supplement')) {
       return 'https://images.unsplash.com/photo-1542736667-069246bdbc6d?w=400&h=400&fit=crop';
     }
-    
+
     // Default placeholder from Unsplash
     return 'https://images.unsplash.com/photo-1611095567219-8fa9a8a5b5b7?w=400&h=400&fit=crop';
   };
@@ -168,7 +168,7 @@ const OrderDetails = () => {
         items: (data.order_items || []).map((item: any) => {
           // Get image from stored image_url or fetch from products table
           let productImage = '/placeholder.jpg';
-          
+
           // Try to get image from multiple possible sources
           if (item.image_url) {
             productImage = item.image_url;
@@ -178,7 +178,7 @@ const OrderDetails = () => {
             // Fallback to default image based on product name
             productImage = getDefaultProductImage(item.product_name);
           }
-          
+
           return {
             id: item.id,
             name: item.product_name || 'Product',
@@ -213,25 +213,25 @@ const OrderDetails = () => {
     setGeneratingInvoice(true);
     try {
       const doc = new jsPDF();
-      
+
       // Company Info
       doc.setFontSize(20);
       doc.setTextColor(34, 197, 94);
       doc.text("BIOFACTOR AGRI SOLUTIONS", 105, 20, { align: 'center' });
-      
+
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
       doc.text("123 Green Tech Park, Mumbai, Maharashtra 400001", 105, 30, { align: 'center' });
       doc.text("GSTIN: 27AABCU9603R1ZX | CIN: U74999MH2022PTC389712", 105, 35, { align: 'center' });
       doc.text("Phone: +91 22 1234 5678 | Email: info@biofactor.com", 105, 40, { align: 'center' });
-      
+
       // Invoice Title
       doc.setFontSize(16);
       doc.text("TAX INVOICE", 105, 55, { align: 'center' });
-      
+
       // Order Details
       doc.setFontSize(10);
-      
+
       autoTable(doc, {
         startY: 65,
         head: [['Order Details', '']],
@@ -246,10 +246,10 @@ const OrderDetails = () => {
         styles: { fontSize: 10 },
         headStyles: { fillColor: [34, 197, 94], textColor: 255 },
       });
-      
+
       // Customer Details
       const customerY = (doc as any).lastAutoTable.finalY + 10;
-      
+
       autoTable(doc, {
         startY: customerY,
         head: [['Customer Details', '']],
@@ -264,7 +264,7 @@ const OrderDetails = () => {
         styles: { fontSize: 10 },
         headStyles: { fillColor: [34, 197, 94], textColor: 255 },
       });
-      
+
       // Order Items Table
       const itemsY = (doc as any).lastAutoTable.finalY + 10;
       const itemsData = order.items.map((item, index) => [
@@ -275,7 +275,7 @@ const OrderDetails = () => {
         `₹${item.price.toFixed(2)}`,
         `₹${(item.price * item.quantity).toFixed(2)}`
       ]);
-      
+
       autoTable(doc, {
         startY: itemsY,
         head: [['#', 'Product', 'Variant', 'Qty', 'Unit Price', 'Total']],
@@ -292,7 +292,7 @@ const OrderDetails = () => {
         footStyles: { fillColor: [245, 245, 245] },
         margin: { left: 10, right: 10 }
       });
-      
+
       // Terms and Conditions
       const finalY = (doc as any).lastAutoTable.finalY + 15;
       doc.setFontSize(8);
@@ -300,16 +300,16 @@ const OrderDetails = () => {
       doc.text("1. Goods once sold will not be taken back.", 14, finalY + 5);
       doc.text("2. Subject to Mumbai Jurisdiction.", 14, finalY + 10);
       doc.text("3. This is a computer generated invoice.", 14, finalY + 15);
-      
+
       // Signature
       doc.setFontSize(10);
       doc.text("Authorized Signatory", 160, finalY + 25);
       doc.line(160, finalY + 26, 190, finalY + 26);
-      
+
       // Save PDF
       doc.save(`Invoice-${order.orderNumber}.pdf`);
       toast.success(t.orderDetails.invoiceDownloadSuccess);
-      
+
     } catch (error) {
       console.error("Error generating invoice:", error);
       toast.error(t.orderDetails.invoiceDownloadError);
@@ -321,16 +321,16 @@ const OrderDetails = () => {
   // Get status badge
   const getStatusBadge = (status: Order['status']) => {
     const config = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-4 h-4" /> },
-      processing: { color: "bg-blue-100 text-blue-800", icon: <Package className="w-4 h-4" /> },
-      shipped: { color: "bg-indigo-100 text-indigo-800", icon: <Truck className="w-4 h-4" /> },
-      delivered: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-4 h-4" /> },
-      cancelled: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-4 h-4" /> },
-      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-4 h-4" /> }
+      pending: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-3 h-3 sm:w-4 sm:h-4" /> },
+      processing: { color: "bg-blue-100 text-blue-800", icon: <Package className="w-3 h-3 sm:w-4 sm:h-4" /> },
+      shipped: { color: "bg-indigo-100 text-indigo-800", icon: <Truck className="w-3 h-3 sm:w-4 sm:h-4" /> },
+      delivered: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" /> },
+      cancelled: { color: "bg-red-100 text-red-800", icon: <XCircle className="w-3 h-3 sm:w-4 sm:h-4" /> },
+      refunded: { color: "bg-purple-100 text-purple-800", icon: <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" /> }
     };
-    
+
     return (
-      <Badge className={`${config[status].color} gap-2 px-3 py-1`}>
+      <Badge className={`${config[status].color} gap-1 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm`}>
         {config[status].icon}
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
@@ -384,7 +384,7 @@ const OrderDetails = () => {
   // Track order
   const trackOrder = () => {
     if (!order) return;
-    
+
     const trackingSteps = [
       { status: 'pending', label: t.orderDetails.orderPlaced, date: order.createdAt, active: true },
       { status: 'processing', label: t.orderDetails.processing, date: new Date(order.createdAt.getTime() + 1 * 24 * 60 * 60 * 1000), active: order.status !== 'pending' },
@@ -398,11 +398,10 @@ const OrderDetails = () => {
         <div className="space-y-3">
           {trackingSteps.map((step, index) => (
             <div key={step.status} className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                step.active 
-                  ? 'bg-green-600 text-white' 
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${step.active
+                  ? 'bg-green-600 text-white'
                   : 'bg-gray-200 text-gray-500'
-              }`}>
+                }`}>
                 {index + 1}
               </div>
               <div>
@@ -457,457 +456,232 @@ const OrderDetails = () => {
   const canCancelOrder = ['pending', 'processing'].includes(order.status);
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-8">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <Link to="/orders" className="inline-flex items-center text-green-700 hover:text-green-800">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t.orderDetails.backToOrders}
-              </Link>
-              
-              <div className="flex items-center gap-4">
+  <Layout>
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-white to-green-50 py-4 sm:py-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6">
+
+        {/* HEADER */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+
+            <Link
+              to="/orders"
+              className="inline-flex items-center text-green-700 hover:text-green-800 text-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t.orderDetails.backToOrders}
+            </Link>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={generateInvoice}
+                disabled={generatingInvoice}
+                className="h-9 sm:h-10 text-xs sm:text-sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t.orderDetails.downloadInvoice}
+              </Button>
+
+              {canCancelOrder && (
                 <Button
-                  variant="outline"
-                  onClick={generateInvoice}
-                  disabled={generatingInvoice}
-                  className="gap-2"
+                  variant="destructive"
+                  onClick={cancelOrder}
+                  disabled={cancellingOrder}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 >
-                  {generatingInvoice ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                      {t.orderDetails.generating}
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      {t.orderDetails.downloadInvoice}
-                    </>
-                  )}
+                  <XCircle className="w-4 h-4 mr-2" />
+                  {t.orderDetails.cancelOrder}
                 </Button>
-                
-                {canCancelOrder && (
-                  <Button
-                    variant="destructive"
-                    onClick={cancelOrder}
-                    disabled={cancellingOrder}
-                    className="gap-2"
-                  >
-                    {cancellingOrder ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        {t.orderDetails.generating}
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4" />
-                        {t.orderDetails.cancelOrder}
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{t.orderDetails.pageTitle} {order.orderNumber}</h1>
-                <p className="text-gray-600 mt-1">
-                  {t.orderDetails.placedOn} {order.createdAt.toLocaleDateString('en-IN', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {getStatusBadge(order.status)}
-                <Badge className={`gap-2 px-3 py-1 ${
-                  order.paymentStatus === 'paid' 
-                    ? 'bg-green-100 text-green-800' 
-                    : order.paymentStatus === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  <CreditCard className="w-4 h-4" />
-                  {order.paymentStatus.toUpperCase()}
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Order Items & Summary */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Order Items */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t.orderDetails.orderItems} ({order.items.length})</CardTitle>
-                  <CardDescription>{t.orderDetails.productsInOrder}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                        <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = getDefaultProductImage(item.name);
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                              {item.variant && (
-                                <p className="text-sm text-gray-600">{item.variant}</p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold text-gray-900">
-                                ₹{(item.price * item.quantity).toFixed(2)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ₹{item.price.toFixed(2)} × {item.quantity}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {item.product_id && (
-                            <div className="mt-2">
-                              <Link 
-                                to={`/product/${item.product_id}`}
-                                className="text-sm text-green-600 hover:text-green-700 flex items-center gap-1"
-                              >
-                                {t.orderDetails.viewProduct}
-                                <ExternalLink className="w-3 h-3" />
-                              </Link>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Order Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t.orderDetails.orderSummary}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.subtotal}</span>
-                      <span className="font-medium">₹{order.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.tax}</span>
-                      <span className="font-medium">₹{order.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.shipping}</span>
-                      <span className="font-medium">
-                        {order.shipping === 0 ? t.orderDetails.free : `₹${order.shipping.toFixed(2)}`}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between text-lg font-bold text-gray-900">
-                      <span>{t.orderDetails.total}</span>
-                      <span>₹{order.total.toFixed(2)}</span>
-                    </div>
-                    
-                    {order.paymentMethod === 'cod' && order.paymentStatus === 'pending' && (
-                      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertCircle className="w-5 h-5 text-yellow-600" />
-                          <span className="font-semibold text-yellow-800">{t.orderDetails.cashOnDelivery}</span>
-                        </div>
-                        <p className="text-sm text-yellow-700">
-                          {t.orderDetails.codMessage} ₹{order.total.toFixed(2)} {t.orderDetails.codReadyMessage}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Order Notes */}
-              {order.notes && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t.orderDetails.orderNotes}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-700">{order.notes}</p>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
             </div>
-
-            {/* Right Column - Shipping & Actions */}
-            <div className="space-y-8">
-              {/* Shipping Address */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    {t.orderDetails.shippingAddress}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{order.shippingAddress.name}</span>
-                    </div>
-                    <p className="text-gray-700">{order.shippingAddress.street}</p>
-                    <p className="text-gray-700">
-                      {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
-                    </p>
-                    <p className="text-gray-700">{order.shippingAddress.country}</p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-700">{order.shippingAddress.phone}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Order Timeline */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    {t.orderDetails.orderTimeline}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{t.orderDetails.orderPlaced}</div>
-                        <div className="text-sm text-gray-500">
-                          {order.createdAt.toLocaleDateString('en-IN')} at{" "}
-                          {order.createdAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        order.status !== 'pending' ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <Package className={`w-4 h-4 ${
-                          order.status !== 'pending' ? 'text-green-600' : 'text-gray-400'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className={`font-medium ${order.status !== 'pending' ? 'text-gray-900' : 'text-gray-500'}`}>
-                          {t.orderDetails.processing}
-                        </div>
-                        {order.status !== 'pending' ? (
-                          <div className="text-sm text-gray-500">
-                            {new Date(order.createdAt.getTime() + 1 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">{t.orderDetails.pending}</div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        ['shipped', 'delivered'].includes(order.status) ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <Truck className={`w-4 h-4 ${
-                          ['shipped', 'delivered'].includes(order.status) ? 'text-green-600' : 'text-gray-400'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className={`font-medium ${
-                          ['shipped', 'delivered'].includes(order.status) ? 'text-gray-900' : 'text-gray-500'
-                        }`}>
-                          {t.orderDetails.shipped}
-                        </div>
-                        {['shipped', 'delivered'].includes(order.status) ? (
-                          <div className="text-sm text-gray-500">
-                            {new Date(order.createdAt.getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">{t.orderDetails.pending}</div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        order.status === 'delivered' ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <CheckCircle className={`w-4 h-4 ${
-                          order.status === 'delivered' ? 'text-green-600' : 'text-gray-400'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className={`font-medium ${order.status === 'delivered' ? 'text-gray-900' : 'text-gray-500'}`}>
-                          {t.orderDetails.delivered}
-                        </div>
-                        {order.status === 'delivered' && order.deliveredAt ? (
-                          <div className="text-sm text-gray-500">
-                            {order.deliveredAt.toLocaleDateString('en-IN')}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">
-                            {t.orderDetails.estimated}: {order.estimatedDelivery.toLocaleDateString('en-IN')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full mt-4 gap-2"
-                    onClick={trackOrder}
-                  >
-                    <Truck className="w-4 h-4" />
-                    {t.orderDetails.trackOrder}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Order Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t.orderDetails.orderActions}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={generateInvoice}
-                    disabled={generatingInvoice}
-                  >
-                    <FileText className="w-4 h-4" />
-                    {generatingInvoice ? t.orderDetails.generating : t.orderDetails.downloadInvoice}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() => window.print()}
-                  >
-                    <Printer className="w-4 h-4" />
-                    {t.orderDetails.printOrderDetails}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() => {
-                      window.location.href = `mailto:support@biofactor.com?subject=Help with Order ${order.orderNumber}`;
-                    }}
-                  >
-                    <Mail className="w-4 h-4" />
-                    {t.orderDetails.contactSupport}
-                  </Button>
-                  
-                  <Link to="/" className="block">
-                    <Button variant="outline" className="w-full justify-start gap-2">
-                      <ShoppingBag className="w-4 h-4" />
-                      {t.orderDetails.continueShopping}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              {/* Payment Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
-                    {t.orderDetails.paymentInformation}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.paymentMethod}:</span>
-                      <span className="font-medium capitalize">{order.paymentMethod}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.paymentStatus}:</span>
-                      <span className={`font-medium ${
-                        order.paymentStatus === 'paid' ? 'text-green-600' :
-                        order.paymentStatus === 'pending' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {order.paymentStatus.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.orderDetails.totalPaid}:</span>
-                      <span className="font-medium">₹{order.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
 
-          {/* Support Section */}
-          <div className="mt-12 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.orderDetails.needHelp}</h3>
-            <p className="text-gray-600 mb-4">
-              {t.orderDetails.helpAvailable}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  window.location.href = `mailto:support@biofactor.com?subject=Help with Order ${order.orderNumber}`;
-                }}
-                className="gap-2"
-              >
-                <Mail className="w-4 h-4" />
-                {t.orderDetails.emailSupport}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  window.location.href = 'tel:+911234567890';
-                }}
-                className="gap-2"
-              >
-                <Phone className="w-4 h-4" />
-                {t.orderDetails.callSupport}
-              </Button>
-              <Link to="/contact">
-                <Button variant="outline" className="gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  {t.orderDetails.contactForm}
-                </Button>
-              </Link>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">
+                {t.orderDetails.pageTitle} {order.orderNumber}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t.orderDetails.placedOn}{" "}
+                {order.createdAt.toLocaleDateString("en-IN")}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {getStatusBadge(order.status)}
+              <Badge className="text-xs sm:text-sm px-3 py-1">
+                {order.paymentStatus.toUpperCase()}
+              </Badge>
             </div>
           </div>
         </div>
+
+        {/* GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-6 w-full">
+
+            {/* ORDER ITEMS CARD */}
+            <Card className="rounded-2xl shadow-lg">
+              <CardHeader>
+                <CardTitle>
+                  {t.orderDetails.orderItems} ({order.items.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {order.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex gap-4 border rounded-xl p-3 w-full"
+                    >
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between gap-4">
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-sm truncate">
+                              {item.name}
+                            </h4>
+                            {item.variant && (
+                              <p className="text-xs text-gray-600 truncate">
+                                {item.variant}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="text-right text-sm">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                            <div className="text-xs text-gray-500">
+                              ₹{item.price.toFixed(2)} × {item.quantity}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ORDER SUMMARY */}
+            <Card className="rounded-2xl shadow-lg">
+              <CardHeader>
+                <CardTitle>{t.orderDetails.orderSummary}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span>{t.orderDetails.subtotal}</span>
+                    <span>₹{order.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t.orderDetails.tax}</span>
+                    <span>₹{order.tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t.orderDetails.shipping}</span>
+                    <span>
+                      {order.shipping === 0
+                        ? t.orderDetails.free
+                        : `₹${order.shipping.toFixed(2)}`}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-base">
+                    <span>{t.orderDetails.total}</span>
+                    <span>₹{order.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-6 w-full">
+
+            {/* SHIPPING ADDRESS */}
+            <Card className="rounded-2xl shadow-lg">
+              <CardHeader>
+                <CardTitle>{t.orderDetails.shippingAddress}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2">
+                <p className="font-medium">{order.shippingAddress.name}</p>
+                <p>{order.shippingAddress.street}</p>
+                <p>
+                  {order.shippingAddress.city},{" "}
+                  {order.shippingAddress.state}{" "}
+                  {order.shippingAddress.postalCode}
+                </p>
+                <p>{order.shippingAddress.country}</p>
+                <p>{order.shippingAddress.phone}</p>
+              </CardContent>
+            </Card>
+
+            {/* PAYMENT INFO */}
+            <Card className="rounded-2xl shadow-lg">
+              <CardHeader>
+                <CardTitle>{t.orderDetails.paymentInformation}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>{t.orderDetails.paymentMethod}</span>
+                  <span className="capitalize">{order.paymentMethod}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{t.orderDetails.paymentStatus}</span>
+                  <span>{order.paymentStatus.toUpperCase()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+
+        {/* SUPPORT SECTION */}
+        <div className="mt-10 p-6 bg-green-50 border rounded-2xl">
+          <h3 className="font-semibold mb-2">
+            {t.orderDetails.needHelp}
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {t.orderDetails.helpAvailable}
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() =>
+                (window.location.href = `mailto:support@biofactor.com?subject=Help with Order ${order.orderNumber}`)
+              }
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Email
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() =>
+                (window.location.href = "tel:+911234567890")
+              }
+            >
+              <Phone className="w-4 h-4 mr-2" />
+              Call
+            </Button>
+          </div>
+        </div>
+
       </div>
-    </Layout>
-  );
+    </div>
+  </Layout>
+);
 };
 
 export default OrderDetails;
