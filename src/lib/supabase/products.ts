@@ -56,19 +56,19 @@ export const searchProducts = async (
 ): Promise<{ products: Product[]; total: number }> => {
   try {
     const searchQuery = query.trim().toLowerCase();
-    
+
     if (!searchQuery) {
       return await getAllProducts(filters, limit, offset);
     }
 
     const searchTerms = searchQuery.split(/\s+/).filter(term => term.length > 0);
-    
+
     if (searchTerms.length === 0) {
       return { products: [], total: 0 };
     }
 
     // Build search conditions
-    const orConditions = searchTerms.map(term => 
+    const orConditions = searchTerms.map(term =>
       `name.ilike.%${term}%,description.ilike.%${term}%`
     ).join(',');
 
@@ -90,7 +90,7 @@ export const searchProducts = async (
       if (filters.category) {
         supabaseQuery = supabaseQuery.eq('collections.category', filters.category);
       }
-      
+
       if (filters.collections && filters.collections.length > 0) {
         supabaseQuery = supabaseQuery.in('collection_id', filters.collections);
       }
@@ -107,17 +107,17 @@ export const searchProducts = async (
     let filteredProducts = (products || []).filter(product => {
       const hasMatchingVariants = product.variants.some(variant => {
         if (!variant.is_active) return false;
-        
+
         // Stock filter
         if (filters?.inStock && variant.stock <= 0) return false;
-        
+
         // Price filter
         if (filters?.minPrice && variant.price < filters.minPrice) return false;
         if (filters?.maxPrice && variant.price > filters.maxPrice) return false;
-        
+
         return true;
       });
-      
+
       return hasMatchingVariants;
     });
 
@@ -178,15 +178,15 @@ export const getAllProducts = async (
     let filteredProducts = (products || []).filter(product => {
       const hasMatchingVariants = product.variants.some(variant => {
         if (!variant.is_active) return false;
-        
+
         if (filters?.inStock && variant.stock <= 0) return false;
-        
+
         if (filters?.minPrice && variant.price < filters.minPrice) return false;
         if (filters?.maxPrice && variant.price > filters.maxPrice) return false;
-        
+
         return true;
       });
-      
+
       return hasMatchingVariants;
     });
 
@@ -237,7 +237,7 @@ const calculateRelevance = (product: Product, searchTerms: string[]): number => 
     if (product.collections) {
       const collectionName = (product.collections.name || '').toLowerCase();
       const collectionTitle = (product.collections.title || '').toLowerCase();
-      
+
       if (collectionName.includes(term) || collectionTitle.includes(term)) {
         score += 3;
       }
@@ -263,13 +263,13 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
       .order('title');
 
     if (error) throw error;
-    
+
     // Ensure name field is populated
     const collections = (data || []).map(collection => ({
       ...collection,
       name: collection.name || collection.title // Use title if name is not set
     }));
-    
+
     return collections;
   } catch (error) {
     console.error('Error fetching collections:', error);
@@ -289,11 +289,11 @@ export const getCategories = async (): Promise<string[]> => {
       .order('category');
 
     if (error) throw error;
-    
+
     const categories = (data || [])
       .map(item => item.category)
       .filter((category): category is string => category !== null && category !== undefined);
-    
+
     return Array.from(new Set(categories)); // Remove duplicates
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -316,7 +316,7 @@ export const getPriceRange = async (filters?: SearchFilters): Promise<{ min: num
         .from('products')
         .select('id')
         .in('collection_id', filters.collections);
-      
+
       if (products && products.length > 0) {
         const productIds = products.map(p => p.id);
         supabaseQuery = supabaseQuery.in('product_id', productIds);
@@ -366,7 +366,7 @@ export const sortProducts = (
   sortBy: 'relevance' | 'price-low' | 'price-high' | 'newest' | 'name'
 ): Product[] => {
   const sorted = [...products];
-  
+
   switch (sortBy) {
     case 'price-low':
       return sorted.sort((a, b) => {
@@ -374,22 +374,22 @@ export const sortProducts = (
         const minPriceB = Math.min(...b.variants.filter(v => v.is_active).map(v => v.price));
         return minPriceA - minPriceB;
       });
-      
+
     case 'price-high':
       return sorted.sort((a, b) => {
         const maxPriceA = Math.max(...a.variants.filter(v => v.is_active).map(v => v.price));
         const maxPriceB = Math.max(...b.variants.filter(v => v.is_active).map(v => v.price));
         return maxPriceB - maxPriceA;
       });
-      
+
     case 'newest':
-      return sorted.sort((a, b) => 
+      return sorted.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-      
+
     case 'name':
       return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      
+
     default: // relevance
       return sorted;
   }

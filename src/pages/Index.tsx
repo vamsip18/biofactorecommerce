@@ -4,6 +4,7 @@ import {
   CategoryProductsSection,
   BestSellingProducts,
   HeroSection,
+  ShopByDivisionSection,
   // TrendingTopics,
   BestDealsProducts
 
@@ -13,6 +14,7 @@ const Index = () => {
   return (
     <Layout>
       <HeroSection />
+      <ShopByDivisionSection />
       <BestSellingProducts />
       <BestDealsProducts />
       {/* <TrendingTopics /> */}

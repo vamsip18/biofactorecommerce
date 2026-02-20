@@ -4,6 +4,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Layout } from '@/components/layout/Layout';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   ShoppingCart, Filter, ChevronDown, X,
   Star, Truck, Shield, Check,
@@ -107,6 +108,53 @@ const getProductImage = (product: Product, variant?: ProductVariant) => {
 const getProductPrice = (product: Product, variant?: ProductVariant) => {
   const targetVariant = variant || getDefaultVariant(product);
   return targetVariant?.price || 0;
+};
+
+const getDiscountValue = (discount: Record<string, any>): number => {
+  const candidates = [
+    discount.discount_percentage,
+    discount.percentage,
+    discount.percent,
+    discount.value,
+    discount.amount,
+    discount.discount_amount
+  ];
+  const numericValue = candidates.find(value => typeof value === "number" && !Number.isNaN(value));
+  return numericValue || 0;
+};
+
+const getDiscountedPrice = (originalPrice: number, discounts: any[], product: Product): number => {
+  if (!discounts || discounts.length === 0) return originalPrice;
+
+  const collectionId = product.collections?.id;
+  const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+  const applicableDiscount = discounts.find((discount: any) => {
+    if (discount.applies_to === "all") return true;
+    if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+    switch (discount.applies_to) {
+      case "products":
+        return discount.applies_ids.includes(product.id);
+      case "collections":
+        return collectionId ? discount.applies_ids.includes(collectionId) : false;
+      case "variants":
+        return variantIds.some(id => discount.applies_ids!.includes(id));
+      default:
+        return false;
+    }
+  });
+
+  if (!applicableDiscount) return originalPrice;
+
+  const discountValue = getDiscountValue(applicableDiscount);
+  const valueType = String(applicableDiscount.value_type || applicableDiscount.discount_type || applicableDiscount.type || "").toLowerCase();
+
+  if (valueType.includes("percent")) {
+    return originalPrice - (originalPrice * discountValue / 100);
+  }
+
+  return Math.max(0, originalPrice - discountValue);
 };
 
 const getVariantDisplay = (variant: ProductVariant) => {
@@ -234,6 +282,7 @@ const FilterSection = ({
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }) => {
+  const t = useTranslation();
   const [expandedSections, setExpandedSections] = useState({
     price: true,
     availability: true,
@@ -241,8 +290,8 @@ const FilterSection = ({
   });
 
   const specialOptions = [
-    { id: "top-selling", label: "Top Selling" },
-    { id: "top-deals", label: "Top Deals" }
+    { id: "top-selling", label: t.common.topSelling },
+    { id: "top-deals", label: t.common.topDeals }
   ];
 
   const toggleSection = (section: 'price' | 'availability' | 'special') => {
@@ -256,11 +305,11 @@ const FilterSection = ({
     <div className="space-y-6">
       {/* Search */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+        <h3 className="font-semibold text-gray-900 mb-3">{t.common.search}</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
-            placeholder="Search products..."
+            placeholder={t.nav.search}
             className="pl-10 border-green-200 focus:border-green-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -274,7 +323,7 @@ const FilterSection = ({
           onClick={() => toggleSection('availability')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Availability</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.availability}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
             }`} />
         </button>
@@ -293,7 +342,7 @@ const FilterSection = ({
                 }}
                 className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
               />
-              <span className="text-sm text-gray-700">In Stock</span>
+              <span className="text-sm text-gray-700">{t.common.inStock}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -307,7 +356,7 @@ const FilterSection = ({
                 }}
                 className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
               />
-              <span className="text-sm text-gray-700">Out of Stock</span>
+              <span className="text-sm text-gray-700">{t.common.outOfStock}</span>
             </label>
           </div>
         )}
@@ -319,7 +368,7 @@ const FilterSection = ({
           onClick={() => toggleSection('price')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Price</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.price}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
             }`} />
         </button>
@@ -352,7 +401,7 @@ const FilterSection = ({
           onClick={() => toggleSection('special')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Special</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.special}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
             }`} />
         </button>
@@ -390,7 +439,7 @@ const FilterSection = ({
           }}
         >
           <X className="w-4 h-4 mr-2" />
-          Clear Filters
+          {t.common.clearFilters}
         </Button>
       )}
     </div>
@@ -404,7 +453,8 @@ const ProductCard = ({
   quantity,
   updateQuantity,
   isTopSelling,
-  isTopDeal
+  isTopDeal,
+  activeDiscounts
 }: {
   product: Product;
   onClick: () => void;
@@ -412,13 +462,16 @@ const ProductCard = ({
   updateQuantity: (productId: string, newQuantity: number) => void;
   isTopSelling: boolean;
   isTopDeal: boolean;
+  activeDiscounts: any[];
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
 
   const { addToCart } = useCart();
+  const t = useTranslation();
   const productImage = getProductImage(product);
   const productPrice = getProductPrice(product);
+  const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
   const productCategory = getProductCategory(product);
   const isInStock = isProductInStock(product);
   const productType = getProductType(product);
@@ -459,36 +512,36 @@ const ProductCard = ({
 
   const badgeItems = [
     !isInStock
-      ? { label: "Sold Out", className: "bg-gray-500 text-white text-xs font-semibold" }
+      ? { label: t.common.soldOut, className: "bg-gray-500 text-white text-xs font-semibold" }
       : null,
     (isTopSelling || isProductBestSeller(product))
-      ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold" }
+      ? { label: t.common.bestSeller, className: "bg-amber-500 text-white text-xs font-semibold" }
       : null,
     isTopDeal
       ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold" }
       : null,
     isProductNew(product)
-      ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold" }
+      ? { label: t.common.new, className: "bg-blue-500 text-white text-xs font-semibold" }
       : null
   ]
     .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-    .slice(0, 2);
+    .slice(0, 1);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
-      className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
+      className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
       onClick={onClick}
     >
       <div className="relative flex-1">
         {/* Product Image */}
-        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
+        <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
           <img
             src={productImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
           />
 
           {/* Badges */}
@@ -513,15 +566,15 @@ const ProductCard = ({
         </div>
 
         {/* Product Info */}
-        <div className="p-4 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
+        <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+          <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
             {product.name}
           </h3>
 
-          <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+          <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
           {/* Rating */}
-          <div className="flex items-center mb-2">
+          <div className="hidden sm:flex items-center">
             <div className="flex">
               {getRatingDisplay(product.rating)}
             </div>
@@ -530,27 +583,32 @@ const ProductCard = ({
             </span>
           </div>
 
-          <div className="flex items-center text-sm text-gray-500 mb-3">
+          <div className="hidden sm:flex items-center text-sm text-gray-500">
             <Package className="w-4 h-4 mr-1 flex-shrink-0" />
             <span className="truncate">{productCategory}</span>
           </div>
 
-          <div className="flex items-center justify-between gap-4 mt-3">
-            {/* Price Section */}
-            <div className="flex-1">
-              <div className="text-lg font-bold text-gray-900">
-                Rs. {productPrice.toFixed(2)}
+          <div className="mt-1 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2">
+                <div className="text-lg font-bold text-green-600">
+                  {(isTopDeal ? discountedPrice : productPrice).toFixed(2)}
+                </div>
+                {isTopDeal && (
+                  <div className="text-sm text-gray-500 line-through">
+                    {productPrice.toFixed(2)}
+                  </div>
+                )}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="hidden sm:block text-sm text-gray-500 text-right">
                 {getVariantDisplay(variant)}
               </div>
             </div>
 
-            {/* Quantity Selector and Add to Cart Button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {/* Quantity Selector */}
               {isInStock && (
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -574,13 +632,18 @@ const ProductCard = ({
                   </button>
                 </div>
               )}
+              {!isInStock && (
+                <div className="hidden sm:flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
+                  <span className="px-3 py-2 text-xs text-gray-500">Qty</span>
+                </div>
+              )}
 
               {/* Add to Cart Button */}
-              <div className="flex-shrink-0">
+              <div className="flex-1 sm:flex-none min-w-0">
                 <Button
                   size="sm"
-                  className={`${!isInStock
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  className={`w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs leading-none ${!isInStock
+                    ? "bg-red-500 text-white cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700 text-white"
                     }`}
                   disabled={!isInStock}
@@ -588,13 +651,13 @@ const ProductCard = ({
                 >
                   {!isInStock ? (
                     <>
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span className="text-xs">Sold Out</span>
+                      <Clock className="w-3 h-3" />
+                      <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.common.soldOut}</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingCart className="w-3 h-3 mr-1" />
-                      <span className="text-xs">Add</span>
+                      <ShoppingCart className="hidden sm:inline w-3 h-3" />
+                      <span className="sm:hidden">Add</span><span className="hidden sm:inline">{t.common.addToCart}</span>
                     </>
                   )}
                 </Button>
@@ -611,11 +674,15 @@ const ProductCard = ({
 const ProductModal = ({
   product,
   isOpen,
-  onClose
+  onClose,
+  activeDiscounts,
+  isTopDeal
 }: {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
+  activeDiscounts: any[];
+  isTopDeal: boolean;
 }) => {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -667,7 +734,20 @@ const ProductModal = ({
     }
 
     // User is logged in, proceed to checkout
-    navigate("/checkout");
+    navigate("/cart");
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: `Check out ${product.name} - ${product.description}`,
+        url: window.location.href
+      }).catch(err => console.log('Share failed:', err));
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Product link copied to clipboard!');
+    }
   };
 
   const productType = getProductType(product);
@@ -683,7 +763,7 @@ const ProductModal = ({
 
       {/* Modal Content */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             {/* Close Button */}
             <button
@@ -693,10 +773,10 @@ const ProductModal = ({
               <X className="w-8 h-8" />
             </button>
 
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
               {/* Product Images - FIXED: Now uses selected variant image */}
               <div>
-                <div className="rounded-xl overflow-hidden mb-4">
+                <div className="aspect-square max-w-sm mx-auto rounded-xl overflow-hidden mb-4">
                   <motion.img
                     key={selectedVariant.id} // Key ensures re-render on variant change
                     src={selectedVariant.image_url || getProductImage(product)}
@@ -704,7 +784,7 @@ const ProductModal = ({
                     initial={{ opacity: 0.3 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.25 }}
-                    className="w-full h-96 object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
 
@@ -741,25 +821,25 @@ const ProductModal = ({
               </div>
 
               {/* Product Details */}
-              <div>
+              <div className="space-y-4 sm:space-y-6">
                 {/* Badges */}
                 <div className="flex gap-2 mb-4">
                   {[
                     !isProductInStock(product, selectedVariant)
-                      ? { label: "Sold Out", className: "bg-gray-500 text-white" }
+                      ? { label: t.common.soldOut, className: "bg-gray-500 text-white" }
                       : null,
                     (isTopSelling || isProductBestSeller(product))
-                      ? { label: "Best Seller", className: "bg-amber-500 text-white" }
+                      ? { label: t.common.bestSeller, className: "bg-amber-500 text-white" }
                       : null,
                     isTopDeal
                       ? { label: "Top Deal", className: "bg-emerald-600 text-white" }
                       : null,
                     isProductNew(product)
-                      ? { label: "NEW", className: "bg-blue-500 text-white" }
+                      ? { label: t.common.new, className: "bg-blue-500 text-white" }
                       : null
                   ]
                     .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-                    .slice(0, 2)
+                    .slice(0, 1)
                     .map((badge, index) => (
                       <Badge key={`${product.id}-modal-badge-${index}`} className={badge.className}>
                         {badge.label}
@@ -767,24 +847,29 @@ const ProductModal = ({
                     ))}
                 </div>
 
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {product.name}
                 </h2>
-
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex">
-                    {getRatingDisplay(product.rating)}
-                  </div>
-                  <span className="text-gray-600">({product.rating || 4.5} rating)</span>
-                </div>
 
                 {/* Price - FIXED: Now shows selected variant price */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-gray-900">
-                      Rs. {selectedVariant.price.toFixed(2)}
-                    </span>
+                    {isTopDeal && product ? (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-lg text-gray-500 line-through">
+                            Rs. {selectedVariant.price.toFixed(2)}
+                          </span>
+                          <span className="text-2xl sm:text-3xl font-bold text-green-600">
+                            Rs. {getDiscountedPrice(selectedVariant.price, activeDiscounts, product).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        Rs. {selectedVariant.price.toFixed(2)}
+                      </span>
+                    )}
                     {product.product_variants && product.product_variants.length > 1 && (
                       <Badge variant="outline" className="border-green-200 text-green-700">
                         Selected: {getVariantDisplay(selectedVariant)}
@@ -797,7 +882,7 @@ const ProductModal = ({
                     }`}>
                     {selectedVariant.stock > 0
                       ? `${selectedVariant.stock} units in stock`
-                      : 'Sold Out'}
+                      : t.common.soldOut}
                   </p>
 
                   {selectedVariant.sku && (
@@ -893,15 +978,15 @@ const ProductModal = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                   <Button
                     onClick={handleAddToCart}
-                    className="py-4 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+                    className="py-3 sm:py-4 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 text-base sm:text-lg"
                     disabled={selectedVariant.stock <= 0}
                   >
-                    <ShoppingCart className="w-6 h-6" />
+                    <ShoppingCart className="w-5 sm:w-6 h-5 sm:h-6" />
                     {selectedVariant.stock > 0 ? `Add ${quantity} to Cart` : 'Sold Out'}
                   </Button>
                   <Button
                     onClick={handleBuyNow}
-                    className="py-4 bg-gray-900 hover:bg-gray-800 text-white"
+                    className="py-3 sm:py-4 bg-gray-900 hover:bg-gray-800 text-white text-base sm:text-lg"
                     disabled={selectedVariant.stock <= 0}
                   >
                     Buy it now
@@ -922,7 +1007,7 @@ const ProductModal = ({
                       toast.success('Link copied to clipboard!');
                     }
                   }}
-                  className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
+                  className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto hidden sm:flex"
                 >
                   <Share2 className="w-5 h-5" />
                   Share
@@ -1110,7 +1195,8 @@ const ListViewItem = ({
   quantity,
   updateQuantity,
   isTopSelling,
-  isTopDeal
+  isTopDeal,
+  activeDiscounts
 }: {
   product: Product;
   onClick: () => void;
@@ -1118,6 +1204,7 @@ const ListViewItem = ({
   updateQuantity: (productId: string, newQuantity: number) => void;
   isTopSelling: boolean;
   isTopDeal: boolean;
+  activeDiscounts: any[];
 }) => {
   const variant = getDefaultVariant(product);
   if (!variant) return null;
@@ -1125,6 +1212,7 @@ const ListViewItem = ({
   const { addToCart } = useCart();
   const productImage = getProductImage(product);
   const productPrice = getProductPrice(product);
+  const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
   const isInStock = isProductInStock(product);
   const badgeItems = [
     !isInStock
@@ -1141,7 +1229,7 @@ const ListViewItem = ({
       : null
   ]
     .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-    .slice(0, 2);
+    .slice(0, 1);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1216,9 +1304,20 @@ const ListViewItem = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
             <div className="w-full sm:w-auto flex items-center gap-4">
               <div>
-                <div className="text-xl md:text-2xl font-bold text-gray-900">
-                  Rs. {productPrice.toFixed(2)}
-                </div>
+                {isTopDeal ? (
+                  <>
+                    <div className="text-sm text-gray-500 line-through">
+                      Rs. {productPrice.toFixed(2)}
+                    </div>
+                    <div className="text-xl md:text-2xl font-bold text-green-600">
+                      Rs. {discountedPrice.toFixed(2)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xl md:text-2xl font-bold text-gray-900">
+                    Rs. {productPrice.toFixed(2)}
+                  </div>
+                )}
                 <div className="text-sm text-gray-500">
                   {getVariantDisplay(variant)}
                 </div>
@@ -1261,7 +1360,7 @@ const ListViewItem = ({
                   : 'bg-green-600 hover:bg-green-700 text-white'
                   }`}
               >
-                {!isInStock ? 'Sold Out' : `Add ${quantity}`}
+                {!isInStock ? t.common.soldOut : `Add ${quantity}`}
               </button>
               {isInStock && (
                 <button
@@ -1271,7 +1370,7 @@ const ListViewItem = ({
                   }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hidden sm:block"
                 >
-                  Buy Now
+                  {t.common.buyNow}
                 </button>
               )}
             </div>
@@ -1283,6 +1382,7 @@ const ListViewItem = ({
 };
 
 const SpecialApplications = () => {
+  const t = useTranslation();
   const [sortBy, setSortBy] = useState("best-selling");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -1301,6 +1401,7 @@ const SpecialApplications = () => {
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
   const [topDealIds, setTopDealIds] = useState<string[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
 
   const { getCartCount } = useCart();
 
@@ -1477,7 +1578,7 @@ const SpecialApplications = () => {
       try {
         const { data: discounts, error: discountsError } = await supabase
           .from("discounts")
-          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
+          .select("*");
 
         if (discountsError) {
           throw discountsError;
@@ -1493,6 +1594,8 @@ const SpecialApplications = () => {
           const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
           return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
         });
+
+        setActiveDiscounts(activeDiscounts);
 
         const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
         const dealIds = new Set<string>();
@@ -1645,11 +1748,11 @@ const SpecialApplications = () => {
     // <Layout>
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       {/* Header with Enhanced Search */}
-      <div className="bg-gradient-to-r from-green-800 to-green-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Special Applications</h1>
-          <p className="text-green-100 text-lg max-w-2xl">
-            Advanced specialized formulations for unique agricultural challenges and requirements
+      <div className="bg-gradient-to-r from-green-800 to-green-900 text-white py-4 md:py-12">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-xl md:text-4xl font-bold mb-1 md:mb-4">{t.pages.specialApplications}</h1>
+          <p className="text-green-100 text-xs md:text-base max-w-2xl mx-auto">
+            {t.pages.specialDesc}
           </p>
 
           {/* Enhanced Search Bar in Header */}
@@ -1707,67 +1810,61 @@ const SpecialApplications = () => {
 
           {/* Main Content */}
           <main className="lg:w-3/4">
-            {/* Mobile Filter Button */}
-            <div className="lg:hidden mb-6">
-              <Button
-                onClick={() => setMobileFiltersOpen(true)}
-                variant="outline"
-                className="w-full justify-center border-green-200 text-green-700 hover:bg-green-50"
-              >
-                <Sliders className="w-4 h-4 mr-2" />
-                Show Filters ({Object.values(filters).flat().length + (searchQuery ? 1 : 0)})
-              </Button>
-            </div>
-
             {/* Results Header */}
-            <div className="bg-white rounded-xl border border-green-200 p-6 mb-8 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="sticky top-[108px] z-20 bg-white rounded-xl border border-green-200 p-4 mb-4 shadow-sm lg:static lg:p-6 lg:mb-8">
+              <div>
                 <div>
                   <p className="text-sm text-gray-600">
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                    {totalProducts} {t.pages.productsFound}
                     {searchQuery && (
                       <span className="text-green-600 ml-2">
                         for "{searchQuery}"
                       </span>
                     )}
                   </p>
-                  <h2 className="text-2xl font-bold text-gray-900">Specialized Solutions</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{t.pages.allSpecialApplications}</h2>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                <div className="mt-3 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                  <Button
+                    onClick={() => setMobileFiltersOpen(true)}
+                    variant="outline"
+                    className="h-10 px-3 border-green-200 text-green-700 hover:bg-green-50 lg:hidden"
+                  >
+                    <Sliders className="w-4 h-4 mr-1.5" />
+                    Filter
+                  </Button>
+
                   {/* Sort By */}
-                  <div className="relative w-full sm:w-auto">
+                  <div className="relative w-full">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                      className="h-10 appearance-none bg-white border border-green-200 rounded-lg px-3 pr-9 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
                     >
-                      {sortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      <option value="name-asc">A-Z</option>
+                      <option value="name-desc">a-z</option>
+                      <option value="price-asc">Price: Low to High</option>
+                      <option value="price-desc">Price: High to Low</option>
                     </select>
                     <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
 
                   {/* View Toggle */}
-                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden h-10">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <Grid className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <List className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">List</span>
                     </button>
                   </div>
                 </div>
@@ -1789,7 +1886,7 @@ const SpecialApplications = () => {
             )}
 
             {/* Products Grid/List */}
-            <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+            <div className={`${viewMode === "grid" ? "grid grid-cols-2 lg:grid-cols-4" : "flex flex-col"} gap-3 sm:gap-6 mb-8 min-h-[420px] sm:min-h-0`}>
               {currentProducts.length > 0 ? (
                 currentProducts.map((product) => {
                   // Check if product has variants
@@ -1807,6 +1904,7 @@ const SpecialApplications = () => {
                       updateQuantity={updateProductQuantity}
                       isTopSelling={topSellingIds.includes(product.id)}
                       isTopDeal={topDealIds.includes(product.id)}
+                      activeDiscounts={activeDiscounts}
                     />
                   ) : (
                     <ListViewItem
@@ -1817,6 +1915,7 @@ const SpecialApplications = () => {
                       updateQuantity={updateProductQuantity}
                       isTopSelling={topSellingIds.includes(product.id)}
                       isTopDeal={topDealIds.includes(product.id)}
+                      activeDiscounts={activeDiscounts}
                     />
                   );
                 })
@@ -1962,6 +2061,8 @@ const SpecialApplications = () => {
         product={selectedProduct}
         isOpen={!!selectedProduct}
         onClose={() => setSelectedProduct(null)}
+        activeDiscounts={activeDiscounts}
+        isTopDeal={selectedProduct ? topDealIds.includes(selectedProduct.id) : false}
       />
 
       {/* Cart Count Indicator */}

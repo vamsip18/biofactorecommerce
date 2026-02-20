@@ -18,6 +18,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import termsPdf from "@/assets/docs/Terms.pdf";
+import privacyPdf from "@/assets/docs/Privacy.pdf";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -352,13 +354,13 @@ const Register = () => {
               />
               <label htmlFor="terms" className="text-sm text-gray-600">
                 I agree to the{" "}
-                <Link to="/terms" className="text-emerald-600 hover:underline">
+                <a href={termsPdf} download className="text-emerald-600 hover:underline">
                   Terms of Service
-                </Link>{" "}
+                </a>{" "}
                 and{" "}
-                <Link to="/privacy" className="text-emerald-600 hover:underline">
+                <a href={privacyPdf} download className="text-emerald-600 hover:underline">
                   Privacy Policy
-                </Link>
+                </a>
               </label>
             </div>
 

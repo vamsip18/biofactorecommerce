@@ -5,10 +5,12 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Package, Home, Download, Mail, Phone, Calendar, Truck } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 const OrderSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const t = useTranslation();
   const { orderId, total, estimatedDelivery } = location.state || {};
 
   // Redirect if no order data
@@ -37,7 +39,7 @@ const OrderSuccess = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Order Confirmed!
             </h1>
-            
+
             <p className="text-gray-600 mb-8">
               Thank you for your purchase. Your order has been confirmed and is being processed.
             </p>
@@ -61,7 +63,7 @@ const OrderSuccess = () => {
                     <span className="text-green-600 font-semibold">Confirmed</span>
                   </p>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Truck className="w-5 h-5 text-blue-600" />
@@ -126,12 +128,12 @@ const OrderSuccess = () => {
                   Continue Shopping
                 </Button>
               </Link>
-              
+
               <Button className="bg-green-600 hover:bg-green-700 gap-2">
                 <Download className="w-4 h-4" />
                 Download Invoice
               </Button>
-              
+
               <Link to="/orders">
                 <Button variant="outline" className="gap-2">
                   <Package className="w-4 h-4" />

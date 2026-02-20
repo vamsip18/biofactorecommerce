@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // Now this should work
+import { getDiscountedPrice } from '@/lib/utils';
 
 interface CartItem {
   id: string;
@@ -11,6 +12,7 @@ interface CartItem {
   variantTitle?: string;
   name: string;
   price: number;
+  originalPrice?: number;
   image: string;
   category: string;
   quantity: number;
@@ -142,7 +144,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             title
           )
         `)
-        .eq('cart_id', cart.id);
+        .eq('cart_id', cart.id) as any;
 
       if (itemsError) {
         console.error("Error fetching cart items:", itemsError);
@@ -152,17 +154,45 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.log("Cart items from Supabase:", items);
 
       if (items && items.length > 0) {
-        const transformedItems: CartItem[] = items.map(item => ({
-          id: item.id,
-          productId: item.product_id,
-          variantId: item.variant_id,
-          name: `${item.product?.name || 'Product'} ${item.variant?.title ? `- ${item.variant.title}` : ''}`.trim(),
-          price: item.variant?.price || 0,
-          image: item.variant?.image_url || '/placeholder.jpg',
-          category: item.product?.collections?.title || 'Uncategorized',
-          quantity: item.quantity,
-          stock: item.variant?.stock || 99
-        }));
+        // Fetch active discounts
+        const { data: discounts } = await supabase
+          .from("discounts")
+          .select("*") as any;
+
+        const now = new Date();
+        const activeDiscounts = (discounts || []).filter((discount: any) => {
+          const startsAt = new Date(discount.starts_at);
+          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+        });
+
+        const transformedItems: CartItem[] = items.map((item: any) => {
+          const collections = Array.isArray(item.product?.collections) 
+            ? item.product.collections[0] 
+            : item.product?.collections;
+          
+          const variantPrice = item.variant?.price || 0;
+          
+          // Calculate discounted price if any active discounts
+          const discountedPrice = activeDiscounts.length > 0 
+            ? getDiscountedPrice(variantPrice, activeDiscounts, item.product)
+            : variantPrice;
+          
+          const hasDiscount = discountedPrice < variantPrice;
+
+          return {
+            id: item.id,
+            productId: item.product_id,
+            variantId: item.variant_id,
+            name: `${item.product?.name || 'Product'} ${item.variant?.title ? `- ${item.variant.title}` : ''}`.trim(),
+            price: discountedPrice,
+            originalPrice: hasDiscount ? variantPrice : undefined,
+            image: item.variant?.image_url || '/placeholder.jpg',
+            category: collections?.title || 'Uncategorized',
+            quantity: item.quantity,
+            stock: item.variant?.stock || 99
+          };
+        });
 
         console.log("Transformed cart items:", transformedItems);
         setCartItems(transformedItems);

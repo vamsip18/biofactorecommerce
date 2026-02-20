@@ -1,9 +1,11 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Recycle, Target, Globe } from "lucide-react";
+import { useTranslation } from "@/contexts/LanguageContext";
 import farmerImage from "@/assets/farmer-portrait.jpg";
 
 export const FoodWasteSection = () => {
+  const t = useTranslation();
   return (
     <section className="py-20 bg-gradient-to-b from-green-50 to-white relative overflow-hidden">
       {/* Animated leaves */}
@@ -77,7 +79,7 @@ export const FoodWasteSection = () => {
               >
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-700">30%</div>
-                  <div className="text-xs text-green-600 font-medium">Less Waste</div>
+                  <div className="text-xs text-green-600 font-medium">{t.home.lessWaste}</div>
                 </div>
               </motion.div>
 
@@ -96,7 +98,7 @@ export const FoodWasteSection = () => {
               >
                 <div className="text-center">
                   <div className="text-2xl font-bold">50+</div>
-                  <div className="text-xs font-medium">Local Farms</div>
+                  <div className="text-xs font-medium">{t.home.localFarms}</div>
                 </div>
               </motion.div>
 
@@ -113,7 +115,7 @@ export const FoodWasteSection = () => {
             >
               <Link
                 to="/about"
-                className="flex-1 min-w-[200px] bg-gradient-to-r from-green-100 to-emerald-100 px-6 py-3 rounded-xl text-green-900 font-medium hover:from-green-200 hover:to-emerald-200 transition-all duration-300 hover:scale-105 shadow-md"
+                className="w-full sm:flex-1 sm:min-w-[200px] bg-gradient-to-r from-green-100 to-emerald-100 px-6 py-3 rounded-xl text-green-900 font-medium hover:from-green-200 hover:to-emerald-200 transition-all duration-300 hover:scale-105 shadow-md"
               >
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4" />
@@ -122,7 +124,7 @@ export const FoodWasteSection = () => {
               </Link>
               <Link
                 to="/about"
-                className="flex-1 min-w-[200px] bg-gradient-to-r from-emerald-100 to-green-100 px-6 py-3 rounded-xl text-green-900 font-medium hover:from-emerald-200 hover:to-green-200 transition-all duration-300 hover:scale-105 shadow-md"
+                className="w-full sm:flex-1 sm:min-w-[200px] bg-gradient-to-r from-emerald-100 to-green-100 px-6 py-3 rounded-xl text-green-900 font-medium hover:from-emerald-200 hover:to-green-200 transition-all duration-300 hover:scale-105 shadow-md"
               >
                 <div className="flex items-center gap-2">
                   <Recycle className="w-4 h-4" />
@@ -150,14 +152,14 @@ export const FoodWasteSection = () => {
                   <Globe className="w-5 h-5 text-green-600" />
                 </div>
                 <span className="text-green-600 font-semibold text-sm uppercase tracking-wider">
-                  Sustainable Future
+                  {t.home.sustainableFuture}
                 </span>
               </motion.div>
               
               <h2 className="text-4xl md:text-5xl font-serif font-bold text-green-900 mb-6">
-                Fighting Food Waste,
+                {t.home.fightingFoodWaste}
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
-                  One Basket at a Time
+                  {t.home.oneBasket}
                 </span>
               </h2>
             </div>

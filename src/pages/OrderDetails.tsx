@@ -10,6 +10,7 @@ import {
   ChevronRight, AlertCircle, ExternalLink, MessageSquare, FileText
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import {
@@ -28,6 +29,7 @@ interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  originalPrice?: number;
   image: string;
   variant: string;
   product_id?: string;
@@ -68,13 +70,26 @@ interface Order {
   notes?: string;
 }
 
+const normalizeOrderStatus = (status?: string): Order['status'] => {
+  const normalized = (status || 'pending').toLowerCase();
+
+  if (normalized === 'canceled') return 'cancelled';
+  if (normalized === 'pending' || normalized === 'processing' || normalized === 'shipped' || normalized === 'delivered' || normalized === 'cancelled' || normalized === 'refunded') {
+    return normalized;
+  }
+
+  return 'pending';
+};
+
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   // Helper function to get default product image
   const getDefaultProductImage = (productName: string) => {
@@ -133,7 +148,7 @@ const OrderDetails = () => {
         subtotal: Number(data.subtotal) || 0,
         tax: Number(data.tax_total) || 0,
         shipping: Number(data.shipping_total) || 0,
-        status: data.status || 'pending',
+        status: normalizeOrderStatus(data.status),
         paymentMethod: data.payment_method || 'cod',
         paymentStatus: data.payment_status || 'pending',
         shippingAddress: {
@@ -293,11 +308,11 @@ const OrderDetails = () => {
       
       // Save PDF
       doc.save(`Invoice-${order.orderNumber}.pdf`);
-      toast.success("Invoice downloaded successfully!");
+      toast.success(t.orderDetails.invoiceDownloadSuccess);
       
     } catch (error) {
       console.error("Error generating invoice:", error);
-      toast.error("Failed to generate invoice");
+      toast.error(t.orderDetails.invoiceDownloadError);
     } finally {
       setGeneratingInvoice(false);
     }
@@ -324,25 +339,45 @@ const OrderDetails = () => {
 
   // Cancel order
   const cancelOrder = async () => {
-    if (!order || !window.confirm("Are you sure you want to cancel this order?")) return;
+    if (!order || !user || cancellingOrder) return;
+
+    const canCancel = ['pending', 'processing'].includes(order.status);
+    if (!canCancel) return;
+
+    if (!window.confirm(t.orderDetails.cancelOrderConfirm)) return;
 
     try {
-      const { error } = await supabase
+      setCancellingOrder(true);
+
+      const { error: updateError } = await supabase
         .from('orders')
-        .update({ 
-          status: 'cancelled',
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: 'cancelled' })
         .eq('id', order.id)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast.success("Order cancelled successfully");
-      loadOrderDetails();
+      const { data: updatedOrder, error: verifyError } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', order.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (verifyError) throw verifyError;
+      const verifiedStatus = normalizeOrderStatus(updatedOrder?.status);
+      if (verifiedStatus !== 'cancelled') {
+        throw new Error('Order cancellation was not applied');
+      }
+
+      setOrder(prev => (prev ? { ...prev, status: verifiedStatus } : prev));
+
+      toast.success(t.orderDetails.orderCancelledSuccess);
     } catch (error) {
       console.error("Error cancelling order:", error);
-      toast.error("Failed to cancel order");
+      toast.error(t.orderDetails.orderCancelledError);
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
@@ -351,15 +386,15 @@ const OrderDetails = () => {
     if (!order) return;
     
     const trackingSteps = [
-      { status: 'pending', label: 'Order Placed', date: order.createdAt, active: true },
-      { status: 'processing', label: 'Processing', date: new Date(order.createdAt.getTime() + 1 * 24 * 60 * 60 * 1000), active: order.status !== 'pending' },
-      { status: 'shipped', label: 'Shipped', date: new Date(order.createdAt.getTime() + 2 * 24 * 60 * 60 * 1000), active: ['shipped', 'delivered'].includes(order.status) },
-      { status: 'delivered', label: 'Delivered', date: order.deliveredAt || order.estimatedDelivery, active: order.status === 'delivered' },
+      { status: 'pending', label: t.orderDetails.orderPlaced, date: order.createdAt, active: true },
+      { status: 'processing', label: t.orderDetails.processing, date: new Date(order.createdAt.getTime() + 1 * 24 * 60 * 60 * 1000), active: order.status !== 'pending' },
+      { status: 'shipped', label: t.orderDetails.shipped, date: new Date(order.createdAt.getTime() + 2 * 24 * 60 * 60 * 1000), active: ['shipped', 'delivered'].includes(order.status) },
+      { status: 'delivered', label: t.orderDetails.delivered, date: order.deliveredAt || order.estimatedDelivery, active: order.status === 'delivered' },
     ];
 
     toast(
       <div className="p-4">
-        <h4 className="font-semibold mb-2">Order Tracking</h4>
+        <h4 className="font-semibold mb-2">{t.orderDetails.orderTracking}</h4>
         <div className="space-y-3">
           {trackingSteps.map((step, index) => (
             <div key={step.status} className="flex items-center gap-3">
@@ -375,7 +410,7 @@ const OrderDetails = () => {
                   {step.label}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {step.active ? step.date.toLocaleDateString('en-IN') : 'Pending'}
+                  {step.active ? step.date.toLocaleDateString('en-IN') : t.orderDetails.pending}
                 </div>
               </div>
             </div>
@@ -393,7 +428,7 @@ const OrderDetails = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading order details...</p>
+            <p className="text-gray-600">{t.orderDetails.loadingMessage}</p>
           </div>
         </div>
       </Layout>
@@ -406,11 +441,11 @@ const OrderDetails = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Order not found</h3>
-            <p className="text-gray-600 mb-4">The order you're looking for doesn't exist or you don't have access to it.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.orderDetails.notFoundTitle}</h3>
+            <p className="text-gray-600 mb-4">{t.orderDetails.notFoundMessage}</p>
             <Link to="/orders">
               <Button className="bg-green-600 hover:bg-green-700">
-                View All Orders
+                {t.orderDetails.viewAllOrders}
               </Button>
             </Link>
           </div>
@@ -418,6 +453,8 @@ const OrderDetails = () => {
       </Layout>
     );
   }
+
+  const canCancelOrder = ['pending', 'processing'].includes(order.status);
 
   return (
     <Layout>
@@ -428,7 +465,7 @@ const OrderDetails = () => {
             <div className="flex items-center justify-between mb-6">
               <Link to="/orders" className="inline-flex items-center text-green-700 hover:text-green-800">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Orders
+                {t.orderDetails.backToOrders}
               </Link>
               
               <div className="flex items-center gap-4">
@@ -441,24 +478,34 @@ const OrderDetails = () => {
                   {generatingInvoice ? (
                     <>
                       <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                      Generating...
+                      {t.orderDetails.generating}
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4" />
-                      Download Invoice
+                      {t.orderDetails.downloadInvoice}
                     </>
                   )}
                 </Button>
                 
-                {order.status === 'pending' && (
+                {canCancelOrder && (
                   <Button
                     variant="destructive"
                     onClick={cancelOrder}
+                    disabled={cancellingOrder}
                     className="gap-2"
                   >
-                    <XCircle className="w-4 h-4" />
-                    Cancel Order
+                    {cancellingOrder ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        {t.orderDetails.generating}
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4" />
+                        {t.orderDetails.cancelOrder}
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -466,9 +513,9 @@ const OrderDetails = () => {
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Order {order.orderNumber}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{t.orderDetails.pageTitle} {order.orderNumber}</h1>
                 <p className="text-gray-600 mt-1">
-                  Placed on {order.createdAt.toLocaleDateString('en-IN', {
+                  {t.orderDetails.placedOn} {order.createdAt.toLocaleDateString('en-IN', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -499,8 +546,8 @@ const OrderDetails = () => {
               {/* Order Items */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Items ({order.items.length})</CardTitle>
-                  <CardDescription>Products in your order</CardDescription>
+                  <CardTitle>{t.orderDetails.orderItems} ({order.items.length})</CardTitle>
+                  <CardDescription>{t.orderDetails.productsInOrder}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -540,7 +587,7 @@ const OrderDetails = () => {
                                 to={`/product/${item.product_id}`}
                                 className="text-sm text-green-600 hover:text-green-700 flex items-center gap-1"
                               >
-                                View Product
+                                {t.orderDetails.viewProduct}
                                 <ExternalLink className="w-3 h-3" />
                               </Link>
                             </div>
@@ -555,27 +602,27 @@ const OrderDetails = () => {
               {/* Order Summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle>{t.orderDetails.orderSummary}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal</span>
+                      <span className="text-gray-600">{t.orderDetails.subtotal}</span>
                       <span className="font-medium">₹{order.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Tax (18%)</span>
+                      <span className="text-gray-600">{t.orderDetails.tax}</span>
                       <span className="font-medium">₹{order.tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Shipping</span>
+                      <span className="text-gray-600">{t.orderDetails.shipping}</span>
                       <span className="font-medium">
-                        {order.shipping === 0 ? "Free" : `₹${order.shipping.toFixed(2)}`}
+                        {order.shipping === 0 ? t.orderDetails.free : `₹${order.shipping.toFixed(2)}`}
                       </span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-lg font-bold text-gray-900">
-                      <span>Total</span>
+                      <span>{t.orderDetails.total}</span>
                       <span>₹{order.total.toFixed(2)}</span>
                     </div>
                     
@@ -583,10 +630,10 @@ const OrderDetails = () => {
                       <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <AlertCircle className="w-5 h-5 text-yellow-600" />
-                          <span className="font-semibold text-yellow-800">Cash on Delivery</span>
+                          <span className="font-semibold text-yellow-800">{t.orderDetails.cashOnDelivery}</span>
                         </div>
                         <p className="text-sm text-yellow-700">
-                          Please keep ₹{order.total.toFixed(2)} ready for payment upon delivery.
+                          {t.orderDetails.codMessage} ₹{order.total.toFixed(2)} {t.orderDetails.codReadyMessage}
                         </p>
                       </div>
                     )}
@@ -598,7 +645,7 @@ const OrderDetails = () => {
               {order.notes && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Order Notes</CardTitle>
+                    <CardTitle>{t.orderDetails.orderNotes}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="p-4 bg-gray-50 rounded-lg">
@@ -616,7 +663,7 @@ const OrderDetails = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
-                    Shipping Address
+                    {t.orderDetails.shippingAddress}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -643,7 +690,7 @@ const OrderDetails = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    Order Timeline
+                    {t.orderDetails.orderTimeline}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -653,7 +700,7 @@ const OrderDetails = () => {
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
                       <div>
-                        <div className="font-medium">Order Placed</div>
+                        <div className="font-medium">{t.orderDetails.orderPlaced}</div>
                         <div className="text-sm text-gray-500">
                           {order.createdAt.toLocaleDateString('en-IN')} at{" "}
                           {order.createdAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
@@ -671,14 +718,14 @@ const OrderDetails = () => {
                       </div>
                       <div>
                         <div className={`font-medium ${order.status !== 'pending' ? 'text-gray-900' : 'text-gray-500'}`}>
-                          Processing
+                          {t.orderDetails.processing}
                         </div>
                         {order.status !== 'pending' ? (
                           <div className="text-sm text-gray-500">
                             {new Date(order.createdAt.getTime() + 1 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')}
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-500">Pending</div>
+                          <div className="text-sm text-gray-500">{t.orderDetails.pending}</div>
                         )}
                       </div>
                     </div>
@@ -695,14 +742,14 @@ const OrderDetails = () => {
                         <div className={`font-medium ${
                           ['shipped', 'delivered'].includes(order.status) ? 'text-gray-900' : 'text-gray-500'
                         }`}>
-                          Shipped
+                          {t.orderDetails.shipped}
                         </div>
                         {['shipped', 'delivered'].includes(order.status) ? (
                           <div className="text-sm text-gray-500">
                             {new Date(order.createdAt.getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')}
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-500">Pending</div>
+                          <div className="text-sm text-gray-500">{t.orderDetails.pending}</div>
                         )}
                       </div>
                     </div>
@@ -717,7 +764,7 @@ const OrderDetails = () => {
                       </div>
                       <div>
                         <div className={`font-medium ${order.status === 'delivered' ? 'text-gray-900' : 'text-gray-500'}`}>
-                          Delivered
+                          {t.orderDetails.delivered}
                         </div>
                         {order.status === 'delivered' && order.deliveredAt ? (
                           <div className="text-sm text-gray-500">
@@ -725,7 +772,7 @@ const OrderDetails = () => {
                           </div>
                         ) : (
                           <div className="text-sm text-gray-500">
-                            Est: {order.estimatedDelivery.toLocaleDateString('en-IN')}
+                            {t.orderDetails.estimated}: {order.estimatedDelivery.toLocaleDateString('en-IN')}
                           </div>
                         )}
                       </div>
@@ -738,7 +785,7 @@ const OrderDetails = () => {
                     onClick={trackOrder}
                   >
                     <Truck className="w-4 h-4" />
-                    Track Order
+                    {t.orderDetails.trackOrder}
                   </Button>
                 </CardContent>
               </Card>
@@ -746,7 +793,7 @@ const OrderDetails = () => {
               {/* Order Actions */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Actions</CardTitle>
+                  <CardTitle>{t.orderDetails.orderActions}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
@@ -756,7 +803,7 @@ const OrderDetails = () => {
                     disabled={generatingInvoice}
                   >
                     <FileText className="w-4 h-4" />
-                    {generatingInvoice ? 'Generating Invoice...' : 'Download Invoice'}
+                    {generatingInvoice ? t.orderDetails.generating : t.orderDetails.downloadInvoice}
                   </Button>
                   
                   <Button
@@ -765,7 +812,7 @@ const OrderDetails = () => {
                     onClick={() => window.print()}
                   >
                     <Printer className="w-4 h-4" />
-                    Print Order Details
+                    {t.orderDetails.printOrderDetails}
                   </Button>
                   
                   <Button
@@ -776,13 +823,13 @@ const OrderDetails = () => {
                     }}
                   >
                     <Mail className="w-4 h-4" />
-                    Contact Support
+                    {t.orderDetails.contactSupport}
                   </Button>
                   
                   <Link to="/" className="block">
                     <Button variant="outline" className="w-full justify-start gap-2">
                       <ShoppingBag className="w-4 h-4" />
-                      Continue Shopping
+                      {t.orderDetails.continueShopping}
                     </Button>
                   </Link>
                 </CardContent>
@@ -793,17 +840,17 @@ const OrderDetails = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />
-                    Payment Information
+                    {t.orderDetails.paymentInformation}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Method:</span>
+                      <span className="text-gray-600">{t.orderDetails.paymentMethod}:</span>
                       <span className="font-medium capitalize">{order.paymentMethod}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
+                      <span className="text-gray-600">{t.orderDetails.paymentStatus}:</span>
                       <span className={`font-medium ${
                         order.paymentStatus === 'paid' ? 'text-green-600' :
                         order.paymentStatus === 'pending' ? 'text-yellow-600' :
@@ -813,7 +860,7 @@ const OrderDetails = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Total Paid:</span>
+                      <span className="text-gray-600">{t.orderDetails.totalPaid}:</span>
                       <span className="font-medium">₹{order.total.toFixed(2)}</span>
                     </div>
                   </div>
@@ -824,9 +871,9 @@ const OrderDetails = () => {
 
           {/* Support Section */}
           <div className="mt-12 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Need Help With This Order?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.orderDetails.needHelp}</h3>
             <p className="text-gray-600 mb-4">
-              Our customer support team is available 24/7 to assist you with any questions about your order.
+              {t.orderDetails.helpAvailable}
             </p>
             <div className="flex flex-wrap gap-4">
               <Button
@@ -837,7 +884,7 @@ const OrderDetails = () => {
                 className="gap-2"
               >
                 <Mail className="w-4 h-4" />
-                Email Support
+                {t.orderDetails.emailSupport}
               </Button>
               <Button
                 variant="outline"
@@ -847,12 +894,12 @@ const OrderDetails = () => {
                 className="gap-2"
               >
                 <Phone className="w-4 h-4" />
-                Call Support
+                {t.orderDetails.callSupport}
               </Button>
               <Link to="/contact">
                 <Button variant="outline" className="gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  Contact Form
+                  {t.orderDetails.contactForm}
                 </Button>
               </Link>
             </div>

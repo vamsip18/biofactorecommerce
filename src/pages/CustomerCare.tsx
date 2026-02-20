@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "@/contexts/LanguageContext";
 import {
   Mail, Phone, MapPin, Clock, Send, User,
   Building, CheckCircle, ChevronRight, MessageSquare,
@@ -11,77 +12,70 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const contactInfo = [
-  {
-    icon: Mail,
-    title: "Email",
-    value: "info@biofactor.com",
-    link: "mailto:info@biofactor.com",
-    description: "General inquiries & support",
-    color: "bg-green-600"
-  },
-  {
-    icon: Phone,
-    title: "Phone",
-    value: "+91 88866 24775",
-    link: "tel:+918886624775",
-    description: "Mon-Sat: 9am-6pm",
-    color: "bg-green-700"
-  },
-  {
-    icon: MessageCircle,
-    title: "WhatsApp",
-    value: "+91 88866 24775",
-    link: "https://wa.me/8886624775",
-    description: "Chat with us instantly",
-    color: "bg-emerald-600"
-  },
-  {
-    icon: MapPin,
-    title: "Address",
-    value: "Bio Factor Solutions, Hyderabad, Telangana",
-    link: "https://maps.app.goo.gl/b8CkmdTqDm5fosjD9",
-    description: "Our headquarters",
-    color: "bg-green-800"
-  },
-  // {
-  //   icon: Clock,
-  //   title: "Business Hours",
-  //   value: "Monday - Saturday: 9am-6pm",
-  //   link: null,
-  //   description: "Customer support available",
-  //   color: "bg-green-900"
-  // },
-];
-
-const supportServices = [
-  {
-    icon: Headphones,
-    title: "Technical Support",
-    description: "Get help with product usage and troubleshooting",
-    contact: "tech@biofactor.com"
-  },
-  {
-    icon: Shield,
-    title: "Quality Assurance",
-    description: "Report product issues or quality concerns",
-    contact: "quality@biofactor.com"
-  },
-  {
-    icon: Truck,
-    title: "Order & Delivery",
-    description: "Track orders and delivery inquiries",
-    contact: "orders@biofactor.com"
-  },
-  {
-    icon: MessageSquare,
-    title: "General Inquiries",
-    description: "All other questions and information requests",
-    contact: "info@biofactor.com"
-  }
-];
-
 const CustomerCare = () => {
+  const t = useTranslation();
+
+  const contactInfo = [
+    {
+      icon: Mail,
+      title: t.customerCare.email,
+      value: "info@biofactor.com",
+      link: "mailto:info@biofactor.com",
+      description: t.customerCare.generalInquiries,
+      color: "bg-green-600"
+    },
+    {
+      icon: Phone,
+      title: t.customerCare.phone,
+      value: "+91 88866 24775",
+      link: "tel:+918886624775",
+      description: t.customerCare.businessHours,
+      color: "bg-green-700"
+    },
+    {
+      icon: MessageCircle,
+      title: t.customerCare.whatsapp,
+      value: "+91 88866 24775",
+      link: "https://wa.me/8886624775",
+      description: t.customerCare.chatInstantly,
+      color: "bg-emerald-600"
+    },
+    {
+      icon: MapPin,
+      title: t.customerCare.address,
+      value: "Bio Factor Solutions, Hyderabad, Telangana",
+      link: "https://maps.app.goo.gl/b8CkmdTqDm5fosjD9",
+      description: t.customerCare.headquarters,
+      color: "bg-green-800"
+    },
+  ];
+
+  const supportServices = [
+    {
+      icon: Headphones,
+      title: t.customerCare.technicalSupport,
+      description: t.customerCare.techDesc,
+      contact: "tech@biofactor.com"
+    },
+    {
+      icon: Shield,
+      title: t.customerCare.qualityAssurance,
+      description: t.customerCare.qualityDesc,
+      contact: "quality@biofactor.com"
+    },
+    {
+      icon: Truck,
+      title: t.customerCare.orderDelivery,
+      description: t.customerCare.orderDesc,
+      contact: "orders@biofactor.com"
+    },
+    {
+      icon: MessageSquare,
+      title: t.customerCare.generalInq,
+      description: t.customerCare.generalDesc,
+      contact: "info@biofactor.com"
+    }
+  ];
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -133,10 +127,10 @@ const CustomerCare = () => {
     <Layout>
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Customer care</h1>
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{t.customerCare.title}</h1>
           <p className="text-green-100">
-            Get in touch with our agricultural experts. We're here to help you grow better.
+            {t.customerCare.description}
           </p>
         </div>
       </div>
@@ -147,10 +141,10 @@ const CustomerCare = () => {
         <div className="mb-16 pt-12 border-t border-gray-200">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Quick Access
+              {t.customerCare.quickActions}
             </h2>
             <p className="text-gray-600">
-              Find answers to your most common questions
+              {t.customerCare.commonQuestions}
             </p>
           </div>
 
@@ -171,23 +165,23 @@ const CustomerCare = () => {
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Your Orders
+                  {t.customerCare.myOrders}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  Track your packages & manage your orders
+                  {t.customerCare.trackManage}
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Track packages in real-time
+                    {t.customerCare.trackPackages}
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Edit or cancel orders
+                    {t.customerCare.editOrders}
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                    Download invoices
+                    {t.customerCare.downloadInvoices}
                   </li>
                 </ul>
               </div>
@@ -209,23 +203,23 @@ const CustomerCare = () => {
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-amber-600 transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Returns & Refunds
+                  {t.customerCare.returnsRefunds}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  Return or exchange items easily
+                  {t.customerCare.returnExchange}
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Return or exchange items
+                    {t.customerCare.returnItems}
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Track refund status
+                    {t.customerCare.trackRefund}
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
-                    Print return labels
+                    {t.customerCare.printLabels}
                   </li>
                 </ul>
               </div>
@@ -240,7 +234,7 @@ const CustomerCare = () => {
               <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5" />
-                  Contact Information
+                  {t.customerCare.contactInfo}
                 </h2>
                 <div className="space-y-6">
                   {contactInfo.map((item, index) => (
@@ -292,10 +286,10 @@ const CustomerCare = () => {
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Send us a Message
+                  {t.customerCare.sendMessage}
                 </h2>
                 <p className="text-gray-600">
-                  Fill out the form below and we'll get back to you within 24 hours.
+                  {t.customerCare.fillForm}
                 </p>
               </div>
 
@@ -308,7 +302,7 @@ const CustomerCare = () => {
                     : "text-gray-500 hover:text-gray-700"
                     }`}
                 >
-                  General Inquiry
+                  {t.customerCare.generalInquiry}
                 </button>
                 <button
                   onClick={() => setActiveTab("order")}
@@ -317,7 +311,7 @@ const CustomerCare = () => {
                     : "text-gray-500 hover:text-gray-700"
                     }`}
                 >
-                  Order Inquiry
+                  {t.customerCare.orderInquiry}
                 </button>
               </div>
 
@@ -335,11 +329,11 @@ const CustomerCare = () => {
                     </div>
 
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      Message Sent Successfully!
+                      {t.customerCare.messageSent}
                     </h3>
 
                     <p className="text-gray-600 mb-6">
-                      Thank you for contacting us. Our team will get back to you within 24 hours.
+                      {t.customerCare.messageSentDesc}
                     </p>
 
                     <Button
@@ -361,7 +355,7 @@ const CustomerCare = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Name *
+                          {t.customerCare.fullName} *
                         </label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -369,7 +363,7 @@ const CustomerCare = () => {
                             name="name"
                             value={formData.name}
                             onChange={handleInputChange}
-                            placeholder="Your full name"
+                            placeholder={t.customerCare.namePlaceholder}
                             className="pl-10 border-gray-300 focus:border-green-600 focus:ring-green-600"
                             required
                             disabled={formState.loading}
@@ -379,7 +373,7 @@ const CustomerCare = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Email *
+                          {t.customerCare.emailAddress} *
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -388,7 +382,7 @@ const CustomerCare = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            placeholder="your.email@example.com"
+                            placeholder={t.customerCare.emailPlaceholder}
                             className="pl-10 border-gray-300 focus:border-green-600 focus:ring-green-600"
                             required
                             disabled={formState.loading}
@@ -398,7 +392,7 @@ const CustomerCare = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Phone Number
+                          {t.customerCare.phoneNumber}
                         </label>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -407,7 +401,7 @@ const CustomerCare = () => {
                             name="phone"
                             value={formData.phone}
                             onChange={handleInputChange}
-                            placeholder="+91 88866 24775"
+                            placeholder={t.customerCare.phonePlaceholder}
                             className="pl-10 border-gray-300 focus:border-green-600 focus:ring-green-600"
                             disabled={formState.loading}
                           />
@@ -416,7 +410,7 @@ const CustomerCare = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Subject *
+                          {t.customerCare.subject} *
                         </label>
                         <div className="relative">
                           <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -424,7 +418,7 @@ const CustomerCare = () => {
                             name="subject"
                             value={formData.subject}
                             onChange={handleInputChange}
-                            placeholder="What is this regarding?"
+                            placeholder={t.customerCare.subjectPlaceholder}
                             className="pl-10 border-gray-300 focus:border-green-600 focus:ring-green-600"
                             required
                             disabled={formState.loading}
@@ -435,13 +429,13 @@ const CustomerCare = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-900 mb-2">
-                        Message *
+                        {t.customerCare.yourMessage} *
                       </label>
                       <Textarea
                         name="message"
                         value={formData.message}
                         onChange={handleInputChange}
-                        placeholder="Tell us how we can help you..."
+                        placeholder={t.customerCare.messagePlaceholder}
                         rows={6}
                         className="border-gray-300 focus:border-green-600 focus:ring-green-600"
                         required
@@ -458,12 +452,12 @@ const CustomerCare = () => {
                       {formState.loading ? (
                         <>
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          Sending...
+                          {t.customerCare.sending}
                         </>
                       ) : (
                         <>
                           <Send className="w-5 h-5 mr-2" />
-                          Send Message
+                          {t.customerCare.sendMessageBtn}
                         </>
                       )}
                     </Button>

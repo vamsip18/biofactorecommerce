@@ -2,18 +2,21 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Heart, ArrowRight, ArrowUpRight, Shield, Target, Globe, Recycle, Leaf, Truck, Calendar, Star, Package, Clock, Check, Plus, Zap, Droplets, ShieldCheck, Brain, Thermometer, Users, Award, ShoppingCart, TrendingUp, Minus } from "lucide-react";
+import { Sparkles, Heart, ArrowRight, ArrowUpRight, Shield, Target, Globe, Recycle, Leaf, Truck, Calendar, Star, Clock, Check, Plus, Zap, Droplets, ShieldCheck, Brain, Thermometer, Users, Award, ShoppingCart, TrendingUp, Minus } from "lucide-react";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useCart } from "@/contexts/CartContext";
+import { useTranslation } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { getAllProducts, type Product, type ProductVariant } from "@/lib/supabase/products";
 import { supabase } from "@/lib/supabase";
+import { getDiscountedPrice, getDiscountScore } from "@/lib/utils";
 import 'swiper/css';
 import 'swiper/css/autoplay';
 // Import your images - update these with actual biofactor product images
 import biofactorHero from "@/assets/biofactor-hero.png";
+import Ecocert from "@/assets/Ecocert.png"
 const MAX_CATEGORY_PRODUCTS = 6;
 
 const getActiveVariants = (product: Product): ProductVariant[] => {
@@ -31,7 +34,7 @@ const getDefaultVariant = (product: Product): ProductVariant | null => {
 
 const formatPrice = (price: number) => {
   if (!price || Number.isNaN(price)) return "Price on request";
-  return `Rs. ${price.toLocaleString()}`;
+  return `₹${price.toLocaleString()}`;
 };
 
 const matchesKeywords = (value: string, keywords: string[]) => {
@@ -218,24 +221,6 @@ const getCategoryKey = (product: Product): CategoryKey => {
   return "other";
 };
 
-const getDiscountScore = (discount: Record<string, any>): number => {
-  const candidates = [
-    discount.discount_percentage,
-    discount.percentage,
-    discount.percent,
-    discount.value,
-    discount.amount,
-    discount.discount_amount
-  ];
-  const numericValue = candidates.find(value => typeof value === "number" && !Number.isNaN(value));
-  if (!numericValue) return 0;
-
-  const valueType = String(discount.value_type || discount.discount_type || discount.type || "").toLowerCase();
-  if (valueType.includes("percent")) return numericValue;
-
-  return numericValue;
-};
-
 // Blog images
 const blogImages = {
   blog1: "https://images.unsplash.com/photo-1560493676-04071c5f467b?w-300&h=200&fit=crop",
@@ -246,47 +231,52 @@ const blogImages = {
 
 export const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-green-900 via-white to-teal-50">
+    <section className="relative overflow-hidden bg-gradient-to-br from-green-900 via-emerald-800 to-teal-700">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl" />
       </div>
+      <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-emerald-950/80 via-emerald-900/50 to-transparent" />
 
-      <div className="container mx-auto px-4 py-16 lg:py-24 relative z-10">
+      <div className="container mx-auto px-4 lg:py-24 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-8"
+            className="space-y-4 sm:space-y-6 lg:space-y-8"
           >
             <h1 className="text-5xl md:text-4xl lg:text-7xl font-bold leading-tight">
               <span className="text-white block">Next-Generation</span>
-              <span className="bg-gradient-to-r from-white to-white bg-clip-text text-transparent block">
+              <span className="text-white block">
                 Biofactors
               </span>
               <span className="text-white block">for Optimal Health</span>
             </h1>
 
-            <p className="text-xl text-gray-700 leading-relaxed">
+            <p className="text-xl text-green-50/95 leading-relaxed">
               Scientifically-formulated biofactors that work at the cellular level to support energy,
               cognitive function, and overall vitality. Experience the difference of precision nutrition.
             </p>
 
-            <div className="grid grid-cols-3 gap-4 pt-6">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">98%</div>
-                <div className="text-sm text-gray-600">Customer Satisfaction</div>
+                <div className="text-sm text-green-100">Customer Satisfaction</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-teal-600">500+</div>
-                <div className="text-sm text-gray-600">Clinical Studies</div>
+                <div className="text-sm text-green-100">Clinical Studies</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600">Ecocert</div>
-                <div className="text-sm text-gray-600">Certified</div>
+                <img
+                  src={Ecocert}
+                  alt="Ecocert logo"
+                  className="h-8 w-auto mx-auto object-contain"
+                />
+                <div className="text-sm text-green-100">Certified</div>
               </div>
             </div>
           </motion.div>
@@ -294,7 +284,7 @@ export const HeroSection = () => {
           <img
             src={biofactorHero}
             alt="Biofactor supplements - advanced cellular nutrition"
-            className="w-full h-auto"
+            className="hidden md:block w-full h-auto"
           />
         </div>
       </div>
@@ -302,9 +292,67 @@ export const HeroSection = () => {
   );
 };
 
+export const ShopByDivisionSection = () => {
+  const divisions = [
+    {
+      name: "Agri",
+      href: "/agriculture",
+      icon: <Leaf className="w-5 h-5 text-green-700" />,
+      ring: "ring-green-100"
+    },
+    {
+      name: "Aqua",
+      href: "/aquaculture",
+      icon: <Droplets className="w-5 h-5 text-cyan-700" />,
+      ring: "ring-cyan-100"
+    },
+    {
+      name: "Large Animals",
+      href: "/large-animals",
+      icon: <Users className="w-5 h-5 text-amber-700" />,
+      ring: "ring-amber-100"
+    },
+    {
+      name: "Kitchen Gardening",
+      href: "/kitchen-gardening",
+      icon: <Globe className="w-5 h-5 text-lime-700" />,
+      ring: "ring-lime-100"
+    }
+  ];
+
+  return (
+    <section className="md:hidden bg-white py-4">
+      <div className="container mx-auto px-2">
+        <h3 className="text-xl font-bold text-gray-800 mb-3 px-1">Sales by Division</h3>
+
+        <div className="grid grid-cols-4 gap-2">
+          {divisions.map((division) => (
+            <Link
+              key={division.name}
+              to={division.href}
+              className="group block"
+            >
+              <div className={`rounded-lg border border-gray-200 p-2 text-center transition-all group-hover:shadow-sm group-hover:border-gray-300 ${division.ring}`}>
+                <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-white ring-1 ring-gray-200 flex items-center justify-center">
+                  {division.icon}
+                </div>
+                <p className="text-[11px] leading-tight font-medium text-gray-700 min-h-[28px]">
+                  {division.name}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export const BestSellingProducts = () => {
+  const t = useTranslation();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
@@ -323,11 +371,15 @@ export const BestSellingProducts = () => {
       return;
     }
 
+    const discountedPrice = getDiscountedPrice(defaultVariant.price, activeDiscounts, product);
+    const originalPrice = defaultVariant.price;
+
     addToCart({
       productId: product.id,
       variantId: defaultVariant.id,
       name: `${product.name} ${defaultVariant.title || ""}`.trim(),
-      price: defaultVariant.price,
+      price: discountedPrice,
+      originalPrice: discountedPrice < originalPrice ? originalPrice : undefined,
       image: defaultVariant.image_url || product.image_url || biofactorHero,
       category: product.collections?.title || "Home",
       stock: defaultVariant.stock,
@@ -387,6 +439,21 @@ export const BestSellingProducts = () => {
           .slice(0, 8);
 
         setProducts(sortedProducts);
+
+        // Fetch active discounts
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("*");
+
+        if (!discountsError && discounts) {
+          const now = new Date();
+          const active = discounts.filter((discount: any) => {
+            const startsAt = new Date(discount.starts_at);
+            const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+            return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+          });
+          setActiveDiscounts(active);
+        }
       } catch (err) {
         console.error("Failed to load top selling products:", err);
         setError("Failed to load top selling products");
@@ -400,28 +467,42 @@ export const BestSellingProducts = () => {
   }, []);
 
   return (
-    <section className="py-5 bg-green-50/40">
-      <div className="container mx-auto px-4">
+    <section id="best-sellers" className="bg-green-50/40 scroll">
+      <div className="container mx-auto px-2">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col items-center text-center mb-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Award className="w-5 h-5 text-green-700" />
-
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-green-900">Top Selling Products</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-green-900">{t.home.topSelling}</h2>
           </div>
         </div>
 
-        <p className="text-gray-600 mb-12 max-w-2xl">
-          Discover our most popular biofactor solutions for agriculture, aquaculture, and animal care
+        <p className="text-gray-600 mb-4 max-w-2xl mx-auto text-center">
+          {t.home.topSellingDesc}
         </p>
 
-        {/* Single Row Carousel */}
-        <div className="relative">
-          <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
+        {/* Single Row Carousel with Auto-scroll */}
+        <div
+          onMouseEnter={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.stop();
+          }}
+          onMouseLeave={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.start();
+          }}
+        >
+          <Swiper
+            modules={[Autoplay]}
+            autoplay={{ delay: 3000, disableOnInteraction: false }}
+            slidesPerView="auto"
+            spaceBetween={12}
+            className="pb-6"
+          >
             {isLoading ? (
-              <div className="w-full py-10 text-center text-gray-600">Loading top selling products...</div>
+              <div className="w-full py-10 text-center text-gray-600">{t.common.loading}...</div>
             ) : error ? (
               <div className="w-full py-10 text-center text-red-600">{error}</div>
             ) : (
@@ -433,116 +514,136 @@ export const BestSellingProducts = () => {
                 const isSoldOut = defaultVariant.stock <= 0;
 
                 return (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
-                  >
-                    {/* Product Image */}
-                    <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
-                      <img
-                        src={imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                  <SwiperSlide key={product.id} className="!w-[210px] sm:!w-[280px]">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`h-full group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                    >
+                      {/* Product Image */}
+                      <div className={`relative h-36 sm:h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300"
+                        />
 
-                      {/* Tag Badge */}
-                      <div className="absolute top-3 left-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${categoryStyle.badge}`}>
-                          {categoryStyle.label}
-                        </span>
-                      </div>
+                        {/* Tag Badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${categoryStyle.badge}`}>
+                            {categoryStyle.label}
+                          </span>
+                        </div>
 
-                      {/* Wishlist Button */}
-                      {/* <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
+                        {/* Wishlist Button */}
+                        {/* <button className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm">
                     <Heart className="w-4 h-4 text-gray-600 hover:text-green-600" />
                   </button> */}
 
-                      {/* Sold Out Overlay */}
-                      {isSoldOut && (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                          <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
-                            Sold Out
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Product Info - Flex column with grow */}
-                    <div className="p-5 flex flex-col flex-grow">
-                      <h3 className={`font-semibold text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[56px]`}>
-                        {product.name}
-                      </h3>
-
-                      <div className="flex items-center text-sm text-gray-500 mb-3">
-                        <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">Vendor: {product.collections?.title || "Biofactor"}</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <div className={`text-xl font-bold ${categoryStyle.price}`}>{formatPrice(defaultVariant.price)}</div>
-                        </div>
-                      </div>
-
-                      {/* Quantity and Add to Cart Button */}
-                      <div className="mt-auto flex items-center gap-2">
-                        {!isSoldOut && (
-                          <div className="flex items-center border border-gray-300 rounded-lg">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleQuantityChange(product.id, -1);
-                              }}
-                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
-                              disabled={(quantities[product.id] || 1) <= 1}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                              {quantities[product.id] || 1}
+                        {/* Sold Out Overlay */}
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                            <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
+                              Sold Out
                             </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleQuantityChange(product.id, 1);
-                              }}
-                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
                           </div>
                         )}
-                        <Button
-                          className={`flex-1 ${isSoldOut
-                            ? "bg-red-100 text-red-700 cursor-not-allowed"
-                            : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
-                            }`}
-                          disabled={isSoldOut}
-                          onClick={() => !isSoldOut && handleAddToCart(product)}
-                        >
-                          {isSoldOut ? (
-                            <>
-                              <Clock className="w-4 h-4 mr-2" />
-                              Sold Out
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingCart className="w-4 h-4 mr-2" />
-                              Add to Cart
-                            </>
-                          )}
-                        </Button>
                       </div>
-                    </div>
-                  </motion.div>
+
+                      {/* Product Info - Flex column with grow */}
+                      <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                        <h3 className={`font-semibold text-sm sm:text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[40px] sm:min-h-[56px]`}>
+                          {product.name}
+                        </h3>
+
+                        {/* Price */}
+                        <div className="flex items-end justify-between gap-2 mb-3">
+                          {(() => {
+                            const discountedPrice = getDiscountedPrice(defaultVariant.price, activeDiscounts, product);
+                            const hasDiscount = discountedPrice < defaultVariant.price;
+                            const discountPercent = hasDiscount
+                              ? Math.round(((defaultVariant.price - discountedPrice) / defaultVariant.price) * 100)
+                              : 0;
+                            return (
+                              <>
+                                <div className="flex items-end gap-2">
+                                  <div className={`text-xs sm:text-sm font-semibold ${categoryStyle.price}`}>
+                                    {formatPrice(discountedPrice)}
+                                  </div>
+                                  {hasDiscount && (
+                                    <span className="text-xs sm:text-sm text-gray-500 line-through">
+                                      {formatPrice(defaultVariant.price)}
+                                    </span>
+                                  )}
+                                </div>
+                                {hasDiscount && (
+                                  <span className="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-700">
+                                    {discountPercent}% OFF
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Quantity and Add to Cart Button */}
+                        <div className="mt-auto flex items-center gap-2">
+                          {!isSoldOut && (
+                            <div className="w-[86px] sm:w-auto flex items-center justify-between sm:justify-start border border-gray-300 rounded-lg flex-shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(product.id, -1);
+                                }}
+                                className={`px-2 py-2 sm:py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                                disabled={(quantities[product.id] || 1) <= 1}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="flex-1 sm:flex-none px-1 py-2 sm:py-1 border-x border-gray-300 min-w-7 text-center text-xs sm:text-sm">
+                                {quantities[product.id] || 1}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(product.id, 1);
+                                }}
+                                className={`px-2 py-2 sm:py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          <Button
+                            className={`${isSoldOut ? 'w-full' : 'flex-1 min-w-0'} text-xs sm:text-sm py-2 ${isSoldOut
+                              ? "bg-red-100 text-red-700 cursor-not-allowed"
+                              : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
+                              }`}
+                            disabled={isSoldOut}
+                            onClick={() => !isSoldOut && handleAddToCart(product)}
+                          >
+                            {isSoldOut ? (
+                              <>
+                                <Clock className="w-4 h-4 mr-2 hidden sm:inline" />
+                                {t.common.soldOut}
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="w-4 h-4 mr-2 hidden sm:inline" />
+                                <span className="sm:hidden">Add</span>
+                                <span className="hidden sm:inline">{t.common.addToCart}</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </SwiperSlide>
                 );
               })
             )}
-          </div>
+          </Swiper>
         </div>
 
         {/* View All Button - Centered Below Products */}
@@ -563,10 +664,11 @@ export const BestSellingProducts = () => {
   );
 };
 
-
 export const BestDealsProducts = () => {
+  const t = useTranslation();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
@@ -585,11 +687,15 @@ export const BestDealsProducts = () => {
       return;
     }
 
+    const discountedPrice = getDiscountedPrice(defaultVariant.price, activeDiscounts, product);
+    const originalPrice = defaultVariant.price;
+
     addToCart({
       productId: product.id,
       variantId: defaultVariant.id,
       name: `${product.name} ${defaultVariant.title || ""}`.trim(),
-      price: defaultVariant.price,
+      price: discountedPrice,
+      originalPrice: discountedPrice < originalPrice ? originalPrice : undefined,
       image: defaultVariant.image_url || product.image_url || biofactorHero,
       category: product.collections?.title || "Deal",
       stock: defaultVariant.stock,
@@ -695,6 +801,7 @@ export const BestDealsProducts = () => {
           .map(item => item.product);
 
         setProducts(dealsList);
+        setActiveDiscounts(activeDiscounts);
       } catch (err) {
         console.error("Failed to load best deals:", err);
         setError("Failed to load best deals");
@@ -708,26 +815,41 @@ export const BestDealsProducts = () => {
   }, []);
 
   return (
-    <section className="py-5 bg-green-50/40">
+    <section id="best-deals" className="bg-green-50/40 scroll">
       <div className="container mx-auto px-4">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col items-center text-center mb-8">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-green-900">
-              🔥 Best Deals
+              🔥 {t.home.bestDeals}
             </h2>
-            <p className="text-gray-600 mt-2 max-w-2xl">
-              Explore our best deal products with exclusive limited-time discounts
+            <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
+              {t.home.bestDealsDesc}
             </p>
           </div>
         </div>
 
-        {/* Single Row Carousel */}
-        <div className="relative">
-          <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
+        {/* Single Row Carousel with Auto-scroll */}
+        <div
+          onMouseEnter={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.stop();
+          }}
+          onMouseLeave={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.start();
+          }}
+        >
+          <Swiper
+            modules={[Autoplay]}
+            autoplay={{ delay: 3000, disableOnInteraction: false }}
+            slidesPerView="auto"
+            spaceBetween={12}
+            className="pb-6"
+          >
             {isLoading ? (
-              <div className="w-full py-10 text-center text-gray-600">Loading best deals...</div>
+              <div className="w-full py-10 text-center text-gray-600">{t.common.loading}...</div>
             ) : error ? (
               <div className="w-full py-10 text-center text-red-600">{error}</div>
             ) : (
@@ -739,100 +861,120 @@ export const BestDealsProducts = () => {
                 const isSoldOut = defaultVariant.stock <= 0;
 
                 return (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
-                  >
-                    {/* Product Image */}
-                    <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
-                      <img
-                        src={imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                  <SwiperSlide key={product.id} className="!w-[210px] sm:!w-[280px]">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`h-full group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border ${categoryStyle.border} ${categoryStyle.hoverBorder} flex flex-col`}
+                    >
+                      {/* Product Image */}
+                      <div className={`relative h-36 sm:h-48 overflow-hidden bg-gradient-to-br ${categoryStyle.imageFrom} to-white`}>
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300"
+                        />
 
-                      {/* Discount Badge */}
-                      <div className="absolute top-3 left-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow ${categoryStyle.badge}`}>
-                          {categoryStyle.label}
-                        </span>
-                      </div>
-
-                      {/* Sold Out Overlay */}
-                      {isSoldOut && (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                          <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
-                            Sold Out
+                        {/* Discount Badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow ${categoryStyle.badge}`}>
+                            {categoryStyle.label}
                           </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Product Info */}
-                    <div className="p-5 flex flex-col flex-grow">
-                      <h3 className={`font-semibold text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[56px]`}>
-                        {product.name}
-                      </h3>
-
-                      <div className="text-sm text-gray-500 mb-3">
-                        Vendor: {product.collections?.title || "Biofactor"}
-                      </div>
-
-                      {/* Price Section */}
-                      <div className="mb-4">
-                        <div className={`text-xl font-bold ${categoryStyle.price}`}>
-                          {formatPrice(defaultVariant.price)}
-                        </div>
-                      </div>
-
-                      {/* Quantity and Grab Deal Button */}
-                      <div className="mt-auto flex items-center gap-2">
-                        {!isSoldOut && (
-                          <div className="flex items-center border border-gray-300 rounded-lg">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleQuantityChange(product.id, -1);
-                              }}
-                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
-                              disabled={(quantities[product.id] || 1) <= 1}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                              {quantities[product.id] || 1}
+                        {/* Sold Out Overlay */}
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                            <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
+                              Sold Out
                             </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleQuantityChange(product.id, 1);
-                              }}
-                              className={`px-2 py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
                           </div>
                         )}
-                        <Button
-                          className={`flex-1 ${isSoldOut
-                            ? "bg-red-100 text-red-700 cursor-not-allowed"
-                            : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
-                            }`}
-                          disabled={isSoldOut}
-                          onClick={() => !isSoldOut && handleAddToCart(product)}
-                        >
-                          {isSoldOut ? "Sold Out" : "Grab Deal"}
-                        </Button>
                       </div>
-                    </div>
-                  </motion.div>
+
+                      {/* Product Info */}
+                      <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                        <h3 className={`font-semibold text-sm sm:text-lg text-gray-900 ${categoryStyle.nameHover} transition-colors mb-2 line-clamp-2 min-h-[40px] sm:min-h-[56px]`}>
+                          {product.name}
+                        </h3>
+
+                        {/* Price Section */}
+                        <div className="flex items-end justify-between gap-2 mb-3">
+                          {(() => {
+                            const discountedPrice = getDiscountedPrice(defaultVariant.price, activeDiscounts, product);
+                            const hasDiscount = discountedPrice < defaultVariant.price;
+                            const discountPercent = hasDiscount
+                              ? Math.round(((defaultVariant.price - discountedPrice) / defaultVariant.price) * 100)
+                              : 0;
+                            return (
+                              <>
+                                <div className="flex items-end gap-2">
+                                  <div className={`text-xs sm:text-sm font-semibold ${categoryStyle.price}`}>
+                                    {formatPrice(discountedPrice)}
+                                  </div>
+                                  {hasDiscount && (
+                                    <span className="text-xs sm:text-sm text-gray-500 line-through">
+                                      {formatPrice(defaultVariant.price)}
+                                    </span>
+                                  )}
+                                </div>
+                                {hasDiscount && (
+                                  <span className="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-700">
+                                    {discountPercent}% OFF
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Quantity and Grab Deal Button */}
+                        <div className="mt-auto flex items-center gap-2">
+                          {!isSoldOut && (
+                            <div className="w-[86px] sm:w-auto flex items-center justify-between sm:justify-start border border-gray-300 rounded-lg flex-shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(product.id, -1);
+                                }}
+                                className={`px-2 py-2 sm:py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                                disabled={(quantities[product.id] || 1) <= 1}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="flex-1 sm:flex-none px-1 py-2 sm:py-1 border-x border-gray-300 min-w-7 text-center text-xs sm:text-sm">
+                                {quantities[product.id] || 1}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(product.id, 1);
+                                }}
+                                className={`px-2 py-2 sm:py-1 text-gray-600 ${categoryStyle.qtyHover} hover:bg-gray-50`}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          <Button
+                            className={`${isSoldOut ? 'w-full' : 'flex-1 min-w-0'} text-xs sm:text-sm py-2 ${isSoldOut
+                              ? "bg-red-100 text-red-700 cursor-not-allowed"
+                              : `bg-gradient-to-r ${categoryStyle.buttonGradient} ${categoryStyle.buttonHover} text-white`
+                              }`}
+                            disabled={isSoldOut}
+                            onClick={() => !isSoldOut && handleAddToCart(product)}
+                          >
+                            {isSoldOut ? t.common.soldOut : <><span className="sm:hidden">Add</span><span className="hidden sm:inline">{t.home.grabDeal}</span></>}
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </SwiperSlide>
                 );
               })
             )}
-          </div>
+          </Swiper>
         </div>
 
         {/* View All Button */}
@@ -974,6 +1116,7 @@ const BlogCard = ({ blog, index }: { blog: any; index: number }) => {
 
 // Home category rows section
 export const CategoryProductsSection = () => {
+  const t = useTranslation();
   const [categoryProducts, setCategoryProducts] = useState({
     agriculture: [] as Product[],
     aquaculture: [] as Product[],
@@ -981,6 +1124,7 @@ export const CategoryProductsSection = () => {
     kitchenGardening: [] as Product[]
   });
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
@@ -1010,6 +1154,21 @@ export const CategoryProductsSection = () => {
           initialQuantities[product.id] = 1;
         });
         setQuantities(initialQuantities);
+
+        // Fetch active discounts
+        const { data: discounts, error: discountsError } = await supabase
+          .from("discounts")
+          .select("*");
+
+        if (!discountsError && discounts) {
+          const now = new Date();
+          const active = discounts.filter((discount: any) => {
+            const startsAt = new Date(discount.starts_at);
+            const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+            return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+          });
+          setActiveDiscounts(active);
+        }
       } catch (err) {
         console.error("Failed to load category products:", err);
         setError("Failed to load products");
@@ -1035,11 +1194,15 @@ export const CategoryProductsSection = () => {
       return;
     }
 
+    const discountedPrice = getDiscountedPrice(defaultVariant.price, activeDiscounts, product);
+    const originalPrice = defaultVariant.price;
+
     addToCart({
       productId: product.id,
       variantId: defaultVariant.id,
       name: `${product.name} ${defaultVariant.title || ""}`.trim(),
-      price: defaultVariant.price,
+      price: discountedPrice,
+      originalPrice: discountedPrice < originalPrice ? originalPrice : undefined,
       image: defaultVariant.image_url || product.image_url || "",
       category: product.collections?.title || "Home",
       stock: defaultVariant.stock,
@@ -1062,31 +1225,48 @@ export const CategoryProductsSection = () => {
     outlineClass: string;
   }) => {
     return (
-      <section className={`py-8 ${theme.sectionClass}`}>
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 border ${theme.badgeClass}`}>
-              <span className={theme.iconClass}>{theme.icon}</span>
-              <span className={`text-sm font-semibold ${theme.titleClass}`}>{theme.title}</span>
-            </div>
+      <section className={`${theme.sectionClass}`}>
+        <div>
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 border ${theme.badgeClass}`}>
+            <span className={theme.iconClass}>{theme.icon}</span>
+            <span className={`text-sm font-semibold ${theme.titleClass}`}>{theme.title}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
             <h2 className={`text-2xl md:text-3xl font-bold ${theme.titleClass}`}>
               {theme.subtitle}
             </h2>
+
+            <Link to={theme.link} className="ml-auto flex-shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className={`gap-2 md:h-11 md:px-8 md:text-sm ${theme.outlineClass}`}
+              >
+                {t.common.viewAll}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
-          <Link to={theme.link}>
-            <Button
-              variant="outline"
-              size="lg"
-              className={`gap-2 ${theme.outlineClass}`}
-            >
-              View All
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
         </div>
 
-        <div className="relative">
-          <div className="flex overflow-x-auto scrollbar-hide pb-6 -mx-4 px-4">
+        <div
+          onMouseEnter={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.stop();
+          }}
+          onMouseLeave={(e) => {
+            const swiper = (e.currentTarget.querySelector('.swiper') as any)?.swiper;
+            if (swiper?.autoplay) swiper.autoplay.start();
+          }}
+        >
+          <Swiper
+            modules={[Autoplay]}
+            autoplay={{ delay: 3000, disableOnInteraction: false }}
+            slidesPerView="auto"
+            spaceBetween={12}
+            className="pb-6"
+          >
             {products.map((product, index) => {
               const defaultVariant = getDefaultVariant(product);
               const activeVariants = getActiveVariants(product);
@@ -1095,98 +1275,119 @@ export const CategoryProductsSection = () => {
               const imageUrl = defaultVariant?.image_url || product.image_url || biofactorHero;
 
               return (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex-shrink-0 w-[280px] min-h-[520px] mx-2 group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
-                >
-                  <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-white to-gray-50">
-                    <img
-                      src={imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                <SwiperSlide key={product.id} className="!w-[210px] sm:!w-[280px]">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="h-full group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
+                  >
+                    <div className="relative h-36 sm:h-48 overflow-hidden bg-gradient-to-br from-white to-gray-50">
+                      <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-300"
+                      />
 
-                    {isSoldOut && (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                        <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
-                          Sold Out
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className={`font-semibold text-lg text-gray-900 ${theme.accentText} transition-colors mb-2 line-clamp-2 min-h-[56px]`}>
-                      {product.name}
-                    </h3>
-
-                    <div className="flex items-center text-sm text-gray-500 mb-3">
-                      <Package className="w-4 h-4 mr-1 flex-shrink-0" />
-                      <span className="truncate">{product.collections?.title || "Biofactor"}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <div className="text-xl font-bold text-gray-900">{formatPrice(price)}</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-auto flex items-center gap-2">
-                      {!isSoldOut && (
-                        <div className="flex items-center border border-gray-300 rounded-lg">
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleQuantityChange(product.id, -1);
-                            }}
-                            className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                            disabled={(quantities[product.id] || 1) <= 1}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
-                            {quantities[product.id] || 1}
+                      {isSoldOut && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                          <span className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg">
+                            {t.common.soldOut}
                           </span>
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleQuantityChange(product.id, 1);
-                            }}
-                            className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
                         </div>
                       )}
-                      <Button
-                        className={`flex-1 ${isSoldOut
-                          ? "bg-red-100 text-red-700 cursor-not-allowed"
-                          : theme.buttonClass
-                          }`}
-                        disabled={isSoldOut}
-                        onClick={() => !isSoldOut && handleAddToCart(product)}
-                      >
-                        {isSoldOut ? (
-                          <>
-                            <Clock className="w-4 h-4 mr-2" />
-                            Sold Out
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            Add to Cart
-                          </>
-                        )}
-                      </Button>
                     </div>
-                  </div>
-                </motion.div>
+
+                    <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                      <h3 className={`font-semibold text-sm sm:text-lg text-gray-900 ${theme.accentText} transition-colors mb-2 line-clamp-2 min-h-[40px] sm:min-h-[56px]`}>
+                        {product.name}
+                      </h3>
+                      <div className="flex items-end justify-between gap-2 mb-3">
+                        {(() => {
+                          const discountedPrice = getDiscountedPrice(price, activeDiscounts, product);
+                          const hasDiscount = discountedPrice < price;
+                          const categoryKey = getCategoryKey(product);
+                          const themeColor = categoryStyles[categoryKey].price;
+                          const discountPercent = hasDiscount
+                            ? Math.round(((price - discountedPrice) / price) * 100)
+                            : 0;
+                          return (
+                            <>
+                              <div className="flex items-end gap-2">
+                                <div className={`text-xs sm:text-sm font-semibold ${hasDiscount ? themeColor : 'text-gray-900'}`}>
+                                  {formatPrice(discountedPrice)}
+                                </div>
+                                {hasDiscount && (
+                                  <span className="text-xs sm:text-sm text-gray-500 line-through">
+                                    {formatPrice(price)}
+                                  </span>
+                                )}
+                              </div>
+                              {hasDiscount && (
+                                <span className="text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-700">
+                                  {discountPercent}% OFF
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="mt-auto flex items-center gap-2">
+                        {!isSoldOut && (
+                          <div className="w-[86px] sm:w-auto flex items-center justify-between sm:justify-start border border-gray-300 rounded-lg flex-shrink-0">
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuantityChange(product.id, -1);
+                              }}
+                              className="px-2 py-2 sm:py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                              disabled={(quantities[product.id] || 1) <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="flex-1 sm:flex-none px-1 py-2 sm:py-1 border-x border-gray-300 min-w-7 text-center text-xs sm:text-sm">
+                              {quantities[product.id] || 1}
+                            </span>
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuantityChange(product.id, 1);
+                              }}
+                              className="px-2 py-2 sm:py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <Button
+                          className={`${isSoldOut ? 'w-full' : 'flex-1 min-w-0'} text-xs sm:text-sm py-2 ${isSoldOut
+                            ? "bg-red-100 text-red-700 cursor-not-allowed"
+                            : theme.buttonClass
+                            }`}
+                          disabled={isSoldOut}
+                          onClick={() => !isSoldOut && handleAddToCart(product)}
+                        >
+                          {isSoldOut ? (
+                            <>
+                              <Clock className="w-4 h-4 mr-2 hidden sm:inline" />
+                              {t.common.soldOut}
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4 mr-2 hidden sm:inline" />
+                              <span className="sm:hidden">Add</span>
+                              <span className="hidden sm:inline">{t.common.addToCart}</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </SwiperSlide>
               );
             })}
-          </div>
+          </Swiper>
         </div>
       </section>
     );
@@ -1196,7 +1397,7 @@ export const CategoryProductsSection = () => {
     return (
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <p className="text-gray-600">Loading category products...</p>
+          <p className="text-gray-600">{t.common.loading}...</p>
         </div>
       </section>
     );
@@ -1213,11 +1414,11 @@ export const CategoryProductsSection = () => {
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-4 bg-white">
       <div className="container mx-auto px-4 space-y-10">
         {renderProductsRow(categoryProducts.agriculture, {
-          title: "AGRICULTURE",
-          subtitle: "Agriculture Best Sellers",
+          title: t.nav.agriculture.toUpperCase(),
+          subtitle: t.home.agricultureBest,
           icon: <Leaf className="w-5 h-5" />,
           link: "/agriculture",
           sectionClass: "bg-green-50/60",
@@ -1230,8 +1431,8 @@ export const CategoryProductsSection = () => {
         })}
 
         {renderProductsRow(categoryProducts.aquaculture, {
-          title: "AQUACULTURE",
-          subtitle: "Aquaculture Best Sellers",
+          title: t.nav.aquaculture.toUpperCase(),
+          subtitle: t.home.aquacultureBest,
           icon: <Droplets className="w-5 h-5" />,
           link: "/aquaculture",
           sectionClass: "bg-cyan-50/60",
@@ -1244,8 +1445,8 @@ export const CategoryProductsSection = () => {
         })}
 
         {renderProductsRow(categoryProducts.largeAnimals, {
-          title: "LARGE ANIMALS",
-          subtitle: "Large Animal Best Sellers",
+          title: t.nav.largeAnimals.toUpperCase(),
+          subtitle: t.home.largeAnimalsBest,
           icon: <Users className="w-5 h-5" />,
           link: "/large-animals",
           sectionClass: "bg-amber-50/70",
@@ -1258,8 +1459,8 @@ export const CategoryProductsSection = () => {
         })}
 
         {renderProductsRow(categoryProducts.kitchenGardening, {
-          title: "KITCHEN GARDENING",
-          subtitle: "Kitchen Gardening Best Sellers",
+          title: t.nav.kitchenGardening.toUpperCase(),
+          subtitle: t.home.kitchenGardeningBest,
           icon: <Sparkles className="w-5 h-5" />,
           link: "/kitchen-gardening",
           sectionClass: "bg-green-50/60",

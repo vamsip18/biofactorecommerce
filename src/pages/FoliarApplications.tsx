@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../contexts/CartContext';
 import { Layout } from '@/components/layout/Layout';
-import { Link } from 'react-router-dom';
+import { useTranslation } from '@/contexts/LanguageContext';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Filter, ChevronDown, X,
@@ -46,11 +47,13 @@ const priceRanges = [
 ];
 
 const FoliarApplications = () => {
+  const t = useTranslation();
+  const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState('bestSelling');
+  const [sortBy, setSortBy] = useState('nameAsc');
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>(['In Stock']);
   const [showFilters, setShowFilters] = useState(false);
@@ -192,6 +195,10 @@ const FoliarApplications = () => {
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
+      case 'nameAsc':
+        return a.name.localeCompare(b.name);
+      case 'nameDesc':
+        return b.name.localeCompare(a.name);
       case 'priceLowHigh':
         return a.price - b.price;
       case 'priceHighLow':
@@ -238,7 +245,7 @@ const FoliarApplications = () => {
       coverage: product.coverage,
       quantity: quantities[product.id] || 1
     });
-    toast.success("Added to cart");
+    toast.success(t.messages.addedToCart);
 
     // Reset quantity for this product
     setQuantities(prev => ({
@@ -249,7 +256,7 @@ const FoliarApplications = () => {
 
   const handleBuyNow = (product: Product) => {
     handleAddToCart(product);
-    window.location.href = "/cart";
+    navigate("/cart");
   };
 
   const handleQuantityChange = (productId: number, delta: number) => {
@@ -316,7 +323,7 @@ const FoliarApplications = () => {
       <div className="space-y-6">
         {/* Search */}
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">{t.common.search}</h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -335,30 +342,43 @@ const FoliarApplications = () => {
             onClick={() => toggleSection('availability')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Availability</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.availability}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
               }`} />
           </button>
 
           {expandedSections.availability && (
             <div className="space-y-2">
-              {['In Stock', 'Sold Out'].map((status) => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={availability.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setAvailability([...availability, status]);
-                      } else {
-                        setAvailability(availability.filter(s => s !== status));
-                      }
-                    }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{status}</span>
-                </label>
-              ))}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={availability.includes('In Stock')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setAvailability([...availability, 'In Stock']);
+                    } else {
+                      setAvailability(availability.filter(s => s !== 'In Stock'));
+                    }
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{t.common.inStock}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={availability.includes('Sold Out')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setAvailability([...availability, 'Sold Out']);
+                    } else {
+                      setAvailability(availability.filter(s => s !== 'Sold Out'));
+                    }
+                  }}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">{t.common.outOfStock}</span>
+              </label>
             </div>
           )}
         </div>
@@ -369,7 +389,7 @@ const FoliarApplications = () => {
             onClick={() => toggleSection('price')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Price</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.price}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
               }`} />
           </button>
@@ -402,7 +422,7 @@ const FoliarApplications = () => {
             onClick={() => toggleSection('special')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Special</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.special}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
               }`} />
           </button>
@@ -421,7 +441,7 @@ const FoliarApplications = () => {
                   }}
                   className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                 />
-                <span className="text-sm text-gray-700">Top Selling</span>
+                <span className="text-sm text-gray-700">{t.common.topSelling}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -435,7 +455,7 @@ const FoliarApplications = () => {
                   }}
                   className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                 />
-                <span className="text-sm text-gray-700">Top Deals</span>
+                <span className="text-sm text-gray-700">{t.common.topDeals}</span>
               </label>
             </div>
           )}
@@ -453,7 +473,7 @@ const FoliarApplications = () => {
             className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
           >
             <X className="w-4 h-4 mr-2" />
-            Clear All Filters
+            {t.common.clearFilters}
           </button>
         )}
       </div>
@@ -472,40 +492,40 @@ const FoliarApplications = () => {
   }) => {
     const badgeItems = [
       product.availability === "Sold Out"
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       (isTopSelling || product.isBestSeller)
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       product.isNew
-        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
+        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
         onClick={() => handleProductClick(product)}
       >
         <div className="relative flex-1">
           {/* Product Image */}
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
+          <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
 
             {/* Badges */}
-            <div className="absolute top-3 left-3 flex flex-col gap-1">
+            <div className="absolute top-2 left-2 flex flex-col gap-1">
               {badgeItems.map((badge, index) => (
                 <span key={`${product.id}-badge-${index}`} className={badge.className}>
                   {badge.label}
@@ -526,51 +546,51 @@ const FoliarApplications = () => {
           </div>
 
           {/* Product Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
+          <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
               {product.name}
             </h3>
 
-            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+            <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
-            <div className="flex items-center text-sm text-gray-500 mb-2">
+            <div className="hidden sm:flex items-center text-sm text-gray-500">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
               <span className="truncate">{product.category}</span>
             </div>
 
             {/* Rating */}
-            <div className="mb-3">
+            <div className="hidden sm:block">
               {renderStars(product.rating)}
               <p className="text-sm text-gray-500 mt-1">{product.reviews} reviews</p>
             </div>
 
-            <div className="flex items-center justify-between gap-4 mt-3">
-              {/* Price Section */}
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900">
-                  Rs. {product.price.toFixed(2)}
-                </div>
-                {product.originalPrice && (
-                  <div className="text-sm text-gray-500 line-through">
-                    Rs. {product.originalPrice.toFixed(2)}
+            <div className="mt-1 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2">
+                  <div className="text-lg font-bold text-green-600">
+                    {product.price.toFixed(2)}
                   </div>
-                )}
+                  {product.originalPrice && (
+                    <div className="text-sm text-gray-500 line-through">
+                      {product.originalPrice.toFixed(2)}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Quantity and Add to Cart */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
+              <div className={`${product.availability === 'Sold Out' ? 'hidden' : 'flex flex-col sm:flex-row'} gap-1 sm:gap-2 min-w-0`}>
+                <div className="flex items-center border border-gray-300 rounded-lg text-xs shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, -1);
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-1 py-0.5 text-gray-600 hover:text-green-700 hover:bg-gray-50"
                     disabled={(quantities[product.id] || 1) <= 1}
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                  <span className="px-1 py-0.5 border-x border-gray-300 min-w-6 text-center text-xs">
                     {quantities[product.id] || 1}
                   </span>
                   <button
@@ -578,7 +598,7 @@ const FoliarApplications = () => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, 1);
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-1 py-0.5 text-gray-600 hover:text-green-700 hover:bg-gray-50"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -590,20 +610,20 @@ const FoliarApplications = () => {
                     handleAddToCart(product);
                   }}
                   disabled={product.availability === 'Sold Out'}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${product.availability === 'Sold Out'
+                  className={`flex-1 min-w-0 w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium flex items-center justify-center gap-1 sm:gap-2 text-[11px] sm:text-xs leading-none ${product.availability === 'Sold Out'
                     ? 'bg-red-500 text-white-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
                   {product.availability === 'Sold Out' ? (
                     <>
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Sold Out</span>
+                      <Clock className="w-3 h-3" />
+                      <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.common.soldOut}</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span className="text-sm">Add</span>
+                      <ShoppingCart className="hidden sm:inline w-3 h-3" />
+                      <span className="text-[11px] sm:text-xs whitespace-nowrap"><span className="sm:hidden">Add</span><span className="hidden sm:inline">{t.common.addToCart}</span></span>
                     </>
                   )}
                 </button>
@@ -627,20 +647,20 @@ const FoliarApplications = () => {
   }) => {
     const badgeItems = [
       product.availability === "Sold Out"
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.soldOut, className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       (isTopSelling || product.isBestSeller)
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.bestSeller, className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-green-700 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       product.isNew
-        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.new, className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
 
     return (
       <motion.div
@@ -687,12 +707,18 @@ const FoliarApplications = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
               <div className="w-full sm:w-auto flex items-center gap-4">
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {product.price.toFixed(2)}
-                  </div>
-                  {product.originalPrice && (
-                    <div className="text-sm text-gray-500 line-through">
-                      Rs. {product.originalPrice.toFixed(2)}
+                  {product.originalPrice ? (
+                    <>
+                      <div className="text-sm text-gray-500 line-through">
+                        Rs. {product.originalPrice.toFixed(2)}
+                      </div>
+                      <div className="text-xl md:text-2xl font-bold text-green-600">
+                        Rs. {product.price.toFixed(2)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xl md:text-2xl font-bold text-gray-900">
+                      Rs. {product.price.toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -728,12 +754,22 @@ const FoliarApplications = () => {
                     handleAddToCart(product);
                   }}
                   disabled={product.availability === 'Sold Out'}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${product.availability === 'Sold Out'
-                    ? 'bg-red-500 text-white-500 cursor-not-allowed'
+                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium flex items-center justify-center gap-1 ${product.availability === 'Sold Out'
+                    ? 'bg-red-500 text-white cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
-                  {product.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                  {product.availability === 'Sold Out' ? (
+                    <>
+                      <Clock className="w-3 h-3" />
+                      <span>{t.common.soldOut}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="hidden sm:inline w-3 h-3" />
+                      <span>{t.common.addToCart}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -748,11 +784,11 @@ const FoliarApplications = () => {
     <>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Foliar Applications</h1>
-            <p className="text-green-100">
-              Premium leaf-applied solutions for rapid nutrient absorption and plant protection
+        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-4 md:py-8">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-xl md:text-4xl font-bold mb-1 md:mb-2">{t.pages.foliarApplications}</h1>
+            <p className="text-xs md:text-base text-green-100">
+              {t.pages.foliarDesc}
             </p>
           </div>
         </div>
@@ -766,7 +802,7 @@ const FoliarApplications = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                       <Filter className="w-5 h-5" />
-                      Filters
+                      {t.common.filter}
                     </h2>
                     <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
                       {filteredProducts.length} products
@@ -779,60 +815,55 @@ const FoliarApplications = () => {
 
             {/* Main Content */}
             <main className="lg:w-3/4">
-              {/* Mobile Filter Button */}
-              <div className="lg:hidden mb-6">
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-                >
-                  <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters
-                </button>
-              </div>
-
               {/* Results Header */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="sticky top-[108px] z-20 bg-white rounded-lg border border-gray-200 p-3 mb-4 lg:static lg:p-4 lg:mb-6">
+                <div>
                   <div>
                     <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                      {totalProducts} {t.pages.productsFound}
                     </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Foliar Solutions</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t.pages.allFoliarApplications}</h2>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                  <div className="mt-3 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                    <button
+                      onClick={() => setShowFilters(true)}
+                      className="h-10 px-3 border border-green-200 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors inline-flex items-center justify-center whitespace-nowrap lg:hidden"
+                    >
+                      <Sliders className="w-4 h-4 mr-1.5" />
+                      Filter
+                    </button>
+
                     {/* Sort By */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full">
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                        className="h-10 appearance-none bg-white border border-green-200 rounded-lg px-3 pr-9 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
                       >
-                        <option value="bestSelling">Best Selling</option>
+                        <option value="nameAsc">A-Z</option>
+                        <option value="nameDesc">a-z</option>
                         <option value="priceLowHigh">Price: Low to High</option>
                         <option value="priceHighLow">Price: High to Low</option>
-                        <option value="rating">Highest Rating</option>
                       </select>
                       <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden h-10">
                       <button
                         onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`w-10 h-10 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
                           }`}
                       >
                         <Grid className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`w-10 h-10 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
                           }`}
                       >
                         <List className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">List</span>
                       </button>
                     </div>
                   </div>
@@ -840,7 +871,7 @@ const FoliarApplications = () => {
               </div>
 
               {/* Products Grid/List */}
-              <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+              <div className={`${viewMode === "grid" ? "grid grid-cols-2 lg:grid-cols-4" : "flex flex-col"} gap-3 sm:gap-6 mb-8 min-h-[420px] sm:min-h-0`}>
                 {currentProducts.length > 0 ? (
                   currentProducts.map((product) => {
                     const isTopSelling = topSellingIds.includes(product.id);
@@ -942,7 +973,7 @@ const FoliarApplications = () => {
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold">Filters</h2>
+                    <h2 className="text-lg font-semibold">{t.common.filter}</h2>
                     <button onClick={() => setShowFilters(false)}>
                       <X className="w-6 h-6" />
                     </button>
@@ -952,7 +983,7 @@ const FoliarApplications = () => {
                     className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                     onClick={() => setShowFilters(false)}
                   >
-                    Apply Filters
+                    {t.common.filter}
                   </button>
                 </div>
               </motion.div>
@@ -971,7 +1002,7 @@ const FoliarApplications = () => {
 
             {/* Modal Content */}
             <div className="relative min-h-screen flex items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   {/* Close Button */}
                   <button
@@ -981,14 +1012,14 @@ const FoliarApplications = () => {
                     <X className="w-8 h-8" />
                   </button>
 
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
                     {/* Product Images */}
                     <div>
-                      <div className="rounded-xl overflow-hidden mb-4">
+                      <div className="aspect-square max-w-sm mx-auto rounded-xl overflow-hidden mb-4 bg-gray-100">
                         <img
                           src={selectedProduct.image}
                           alt={selectedProduct.name}
-                          className="w-full h-96 object-cover"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                       {/* Foliar Application Icon */}
@@ -1014,23 +1045,27 @@ const FoliarApplications = () => {
                         )}
                       </div>
 
-                      <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                      <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">
                         {selectedProduct.name}
                       </h2>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {renderStars(selectedProduct.rating)}
-                        <span className="text-gray-600">({selectedProduct.reviews} reviews)</span>
-                      </div>
 
                       {/* Price */}
                       <div className="mb-6">
                         <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-gray-900">
-                            Rs. {selectedProduct.price.toFixed(2)}
-                          </span>
-
+                          {selectedProduct.originalPrice ? (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-500 line-through">
+                                Rs. {selectedProduct.originalPrice.toFixed(2)}
+                              </span>
+                              <span className="text-3xl font-bold text-green-600">
+                                Rs. {selectedProduct.price.toFixed(2)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                              Rs. {selectedProduct.price.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-green-600 font-semibold mt-1">
                           {selectedProduct.availability}
@@ -1079,31 +1114,31 @@ const FoliarApplications = () => {
                           disabled={selectedProduct.availability === 'Sold Out'}
                         >
                           <ShoppingCart className="w-6 h-6" />
-                          {selectedProduct.availability === 'Sold Out' ? 'Sold Out' : 'Add to Cart'}
+                          {selectedProduct.availability === 'Sold Out' ? t.common.soldOut : t.common.addToCart}
                         </button>
                         <button
                           onClick={() => handleBuyNow(selectedProduct)}
                           className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
                           disabled={selectedProduct.availability === 'Sold Out'}
                         >
-                          Buy it now
+                          {t.common.buyNow}
                         </button>
                       </div>
 
                       {/* Share Button */}
                       <button
                         onClick={handleShare}
-                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
+                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto hidden sm:flex"
                       >
                         <Share2 className="w-5 h-5" />
-                        Share
+                        {t.product.shareProduct}
                       </button>
                     </div>
                   </div>
 
                   {/* Description */}
                   <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Description</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{t.common.description}</h3>
                     <p className="text-gray-600 mb-8 text-lg">{selectedProduct.description}</p>
 
                     <h4 className="text-xl font-bold text-gray-900 mb-4">Key Features</h4>
@@ -1119,7 +1154,7 @@ const FoliarApplications = () => {
 
                   {/* Specifications */}
                   <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-6">{t.common.specifications}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="bg-green-50 p-6 rounded-xl">
                         <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
@@ -1227,7 +1262,7 @@ const FoliarApplications = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {products
                         .filter(p => p.id !== selectedProduct.id)
-                        .slice(0, 2)
+                        .slice(0, 1)
                         .map(product => (
                           <div
                             key={product.id}

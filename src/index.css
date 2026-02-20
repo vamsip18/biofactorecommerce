@@ -100,6 +100,15 @@
   }
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -107,6 +116,18 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  body.keyboard-open .mobile-bottom-nav {
+    display: none;
+  }
+
+  body.keyboard-open .app-main {
+    padding-bottom: 0;
+  }
+
+  body.keyboard-open .app-footer {
+    display: none;
   }
 
   h1,

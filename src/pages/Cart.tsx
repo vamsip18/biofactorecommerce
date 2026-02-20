@@ -17,9 +17,11 @@ import {
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 const Cart = () => {
   const navigate = useNavigate();
+  const t = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const {
     cartItems,
@@ -69,7 +71,7 @@ const Cart = () => {
 
     try {
       if (cartItems.length === 0) {
-        toast.error("Your cart is empty");
+        toast.error(t.cart.emptyCart);
         return;
       }
 
@@ -78,7 +80,7 @@ const Cart = () => {
 
       // 🔐 If NOT logged in → redirect to login with checkout redirect
       if (!user) {
-        toast.info("Please login to continue with checkout");
+        toast.info(t.messages.pleaseLogin);
         navigate("/login?redirect=/checkout");
         return;
       }
@@ -106,7 +108,7 @@ const Cart = () => {
       <Layout>
         <div className="min-h-screen flex flex-col items-center justify-center">
           <ShoppingCart className="w-16 h-16 text-green-600 animate-pulse mb-4" />
-          <p className="text-gray-600">Loading your cart...</p>
+          <p className="text-gray-600">{t.common.loading}</p>
         </div>
       </Layout>
     );
@@ -117,10 +119,10 @@ const Cart = () => {
       <div className="container mx-auto px-4 py-8 md:py-12">
         <Link to="/" className="flex items-center text-green-700 hover:text-green-800 mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Continue Shopping
+          {t.common.continueShopping}
         </Link>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Shopping Cart</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.cart.yourCart}</h1>
         <p className="text-gray-600 mb-8">
           {getCartCount()} {getCartCount() === 1 ? 'item' : 'items'} in your cart
         </p>
@@ -128,10 +130,10 @@ const Cart = () => {
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-4">Your cart is empty</p>
+            <p className="text-gray-600 text-lg mb-4">{t.cart.emptyCart}</p>
             <Link to="/">
               <Button className="bg-green-600 hover:bg-green-700">
-                Start Shopping
+                {t.home.shopNow}
               </Button>
             </Link>
           </div>
@@ -181,11 +183,25 @@ const Cart = () => {
                     <div className="flex-1">
                       <h3 className="font-bold text-lg text-gray-900 mb-2">{item.name}</h3>
                       <p className="text-sm text-gray-600 mb-1">
-                        Category: {item.category || "Uncategorized"}
+                        {t.common.category}: {item.category || "Uncategorized"}
                       </p>
-                      <p className="text-lg font-semibold text-green-700">
-                        ₹{item.price.toFixed(2)}
-                      </p>
+                      {(() => {
+                        const hasDiscount = item.originalPrice && item.originalPrice > item.price;
+                        return hasDiscount ? (
+                          <>
+                            <div className="text-sm text-gray-500 line-through">
+                              ₹{item.originalPrice?.toFixed(2)}
+                            </div>
+                            <p className="text-lg font-semibold text-green-700">
+                              ₹{item.price.toFixed(2)}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-lg font-semibold text-green-700">
+                            ₹{item.price.toFixed(2)}
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     {/* Quantity Controls */}
@@ -233,7 +249,7 @@ const Cart = () => {
                       onClick={() => removeFromCart(item.id)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Remove
+                      {t.cart.removeItem}
                     </Button>
                   </div>
                 </div>
@@ -243,19 +259,19 @@ const Cart = () => {
             {/* ORDER SUMMARY */}
             <div className="lg:col-span-1">
               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-fit sticky top-8">
-                <h3 className="font-bold text-xl text-gray-900 mb-6">Order Summary</h3>
+                <h3 className="font-bold text-xl text-gray-900 mb-6">{t.cart.orderSummary}</h3>
 
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal ({getCartCount()} items)</span>
+                    <span className="text-gray-600">{t.common.subtotal} ({getCartCount()} items)</span>
                     <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tax (18%)</span>
+                    <span className="text-gray-600">{t.cart.tax} (18%)</span>
                     <span className="font-semibold">₹{tax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
+                    <span className="text-gray-600">{t.cart.shipping}</span>
                     <span className="font-semibold">
                       {shipping === 0 ? "Free" : `₹${shipping}`}
                     </span>
@@ -264,7 +280,7 @@ const Cart = () => {
                   <hr className="my-4" />
 
                   <div className="flex justify-between text-lg font-bold text-gray-900">
-                    <span>Total</span>
+                    <span>{t.common.total}</span>
                     <span>₹{total.toFixed(2)}</span>
                   </div>
                 </div>
@@ -274,16 +290,16 @@ const Cart = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <Truck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-green-700">Free Shipping</p>
+                      <p className="font-semibold text-green-700">{t.product.freeShipping}</p>
                       <p className="text-sm text-gray-600">
-                        Free shipping on orders over ₹500
+                        {t.product.freeShipping}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-green-700">Secure Payment</p>
+                      <p className="font-semibold text-green-700">{t.product.secureCheckout}</p>
                       <p className="text-sm text-gray-600">
                         100% secure and encrypted payments
                       </p>
@@ -329,12 +345,12 @@ const Cart = () => {
                       {currentUser ? (
                         <>
                           <CreditCard className="mr-2 w-5 h-5" />
-                          Proceed to Checkout
+                          {t.cart.proceedToCheckout}
                         </>
                       ) : (
                         <>
                           <LogIn className="mr-2 w-5 h-5" />
-                          Login to Checkout
+                          {t.nav.login}
                         </>
                       )}
                     </>
@@ -351,7 +367,7 @@ const Cart = () => {
                       className="w-full border-green-200 text-green-700 hover:bg-green-50"
                       onClick={() => navigate("/login?redirect=/cart")}
                     >
-                      Login First
+                      {t.nav.login}
                     </Button>
                   </div>
                 )}
@@ -363,7 +379,7 @@ const Cart = () => {
                     className="w-full border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
                     disabled={isProcessing}
                   >
-                    Continue Shopping
+                    {t.common.continueShopping}
                   </Button>
                 </Link>
 
@@ -375,7 +391,7 @@ const Cart = () => {
                     onClick={clearCart}
                     disabled={isProcessing}
                   >
-                    Clear Entire Cart
+                    {t.cart.clearCart}
                   </Button>
                 )}
               </div>

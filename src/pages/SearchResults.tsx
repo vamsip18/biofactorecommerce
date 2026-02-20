@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { searchProducts, getCollections, getCategories, getPriceRange, sortProducts, type Product } from "@/lib/supabase/products";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useTranslation } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -33,6 +34,7 @@ const categoryRoutes: Record<string, string> = {
 const ITEMS_PER_PAGE = 12;
 
 export default function SearchResults() {
+  const t = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -248,7 +250,7 @@ export default function SearchResults() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <Filter className="w-5 h-5 text-green-700" />
-                    <h3 className="text-lg font-semibold">Filters</h3>
+                    <h3 className="text-lg font-semibold">{t.common.filter}</h3>
                   </div>
                   <Button
                     variant="ghost"
@@ -256,13 +258,13 @@ export default function SearchResults() {
                     onClick={handleClearFilters}
                     className="text-gray-500 hover:text-gray-700"
                   >
-                    Clear all
+                    {t.search.clearAll}
                   </Button>
                 </div>
 
                 {/* Category Filter */}
                 <div className="mb-6">
-                  <h4 className="font-medium mb-3 text-gray-700">Category</h4>
+                  <h4 className="font-medium mb-3 text-gray-700">{t.search.category}</h4>
                   <div className="space-y-2">
                     <Button
                       variant={!selectedCategory ? "default" : "ghost"}

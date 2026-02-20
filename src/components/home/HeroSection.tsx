@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Leaf, Truck, Shield, Recycle } from "lucide-react";
 import heroBasket from "@/assets/hero-basket.jpg";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 export const HeroSection = () => {
+  const t = useTranslation();
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50">
       {/* Animated background elements */}
@@ -49,40 +51,20 @@ export const HeroSection = () => {
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold"
               >
                 <Shield className="w-4 h-4" />
-                100% Organic Certified
+                {t.home.sustainableTitle}
               </motion.div>
-              
+
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold leading-tight text-green-900">
-                Fresh{" "}
-                <motion.span 
-                  className="text-emerald-600 inline-block"
-                  animate={{ rotate: [0, 5, 0, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                >
-                  Organic
-                </motion.span>
-                <br />
-                <span className="relative">
-                  Harvest
-                  <motion.div
-                    className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
-                    transition={{ delay: 0.5, duration: 1 }}
-                  />
-                </span>
-                <br />
-                Delivered Weekly
+                {t.home.heroTitle}
               </h1>
-              
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 className="text-xl text-green-800/80 max-w-lg"
               >
-                <strong>Farm-fresh organic fruits and vegetables</strong>{" "}
-                delivered to your doorstep across Switzerland. Support local farmers while enjoying nature's best.
+                {t.home.heroDescription}
               </motion.p>
             </div>
 
@@ -95,14 +77,14 @@ export const HeroSection = () => {
               <Button variant="default" size="xl" asChild className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl">
                 <Link to="/baskets" className="flex items-center gap-3">
                   <Leaf className="w-5 h-5" />
-                  Choose My Basket
+                  {t.home.shopNow}
                 </Link>
               </Button>
-              
+
               <div className="flex items-center gap-3 text-green-700">
                 <Truck className="w-5 h-5 animate-bounce" />
                 <span className="text-sm font-medium">
-                  Free delivery • 7,900+ happy customers
+                  {t.product.freeShipping}
                 </span>
               </div>
             </motion.div>
@@ -115,9 +97,9 @@ export const HeroSection = () => {
               className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-6"
             >
               {[
-                { icon: Truck, text: "Free Delivery" },
-                { icon: Shield, text: "100% Organic" },
-                { icon: Recycle, text: "Zero Waste" },
+                { icon: Truck, text: t.product.freeShipping },
+                { icon: Shield, text: t.home.sustainableTitle },
+                { icon: Recycle, text: t.home.certifiedTitle },
               ].map((feature, i) => (
                 <motion.div
                   key={feature.text}
@@ -155,7 +137,7 @@ export const HeroSection = () => {
                   alt="Fresh organic vegetable basket"
                   className="w-full h-auto rounded-3xl transform group-hover:scale-110 transition-transform duration-700"
                 />
-                
+
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-green-900/30 to-transparent rounded-3xl" />
               </motion.div>
@@ -163,33 +145,33 @@ export const HeroSection = () => {
               {/* Floating elements */}
               <motion.div
                 className="absolute -top-6 -right-6 bg-gradient-to-br from-green-500 to-emerald-600 text-white px-6 py-3 font-bold text-sm uppercase tracking-wider shadow-2xl rounded-lg"
-                animate={{ 
+                animate={{
                   y: [0, -10, 0],
-                  rotate: [-5, 5, -5] 
+                  rotate: [-5, 5, -5]
                 }}
-                transition={{ 
-                  duration: 3, 
+                transition={{
+                  duration: 3,
                   repeat: Infinity,
-                  ease: "easeInOut" 
+                  ease: "easeInOut"
                 }}
               >
-                Direct from Farm
+                {t.home.directFromFarm}
               </motion.div>
 
               <motion.div
                 className="absolute -bottom-6 -left-6 bg-white text-green-900 px-6 py-3 font-bold text-sm shadow-2xl rounded-lg border border-green-200"
-                animate={{ 
+                animate={{
                   y: [0, 10, 0],
-                  rotate: [5, -5, 5] 
+                  rotate: [5, -5, 5]
                 }}
-                transition={{ 
-                  duration: 4, 
+                transition={{
+                  duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
                   delay: 0.5
                 }}
               >
-                🥕 Seasonal Picks
+                🥕 {t.home.seasonalPicks}
               </motion.div>
 
               {/* Glowing effect */}
@@ -209,12 +191,12 @@ export const HeroSection = () => {
           {[...Array(4)].map((_, i) => (
             <div key={i} className="inline-flex items-center gap-8 text-sm text-green-700 mx-8">
               {[
-                { icon: "🥬", text: "Farm Fresh Daily" },
-                { icon: "🚜", text: "Support Local Farmers" },
-                { icon: "🌱", text: "100% Organic Certified" },
-                { icon: "📦", text: "Zero Plastic Packaging" },
-                { icon: "🔄", text: "Flexible Subscriptions" },
-                { icon: "❤️", text: "Reduces Food Waste" },
+                { icon: "🥬", text: t.home.farmFreshDaily },
+                { icon: "🚜", text: t.home.supportLocal },
+                { icon: "🌱", text: t.home.organicCertified },
+                { icon: "📦", text: t.home.zeroPlastic },
+                { icon: "🔄", text: t.home.flexibleSubs },
+                { icon: "❤️", text: t.home.reducesWaste },
               ].map((item) => (
                 <div key={item.text} className="flex items-center gap-2">
                   <span className="text-lg">{item.icon}</span>

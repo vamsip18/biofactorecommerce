@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
+import { useTranslation } from "@/contexts/LanguageContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,9 +79,21 @@ interface Order {
   notes?: string;
 }
 
+const normalizeOrderStatus = (status?: string): Order['status'] => {
+  const normalized = (status || 'pending').toLowerCase();
+
+  if (normalized === 'canceled') return 'cancelled';
+  if (normalized === 'pending' || normalized === 'processing' || normalized === 'shipped' || normalized === 'delivered' || normalized === 'cancelled' || normalized === 'refunded') {
+    return normalized;
+  }
+
+  return 'pending';
+};
+
 const Orders = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const t = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,7 +131,7 @@ const Orders = () => {
         subtotal: Number(order.subtotal) || 0,
         tax: Number(order.tax_total) || 0,
         shipping: Number(order.shipping_total) || 0,
-        status: order.status || 'pending',
+        status: normalizeOrderStatus(order.status),
         paymentMethod: order.payment_method || 'cod',
         paymentStatus: order.payment_status || 'pending',
         shippingAddress: {
@@ -263,13 +276,27 @@ const Orders = () => {
       case "cancel":
         if (window.confirm(`Cancel order ${order.orderNumber}? This action cannot be undone.`)) {
           try {
-            const { error } = await supabase
+            const { error: updateError } = await supabase
               .from('orders')
               .update({ status: 'cancelled' })
               .eq('id', orderId)
               .eq('user_id', user?.id);
 
-            if (error) throw error;
+            if (updateError) throw updateError;
+
+            const { data: verifyData, error: verifyError } = await supabase
+              .from('orders')
+              .select('status')
+              .eq('id', orderId)
+              .eq('user_id', user?.id)
+              .single();
+
+            if (verifyError) throw verifyError;
+
+            const verifiedStatus = normalizeOrderStatus(verifyData?.status);
+            if (verifiedStatus !== 'cancelled') {
+              throw new Error('Order cancellation was not applied in database');
+            }
 
             toast.success('Order cancelled successfully');
             loadOrders(); // Refresh orders
@@ -324,7 +351,7 @@ const Orders = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your orders...</p>
+            <p className="text-gray-600">{t.orders.loadingOrders}</p>
           </div>
         </div>
       </Layout>
@@ -333,115 +360,115 @@ const Orders = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-8">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-4 sm:py-8">
+        <div className="container mx-auto px-3 sm:px-4">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
+          <div className="mb-4 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-                <p className="text-gray-600 mt-2">Track and manage your purchase history</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t.orders.pageTitle}</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">{t.orders.pageDescription}</p>
               </div>
               <Link to="/">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 w-full sm:w-auto">
                   <Home className="w-4 h-4" />
-                  Continue Shopping
+                  {t.orders.continueShoppingBtn}
                 </Button>
               </Link>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-8">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Orders</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">{t.orders.totalOrders}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
-                <p className="text-sm text-gray-500">All your purchases</p>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{orders.length}</div>
+                <p className="text-xs sm:text-sm text-gray-500">{t.orders.allPurchases}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Orders</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">{t.orders.activeOrders}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">
                   {orders.filter(o => ['pending', 'processing', 'shipped'].includes(o.status)).length}
                 </div>
-                <p className="text-sm text-gray-500">Currently being processed</p>
+                <p className="text-xs sm:text-sm text-gray-500">{t.orders.currentlyProcessing}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">{t.orders.totalSpent}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">
                   ₹{orders.reduce((sum, order) => sum + order.total, 0).toLocaleString('en-IN', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                   })}
                 </div>
-                <p className="text-sm text-gray-500">All time</p>
+                <p className="text-xs sm:text-sm text-gray-500">{t.orders.allTime}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Filters */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4 justify-between">
+          <Card className="mb-4 sm:mb-8">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between">
                 {/* Search */}
                 <div className="flex-1 max-w-md">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <Input
-                      placeholder="Search orders by ID, city, or product..."
+                      placeholder={t.orders.searchPlaceholder}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full sm:w-[140px]">
                       <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Status" />
+                      <SelectValue placeholder={t.orders.status} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Orders</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="all">{t.orders.allOrders}</SelectItem>
+                      <SelectItem value="pending">{t.orders.pending}</SelectItem>
+                      <SelectItem value="processing">{t.orders.processing}</SelectItem>
+                      <SelectItem value="shipped">{t.orders.shipped}</SelectItem>
+                      <SelectItem value="delivered">{t.orders.delivered}</SelectItem>
+                      <SelectItem value="cancelled">{t.orders.cancelled}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full sm:w-[140px]">
                       <Calendar className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Time Period" />
+                      <SelectValue placeholder={t.orders.timePeriod} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Time</SelectItem>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                      <SelectItem value="year">This Year</SelectItem>
+                      <SelectItem value="all">{t.orders.allTime}</SelectItem>
+                      <SelectItem value="today">{t.orders.today}</SelectItem>
+                      <SelectItem value="week">{t.orders.thisWeek}</SelectItem>
+                      <SelectItem value="month">{t.orders.thisMonth}</SelectItem>
+                      <SelectItem value="year">{t.orders.thisYear}</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Button variant="outline" onClick={loadOrders} className="gap-2">
+                  <Button variant="outline" onClick={loadOrders} className="gap-2 w-full sm:w-auto">
                     <RefreshCw className="w-4 h-4" />
-                    Refresh
+                    {t.orders.refresh}
                   </Button>
                 </div>
               </div>
@@ -451,188 +478,263 @@ const Orders = () => {
           {/* Orders List */}
           <Card>
             <CardHeader>
-              <CardTitle>My Orders ({filteredOrders.length})</CardTitle>
+              <CardTitle>{t.orders.cardTitle} ({filteredOrders.length})</CardTitle>
               <CardDescription>
-                Track your orders and view order details
+                {t.orders.cardDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {filteredOrders.length === 0 ? (
                 <div className="text-center py-12">
                   <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No orders yet</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.orders.noOrdersTitle}</h3>
                   <p className="text-gray-600 mb-6">
                     {searchQuery
-                      ? "No orders match your search criteria"
-                      : "Start shopping to see your orders here"}
+                      ? t.orders.noOrdersSearch
+                      : t.orders.noOrdersDefault}
                   </p>
                   <Link to="/">
                     <Button className="bg-green-600 hover:bg-green-700">
-                      Start Shopping
+                      {t.orders.startShopping}
                     </Button>
                   </Link>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Order #</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Items</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredOrders.map((order) => (
-                        <TableRow key={order.id} className="hover:bg-gray-50/50">
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Package className="w-4 h-4 text-green-600" />
-                              <div>
-                                <div>{order.orderNumber}</div>
-                                <div className="text-xs text-gray-500">
-                                  {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                <>
+                  <div className="space-y-3 sm:hidden">
+                    {filteredOrders.map((order) => (
+                      <div key={order.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-semibold text-gray-900">{order.orderNumber}</span>
+                          </div>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {new Date(order.createdAt).toLocaleDateString('en-IN')}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                          <span>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                          <span className="text-gray-300">•</span>
+                          <span>₹{order.total.toFixed(2)}</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="text-xs text-gray-500 capitalize">
+                            {order.paymentMethod}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOrderAction(order.id, "view")}
+                              className="h-8 px-2 text-xs"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              {t.orders.details}
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>{t.orders.orderActions}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleOrderAction(order.id, "invoice")}>
+                                  <Download className="w-4 h-4 mr-2" />
+                                  {t.orders.downloadInvoice}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
+                                  <Truck className="w-4 h-4 mr-2" />
+                                  {t.orders.trackOrder}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOrderAction(order.id, "reorder")}>
+                                  <ShoppingBag className="w-4 h-4 mr-2" />
+                                  {t.account.reorder}
+                                </DropdownMenuItem>
+                                {order.status === 'pending' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleOrderAction(order.id, "cancel")}
+                                    className="text-red-600"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    {t.orders.cancelOrder}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => handleOrderAction(order.id, "help")}>
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  {t.orders.getHelp}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t.orders.orderNumber}</TableHead>
+                          <TableHead>{t.orders.date}</TableHead>
+                          <TableHead>{t.orders.items}</TableHead>
+                          <TableHead>{t.orders.total}</TableHead>
+                          <TableHead>{t.account.orderStatus}</TableHead>
+                          <TableHead>{t.orders.paymentStatus}</TableHead>
+                          <TableHead className="text-right">{t.orders.actions}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredOrders.map((order) => (
+                          <TableRow key={order.id} className="hover:bg-gray-50/50">
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-green-600" />
+                                <div>
+                                  <div>{order.orderNumber}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </TableCell>
+                            </TableCell>
 
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="text-sm">
-                                {new Date(order.createdAt).toLocaleDateString('en-IN')}
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="text-sm">
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN')}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(order.createdAt).toLocaleTimeString('en-IN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="space-y-1">
+                                {order.items.slice(0, 2).map((item, index) => (
+                                  <div key={index} className="text-sm flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded overflow-hidden">
+                                      <img
+                                        src={item.image}
+                                        alt={item.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium">{item.quantity} × {item.name}</div>
+                                      {item.variant && (
+                                        <div className="text-xs text-gray-500">{item.variant}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {order.items.length > 2 && (
+                                  <div className="text-xs text-gray-500">
+                                    +{order.items.length - 2} {t.orders.items_plural}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="font-semibold">
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4 text-gray-500" />
+                                ₹{order.total.toFixed(2)}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {new Date(order.createdAt).toLocaleTimeString('en-IN', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                                {order.shipping === 0 ? t.orders.freeShipping : `${t.orders.shipping}: ₹${order.shipping}`}
                               </div>
-                            </div>
-                          </TableCell>
+                            </TableCell>
 
-                          <TableCell>
-                            <div className="space-y-1">
-                              {order.items.slice(0, 2).map((item, index) => (
-                                <div key={index} className="text-sm flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded overflow-hidden">
-                                    <img
-                                      src={item.image}
-                                      alt={item.name}
-                                      className="w-full h-full object-cover"
-                                    />
+                            <TableCell>
+                              <div className="space-y-1">
+                                {getStatusBadge(order.status)}
+                                {order.status === 'shipped' && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {t.orders.estimatedDelivery}: {new Date(order.estimatedDelivery).toLocaleDateString('en-IN')}
                                   </div>
-                                  <div>
-                                    <div className="font-medium">{item.quantity} × {item.name}</div>
-                                    {item.variant && (
-                                      <div className="text-xs text-gray-500">{item.variant}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                              {order.items.length > 2 && (
-                                <div className="text-xs text-gray-500">
-                                  +{order.items.length - 2} more item{order.items.length - 2 !== 1 ? 's' : ''}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="font-semibold">
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4 text-gray-500" />
-                              ₹{order.total.toFixed(2)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {order.shipping === 0 ? 'Free shipping' : `Shipping: ₹${order.shipping}`}
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="space-y-1">
-                              {getStatusBadge(order.status)}
-                              {order.status === 'shipped' && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Est: {new Date(order.estimatedDelivery).toLocaleDateString('en-IN')}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="space-y-1">
-                              {getPaymentBadge(order.paymentStatus)}
-                              <div className="text-xs text-gray-500 capitalize">
-                                {order.paymentMethod}
+                                )}
                               </div>
-                            </div>
-                          </TableCell>
+                            </TableCell>
 
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOrderAction(order.id, "view")}
-                                className="gap-1"
-                              >
-                                <Eye className="w-3 h-3" />
-                                Details
-                              </Button>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {getPaymentBadge(order.paymentStatus)}
+                                <div className="text-xs text-gray-500 capitalize">
+                                  {order.paymentMethod}
+                                </div>
+                              </div>
+                            </TableCell>
 
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Order Actions</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleOrderAction(order.id, "invoice")}>
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Download Invoice
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
-                                    <Truck className="w-4 h-4 mr-2" />
-                                    Track Order
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOrderAction(order.id, "reorder")}>
-                                    <ShoppingBag className="w-4 h-4 mr-2" />
-                                    Reorder Items
-                                  </DropdownMenuItem>
-                                  {order.status === 'pending' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleOrderAction(order.id, "cancel")}
-                                      className="text-red-600"
-                                    >
-                                      <XCircle className="w-4 h-4 mr-2" />
-                                      Cancel Order
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOrderAction(order.id, "view")}
+                                  className="gap-1"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  {t.orders.details}
+                                </Button>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="ghost">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>{t.orders.orderActions}</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleOrderAction(order.id, "invoice")}>
+                                      <Download className="w-4 h-4 mr-2" />
+                                      {t.orders.downloadInvoice}
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem onClick={() => handleOrderAction(order.id, "help")}>
-                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                    Get Help
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                                    <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
+                                      <Truck className="w-4 h-4 mr-2" />
+                                      {t.orders.trackOrder}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOrderAction(order.id, "reorder")}>
+                                      <ShoppingBag className="w-4 h-4 mr-2" />
+                                      {t.account.reorder}
+                                    </DropdownMenuItem>
+                                    {order.status === 'pending' && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleOrderAction(order.id, "cancel")}
+                                        className="text-red-600"
+                                      >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        {t.orders.cancelOrder}
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => handleOrderAction(order.id, "help")}>
+                                      <MessageSquare className="w-4 h-4 mr-2" />
+                                      {t.orders.getHelp}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
 
               {/* Pagination */}
               {filteredOrders.length > 0 && (
-                <div className="flex items-center justify-between mt-6">
-                  <div className="text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 sm:mt-6">
+                  <div className="text-xs sm:text-sm text-gray-500">
                     Showing {filteredOrders.length} of {orders.length} orders
                   </div>
                   <div className="flex gap-2">
@@ -650,47 +752,47 @@ const Orders = () => {
           </Card>
 
           {/* Order Status Guide */}
-          <Card className="mt-8">
+          <Card className="mt-6 sm:mt-8">
             <CardHeader>
-              <CardTitle className="text-lg">Order Status Guide</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Order Status Guide</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm">Pending</span>
+                  <span className="text-xs sm:text-sm">Pending</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-sm">Processing</span>
+                  <span className="text-xs sm:text-sm">Processing</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                  <span className="text-sm">Shipped</span>
+                  <span className="text-xs sm:text-sm">Shipped</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm">Delivered</span>
+                  <span className="text-xs sm:text-sm">Delivered</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-sm">Cancelled</span>
+                  <span className="text-xs sm:text-sm">Cancelled</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                  <span className="text-sm">Refunded</span>
+                  <span className="text-xs sm:text-sm">Refunded</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Support Information */}
-          <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Need Help With Your Orders?</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Need Help With Your Orders?</h3>
+            <p className="text-sm text-gray-600 mb-3 sm:mb-4">
               Our customer support team is here to help you with any questions about your orders.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
               <a
                 href="mailto:support@biofactor.com"
                 className="text-green-600 hover:text-green-700 flex items-center gap-2"

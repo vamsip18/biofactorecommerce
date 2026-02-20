@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 interface ProfileData {
   id: string;
@@ -24,6 +25,7 @@ interface ProfileData {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const t = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,7 +90,7 @@ const Profile = () => {
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load profile");
+      toast.error(t.messages.errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -111,13 +113,13 @@ const Profile = () => {
 
       if (error) throw error;
 
-      toast.success("Profile updated");
+      toast.success(t.messages.profileUpdated);
       setEditing(false);
       loadUserData();
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update profile");
+      toast.error(t.messages.errorOccurred);
     } finally {
       setSaving(false);
     }
@@ -133,7 +135,7 @@ const Profile = () => {
     return (
       <Layout>
         <div className="h-screen flex items-center justify-center">
-          Loading...
+          {t.common.loading}
         </div>
       </Layout>
     );

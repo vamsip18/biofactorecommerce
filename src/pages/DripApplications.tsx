@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { Layout } from '@/components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   ShoppingCart, Filter, ChevronDown, X,
   Star, Truck, Shield, Check,
@@ -83,6 +84,60 @@ const getProductImage = (product: Product, variant?: ProductVariant) => {
 const getProductPrice = (product: Product, variant?: ProductVariant) => {
   const targetVariant = variant || getDefaultVariant(product);
   return targetVariant?.price || 0;
+};
+
+const getDiscountValue = (discount: Record<string, any>): number => {
+  const candidates = [
+    discount.discount_percentage,
+    discount.percentage,
+    discount.percent,
+    discount.value,
+    discount.amount,
+    discount.discount_amount
+  ];
+  const numericValue = candidates.find(value => typeof value === "number" && !Number.isNaN(value));
+  return numericValue || 0;
+};
+
+const getDiscountedPrice = (originalPrice: number, discounts: any[], product: Product): number => {
+  if (!discounts || discounts.length === 0) return originalPrice;
+
+  let collectionId: string | undefined;
+  if (product.collections) {
+    if (Array.isArray(product.collections)) {
+      collectionId = product.collections[0]?.id;
+    } else {
+      collectionId = product.collections.id;
+    }
+  }
+  const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+  const applicableDiscount = discounts.find((discount: any) => {
+    if (discount.applies_to === "all") return true;
+    if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+    switch (discount.applies_to) {
+      case "products":
+        return discount.applies_ids.includes(product.id);
+      case "collections":
+        return collectionId ? discount.applies_ids.includes(collectionId) : false;
+      case "variants":
+        return variantIds.some(id => discount.applies_ids!.includes(id));
+      default:
+        return false;
+    }
+  });
+
+  if (!applicableDiscount) return originalPrice;
+
+  const discountValue = getDiscountValue(applicableDiscount);
+  const valueType = String(applicableDiscount.value_type || applicableDiscount.discount_type || applicableDiscount.type || "").toLowerCase();
+
+  if (valueType.includes("percent")) {
+    return originalPrice - (originalPrice * discountValue / 100);
+  }
+
+  return Math.max(0, originalPrice - discountValue);
 };
 
 const getVariantDisplay = (variant: ProductVariant) => {
@@ -274,6 +329,7 @@ const FilterSection = ({
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }) => {
+  const t = useTranslation();
   const [expandedSections, setExpandedSections] = useState({
     price: true,
     availability: true,
@@ -281,8 +337,8 @@ const FilterSection = ({
   });
 
   const specialOptions = [
-    { id: "top-selling", label: "Top Selling" },
-    { id: "top-deals", label: "Top Deals" }
+    { id: "top-selling", label: t.common.topSelling },
+    { id: "top-deals", label: t.common.topDeals }
   ];
 
   const toggleSection = (section: 'price' | 'availability' | 'special') => {
@@ -296,12 +352,12 @@ const FilterSection = ({
     <div className="space-y-6">
       {/* Search */}
       <div>
-        <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+        <h3 className="font-semibold text-gray-900 mb-3">{t.common.search}</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder={t.nav.search}
             className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -315,7 +371,7 @@ const FilterSection = ({
           onClick={() => toggleSection('availability')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Availability</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.availability}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
             }`} />
         </button>
@@ -334,7 +390,7 @@ const FilterSection = ({
                 }}
                 className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
               />
-              <span className="text-sm text-gray-700">In Stock</span>
+              <span className="text-sm text-gray-700">{t.common.inStock}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -348,7 +404,7 @@ const FilterSection = ({
                 }}
                 className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
               />
-              <span className="text-sm text-gray-700">Out of Stock</span>
+              <span className="text-sm text-gray-700">{t.common.outOfStock}</span>
             </label>
           </div>
         )}
@@ -360,7 +416,7 @@ const FilterSection = ({
           onClick={() => toggleSection('price')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Price</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.price}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
             }`} />
         </button>
@@ -393,7 +449,7 @@ const FilterSection = ({
           onClick={() => toggleSection('special')}
           className="flex items-center justify-between w-full mb-3"
         >
-          <h3 className="font-semibold text-gray-900">Special</h3>
+          <h3 className="font-semibold text-gray-900">{t.common.special}</h3>
           <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
             }`} />
         </button>
@@ -430,7 +486,7 @@ const FilterSection = ({
           className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
         >
           <X className="w-4 h-4 mr-2" />
-          Clear Filters
+          {t.common.clearFilters}
         </button>
       )}
     </div>
@@ -438,13 +494,14 @@ const FilterSection = ({
 };
 
 const DripApplications = () => {
+  const t = useTranslation();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState('bestSelling');
+  const [sortBy, setSortBy] = useState('nameAsc');
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
@@ -457,6 +514,7 @@ const DripApplications = () => {
   const [loading, setLoading] = useState(true);
   const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
   const [topDealIds, setTopDealIds] = useState<string[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
   const { addToCart, getCartCount } = useCart();
 
   // State for quantity selectors in product cards
@@ -464,8 +522,10 @@ const DripApplications = () => {
 
   const productsPerPage = 12;
 
-  // Fetch drip applications products from Supabase
+  // Fetch drip applications products and meta data from Supabase
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
@@ -536,133 +596,137 @@ const DripApplications = () => {
               productDescription.includes('drip application');
           });
 
-        setProducts(dripProducts);
-
-        // Initialize quantities
         const initialQuantities: Record<string, number> = {};
         dripProducts.forEach(product => {
           initialQuantities[product.id] = 1;
         });
+
+        let nextTopSellingIds: string[] = [];
+        let nextTopDealIds: string[] = [];
+
+        if (dripProducts.length > 0) {
+          const productIds = dripProducts.map(product => product.id);
+
+          try {
+            const { data: orderItems, error: orderItemsError } = await supabase
+              .from("order_items")
+              .select("product_id, quantity")
+              .in("product_id", productIds);
+
+            if (orderItemsError) {
+              throw orderItemsError;
+            }
+
+            const totals = new Map<string, number>();
+            (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+              if (!item.product_id) return;
+              totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+            });
+
+            nextTopSellingIds = [...totals.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 4)
+              .map(([id]) => id);
+          } catch (metaError) {
+            console.error("Error loading top selling products:", metaError);
+            nextTopSellingIds = [];
+          }
+
+          try {
+            const { data: discounts, error: discountsError } = await supabase
+              .from("discounts")
+              .select("*");
+
+            if (discountsError) {
+              throw discountsError;
+            }
+
+            const now = new Date();
+            const activeDiscounts = (discounts || []).filter((discount: {
+              status: string;
+              starts_at: string;
+              ends_at: string | null;
+            }) => {
+              const startsAt = new Date(discount.starts_at);
+              const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+              return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+            });
+
+            if (isMounted) {
+              setActiveDiscounts(activeDiscounts);
+            }
+
+            const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+            const dealIds = new Set<string>();
+
+            dripProducts.forEach((product) => {
+              if (appliesToAll) {
+                dealIds.add(product.id);
+                return;
+              }
+
+              let collectionId: string | undefined;
+              if (product.collections) {
+                if (Array.isArray(product.collections)) {
+                  collectionId = product.collections[0]?.id;
+                } else {
+                  collectionId = product.collections.id;
+                }
+              }
+              const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+              const hasDeal = activeDiscounts.some((discount: {
+                applies_to: string;
+                applies_ids: string[] | null;
+              }) => {
+                if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+                switch (discount.applies_to) {
+                  case "products":
+                    return discount.applies_ids.includes(product.id);
+                  case "collections":
+                    return collectionId ? discount.applies_ids.includes(collectionId) : false;
+                  case "variants":
+                    return variantIds.some(id => discount.applies_ids!.includes(id));
+                  default:
+                    return false;
+                }
+              });
+
+              if (hasDeal) {
+                dealIds.add(product.id);
+              }
+            });
+
+            nextTopDealIds = [...dealIds];
+          } catch (metaError) {
+            console.error("Error loading active discounts:", metaError);
+            nextTopDealIds = [];
+          }
+        }
+
+        if (!isMounted) return;
+
+        setProducts(dripProducts);
         setProductQuantities(initialQuantities);
+        setTopSellingIds(nextTopSellingIds);
+        setTopDealIds(nextTopDealIds);
       } catch (err) {
         console.error("Fetch error:", err);
         toast.error("Failed to load drip applications products");
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
-  }, []);
 
-  useEffect(() => {
-    const fetchTopMeta = async () => {
-      if (products.length === 0) {
-        setTopSellingIds([]);
-        setTopDealIds([]);
-        return;
-      }
-
-      const productIds = products.map(product => product.id);
-
-      try {
-        const { data: orderItems, error: orderItemsError } = await supabase
-          .from("order_items")
-          .select("product_id, quantity")
-          .in("product_id", productIds);
-
-        if (orderItemsError) {
-          throw orderItemsError;
-        }
-
-        const totals = new Map<string, number>();
-        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
-          if (!item.product_id) return;
-          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
-        });
-
-        const topIds = [...totals.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 4)
-          .map(([id]) => id);
-
-        setTopSellingIds(topIds);
-      } catch (error) {
-        console.error("Error loading top selling products:", error);
-        setTopSellingIds([]);
-      }
-
-      try {
-        const { data: discounts, error: discountsError } = await supabase
-          .from("discounts")
-          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
-
-        if (discountsError) {
-          throw discountsError;
-        }
-
-        const now = new Date();
-        const activeDiscounts = (discounts || []).filter((discount: {
-          status: string;
-          starts_at: string;
-          ends_at: string | null;
-        }) => {
-          const startsAt = new Date(discount.starts_at);
-          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
-          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
-        });
-
-        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
-        const dealIds = new Set<string>();
-
-        products.forEach((product) => {
-          if (appliesToAll) {
-            dealIds.add(product.id);
-            return;
-          }
-
-          let collectionId: string | undefined;
-          if (product.collections) {
-            if (Array.isArray(product.collections)) {
-              collectionId = product.collections[0]?.id;
-            } else {
-              collectionId = product.collections.id;
-            }
-          }
-          const variantIds = product.product_variants?.map(variant => variant.id) || [];
-
-          const hasDeal = activeDiscounts.some((discount: {
-            applies_to: string;
-            applies_ids: string[] | null;
-          }) => {
-            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
-
-            switch (discount.applies_to) {
-              case "products":
-                return discount.applies_ids.includes(product.id);
-              case "collections":
-                return collectionId ? discount.applies_ids.includes(collectionId) : false;
-              case "variants":
-                return variantIds.some(id => discount.applies_ids!.includes(id));
-              default:
-                return false;
-            }
-          });
-
-          if (hasDeal) {
-            dealIds.add(product.id);
-          }
-        });
-
-        setTopDealIds([...dealIds]);
-      } catch (error) {
-        console.error("Error loading active discounts:", error);
-        setTopDealIds([]);
-      }
+    return () => {
+      isMounted = false;
     };
-
-    fetchTopMeta();
-  }, [products]);
+  }, []);
 
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
@@ -712,6 +776,10 @@ const DripApplications = () => {
   // Sort products
   const sortedProducts = [...searchedProducts].sort((a, b) => {
     switch (sortBy) {
+      case 'nameAsc':
+        return a.name.localeCompare(b.name);
+      case 'nameDesc':
+        return b.name.localeCompare(a.name);
       case 'priceLowHigh':
         return getProductPrice(a) - getProductPrice(b);
       case 'priceHighLow':
@@ -814,37 +882,40 @@ const DripApplications = () => {
   const ProductCard = ({
     product,
     isTopSelling,
-    isTopDeal
+    isTopDeal,
+    activeDiscounts
   }: {
     product: Product;
     isTopSelling: boolean;
     isTopDeal: boolean;
+    activeDiscounts: any[];
   }) => {
     const defaultVariant = getDefaultVariant(product);
     const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
 
     const productImage = getProductImage(product, activeVariant);
     const productPrice = getProductPrice(product, activeVariant);
+    const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
     const isInStock = isProductInStock(product, activeVariant);
     const reviews = 156;
     const rating = 4.5;
     const productQuantity = productQuantities[product.id] || 1;
     const badgeItems = [
       !isInStock
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       (isTopSelling || isProductBestSeller(product))
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isProductNew(product)
-        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
     // const badgeItems = [
     //   !isInStock
     //     ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
@@ -868,16 +939,16 @@ const DripApplications = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
+        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
         onClick={() => handleProductClick(product)}
       >
         <div className="relative flex-1">
           {/* Product Image */}
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
+          <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
               src={productImage}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
             />
 
             {/* Variant Hover Dots */}
@@ -919,40 +990,45 @@ const DripApplications = () => {
           </div>
 
           {/* Product Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
+          <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-2">
               {product.name}
             </h3>
 
-            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+            <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
-            <div className="flex items-center text-sm text-gray-500 mb-2">
+            <div className="hidden sm:flex items-center text-sm text-gray-500">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
               <span className="truncate">{getProductCategory(product)}</span>
             </div>
 
             {/* Rating */}
-            <div className="mb-3">
+            <div className="hidden sm:block">
               {renderStars(rating)}
               <p className="text-sm text-gray-500 mt-1">{reviews} reviews</p>
             </div>
 
-            <div className="flex items-center justify-between gap-4 mt-3">
-              {/* Price Section */}
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900">
-                  Rs. {productPrice.toFixed(2)}
+            <div className="mt-1 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2">
+                  <div className="text-lg font-bold text-green-600">
+                    {(isTopDeal ? discountedPrice : productPrice).toFixed(2)}
+                  </div>
+                  {isTopDeal && (
+                    <div className="text-sm text-gray-500 line-through">
+                      {productPrice.toFixed(2)}
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="hidden sm:block text-sm text-gray-500 text-right">
                   {getVariantDisplay(activeVariant)}
                 </div>
               </div>
 
-              {/* Quantity Selector and Add to Cart Button */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 {/* Quantity Selector */}
                 {isInStock && (
-                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -976,29 +1052,34 @@ const DripApplications = () => {
                     </button>
                   </div>
                 )}
+                {!isInStock && (
+                  <div className="hidden sm:flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
+                    <span className="px-3 py-2 text-xs text-gray-500">Qty</span>
+                  </div>
+                )}
 
                 {/* Add to Cart Button */}
-                <div className="flex-shrink-0">
+                <div className="flex-1 sm:flex-none min-w-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAddToCart(product, activeVariant, '', productQuantity);
                     }}
                     disabled={!isInStock}
-                    className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${!isInStock
+                    className={`w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium flex items-center justify-center gap-1 sm:gap-2 text-[11px] sm:text-xs leading-none ${!isInStock
                       ? 'bg-red-500 text-white-500 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
                   >
                     {!isInStock ? (
                       <>
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">Sold Out</span>
+                        <Clock className="w-3 h-3" />
+                        <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.common.soldOut}</span>
                       </>
                     ) : (
                       <>
-                        <ShoppingCart className="w-4 h-4" />
-                        <span className="text-sm">Add</span>
+                        <ShoppingCart className="hidden sm:inline w-3 h-3" />
+                        <span className="sm:hidden">Add</span><span className="hidden sm:inline">{t.common.addToCart}</span>
                       </>
                     )}
                   </button>
@@ -1015,37 +1096,40 @@ const DripApplications = () => {
   const ListViewItem = ({
     product,
     isTopSelling,
-    isTopDeal
+    isTopDeal,
+    activeDiscounts
   }: {
     product: Product;
     isTopSelling: boolean;
     isTopDeal: boolean;
+    activeDiscounts: any[];
   }) => {
     const defaultVariant = getDefaultVariant(product);
     const [activeVariant, setActiveVariant] = useState<ProductVariant>(defaultVariant!);
 
     const productImage = getProductImage(product, activeVariant);
     const productPrice = getProductPrice(product, activeVariant);
+    const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
     const isInStock = isProductInStock(product, activeVariant);
     const reviews = 156;
     const rating = 4.5;
     const productQuantity = productQuantities[product.id] || 1;
     const badgeItems = [
       !isInStock
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.soldOut, className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       (isTopSelling || isProductBestSeller(product))
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.bestSeller, className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isProductNew(product)
-        ? { label: "NEW", className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: t.common.new, className: "bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
 
     return (
       <motion.div
@@ -1109,9 +1193,20 @@ const DripApplications = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
               <div className="w-full sm:w-auto flex items-center gap-4">
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {productPrice.toFixed(2)}
-                  </div>
+                  {isTopDeal ? (
+                    <>
+                      <div className="text-sm text-gray-500 line-through">
+                        Rs. {productPrice.toFixed(2)}
+                      </div>
+                      <div className="text-xl md:text-2xl font-bold text-green-600">
+                        Rs. {discountedPrice.toFixed(2)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xl md:text-2xl font-bold text-gray-900">
+                      Rs. {productPrice.toFixed(2)}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-500">
                     {getVariantDisplay(activeVariant)}
                   </div>
@@ -1157,7 +1252,7 @@ const DripApplications = () => {
                     : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                 >
-                  {!isInStock ? 'Sold Out' : 'Add to Cart'}
+                  {!isInStock ? t.common.soldOut : t.common.addToCart}
                 </button>
                 {isInStock && (
                   <button
@@ -1167,7 +1262,7 @@ const DripApplications = () => {
                     }}
                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hidden sm:block"
                   >
-                    Buy Now
+                    {t.common.buyNow}
                   </button>
                 )}
               </div>
@@ -1209,11 +1304,11 @@ const DripApplications = () => {
     // <Layout>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Drip Applications</h1>
-          <p className="text-green-100">
-            Specialized formulations for efficient nutrient delivery through drip irrigation systems
+      <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-4 md:py-8">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-xl md:text-4xl font-bold mb-1 md:mb-2">{t.pages.dripApplications}</h1>
+          <p className="text-xs md:text-base text-green-100">
+            {t.pages.dripDesc}
           </p>
 
           {/* Enhanced Search Bar in Header */}
@@ -1269,67 +1364,61 @@ const DripApplications = () => {
 
           {/* Main Content */}
           <main className="lg:w-3/4">
-            {/* Mobile Filter Button */}
-            <div className="lg:hidden mb-6">
-              <button
-                onClick={() => setShowFilters(true)}
-                className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-              >
-                <Sliders className="w-4 h-4 mr-2" />
-                Show Filters
-              </button>
-            </div>
-
             {/* Results Header */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="sticky top-[108px] z-20 bg-white rounded-lg border border-gray-200 p-3 mb-4 lg:static lg:p-4 lg:mb-6">
+              <div>
                 <div>
                   <p className="text-sm text-gray-600">
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} products
+                    {totalProducts} {t.pages.productsFound}
                     {searchQuery && (
                       <span className="text-green-600 ml-2">
                         for "{searchQuery}"
                       </span>
                     )}
                   </p>
-                  <h2 className="text-xl font-semibold text-gray-900">Drip Irrigation Solutions</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">{t.pages.allDripApplications}</h2>
 
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                <div className="mt-3 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                  <button
+                    onClick={() => setShowFilters(true)}
+                    className="h-10 px-3 border border-green-200 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors inline-flex items-center justify-center whitespace-nowrap lg:hidden"
+                  >
+                    <Sliders className="w-4 h-4 mr-1.5" />
+                    Filter
+                  </button>
+
                   {/* Sort By */}
-                  <div className="relative w-full sm:w-auto">
+                  <div className="relative w-full">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                      className="h-10 appearance-none bg-white border border-green-200 rounded-lg px-3 pr-9 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
                     >
-                      <option value="bestSelling">Best Selling</option>
+                      <option value="nameAsc">A-Z</option>
+                      <option value="nameDesc">a-z</option>
                       <option value="priceLowHigh">Price: Low to High</option>
                       <option value="priceHighLow">Price: High to Low</option>
-                      <option value="newest">Newest</option>
-                      <option value="rating">Highest Rating</option>
                     </select>
                     <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
 
                   {/* View Toggle */}
-                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden h-10">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <Grid className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <List className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">List</span>
                     </button>
                   </div>
                 </div>
@@ -1337,7 +1426,7 @@ const DripApplications = () => {
             </div>
 
             {/* Products Grid/List */}
-            <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+            <div className={`${viewMode === "grid" ? "grid grid-cols-2 lg:grid-cols-4" : "flex flex-col"} gap-3 sm:gap-6 mb-8 min-h-[420px] sm:min-h-0`}>
               {currentProducts.length > 0 ? (
                 currentProducts.map((product) => (
                   viewMode === "grid" ? (
@@ -1346,6 +1435,7 @@ const DripApplications = () => {
                       product={product}
                       isTopSelling={topSellingIds.includes(product.id)}
                       isTopDeal={topDealIds.includes(product.id)}
+                      activeDiscounts={activeDiscounts}
                     />
                   ) : (
                     <ListViewItem
@@ -1353,6 +1443,7 @@ const DripApplications = () => {
                       product={product}
                       isTopSelling={topSellingIds.includes(product.id)}
                       isTopDeal={topDealIds.includes(product.id)}
+                      activeDiscounts={activeDiscounts}
                     />
                   )
                 ))
@@ -1490,8 +1581,8 @@ const DripApplications = () => {
 
             {/* Modal Content */}
             <div className="relative min-h-screen flex items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
+              <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-4 sm:p-6">
                   {/* Close Button */}
                   <button
                     onClick={closeModal}
@@ -1500,10 +1591,10 @@ const DripApplications = () => {
                     <X className="w-8 h-8" />
                   </button>
 
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
                     {/* Product Images */}
                     <div>
-                      <div className="rounded-xl overflow-hidden mb-4">
+                      <div className="aspect-square max-w-lg mx-auto rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-green-50 to-green-100">
                         <AnimatePresence mode="wait">
                           <motion.img
                             key={selectedVariant.id}
@@ -1512,7 +1603,7 @@ const DripApplications = () => {
                             initial={{ opacity: 0.4 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3 }}
-                            className="w-full h-96 object-cover"
+                            className="w-full h-full object-cover"
                           />
                         </AnimatePresence>
                       </div>
@@ -1562,18 +1653,14 @@ const DripApplications = () => {
                         )}
                       </div>
 
-                      <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                      <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4 sm:mb-2">
                         {selectedProduct.name}
                       </h2>
 
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {renderStars(4.5)}
-                        <span className="text-gray-600">(156 reviews)</span>
-                      </div>
+                      {/* Rating - REMOVED */}
 
                       {/* Price */}
-                      <div className="mb-6">
+                      <div className="mb-4 sm:mb-6">
                         <div className="flex items-center gap-3">
                           <span className="text-3xl font-bold text-gray-900">
                             Rs. {selectedVariant.price.toFixed(2)}
@@ -1671,7 +1758,7 @@ const DripApplications = () => {
                       {/* Share Button */}
                       <button
                         onClick={handleShare}
-                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
+                        className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto hidden sm:flex"
                       >
                         <Share2 className="w-5 h-5" />
                         Share

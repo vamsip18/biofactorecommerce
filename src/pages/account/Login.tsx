@@ -165,7 +165,7 @@ const Login = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-8 md:py-12">
+      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-4 md:py-4">
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto">
 
@@ -282,7 +282,7 @@ const Login = () => {
                 </div>
 
                 {/* Demo Credentials Button */}
-                <div className="pt-4 border-t">
+                {/* <div className="pt-4 border-t">
                   <button
                     type="button"
                     onClick={useDemoCredentials}
@@ -291,7 +291,7 @@ const Login = () => {
                   >
                     Try demo credentials (test@example.com / test123)
                   </button>
-                </div>
+                </div> */}
 
                 {/* Submit Button */}
                 <Button
@@ -329,7 +329,7 @@ const Login = () => {
             </div>
 
             {/* Debug Info (remove in production) */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* {process.env.NODE_ENV === 'development' && (
               <div className="mt-8 p-4 bg-gray-100 rounded-lg">
                 <p className="text-xs text-gray-600">
                   Debug: User logged in: {user ? "Yes" : "No"} |
@@ -337,7 +337,7 @@ const Login = () => {
                   Loading: {loading ? "Yes" : "No"}
                 </p>
               </div>
-            )}
+            )} */}
 
           </div>
         </div>

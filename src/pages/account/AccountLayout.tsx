@@ -1,42 +1,58 @@
 import { ReactNode } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Package, Heart, Settings, LogOut, Bell, CreditCard, MapPin, Calendar } from "lucide-react";
+import { User, Package, LogOut, MapPin } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface AccountLayoutProps {
   children: ReactNode;
   title: string;
+  userName?: string;
 }
 
 const sidebarItems = [
-  { icon: User, label: "My Profile", href: "/account" },
+  { icon: User, label: "My Profile", href: "/profile" },
   { icon: Package, label: "My Orders", href: "/account/orders" },
-  { icon: Calendar, label: "Delivery Schedule", href: "/account/schedule" },
-  { icon: Heart, label: "Favorites", href: "/account/favorites" },
   { icon: MapPin, label: "Addresses", href: "/account/addresses" },
-  { icon: CreditCard, label: "Payment Methods", href: "/account/payments" },
-  { icon: Bell, label: "Notifications", href: "/account/notifications" },
-  { icon: Settings, label: "Settings", href: "/account/settings" },
 ];
 
-export const AccountLayout = ({ children, title }: AccountLayoutProps) => {
+export const AccountLayout = ({ children, title, userName }: AccountLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to log out");
+    }
+  };
 
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-b from-white to-green-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white">
-          <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div>
-                <h1 className="text-3xl md:text-4xl font-serif font-bold mb-2">My Account</h1>
-                <p className="text-green-100/80">Manage your organic journey with us</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-bold mb-1">My Account</h1>
+                <p className="text-xs sm:text-sm text-green-100/80">Your profile, orders</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm">Welcome back, John!</span>
-                <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                <span className="text-xs sm:text-sm">
+                  Welcome back, {userName || "there"}!
+                </span>
+                <button
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                  onClick={handleLogout}
+                  aria-label="Log out"
+                >
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
@@ -44,8 +60,8 @@ export const AccountLayout = ({ children, title }: AccountLayoutProps) => {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-4 gap-8">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          <div className="grid lg:grid-cols-4 gap-4 sm:gap-8">
             {/* Sidebar */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -53,7 +69,7 @@ export const AccountLayout = ({ children, title }: AccountLayoutProps) => {
               className="lg:col-span-1"
             >
               <div className="bg-white rounded-2xl shadow-lg border border-green-200/50 overflow-hidden">
-                <nav className="p-4">
+                <nav className="p-3 sm:p-4">
                   {sidebarItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.href;
@@ -61,43 +77,26 @@ export const AccountLayout = ({ children, title }: AccountLayoutProps) => {
                       <Link
                         key={item.label}
                         to={item.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
-                          isActive
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-900 font-semibold border border-green-200"
-                            : "text-green-700 hover:bg-green-50 hover:text-green-900"
-                        }`}
+                        className={`flex items-center gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl mb-2 transition-all ${isActive
+                          ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-900 font-semibold border border-green-200"
+                          : "text-green-700 hover:bg-green-50 hover:text-green-900"
+                          }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.label}</span>
+                        <Icon className="w-4 sm:w-5 h-4 sm:h-5" />
+                        <span className="text-sm sm:text-base">{item.label}</span>
                       </Link>
                     );
                   })}
                 </nav>
-                
-                <div className="p-4 border-t border-green-200">
-                  <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-rose-600 hover:bg-rose-50 w-full transition-colors">
-                    <LogOut className="w-5 h-5" />
-                    <span>Log Out</span>
+
+                <div className="p-3 sm:p-4 border-t border-green-200">
+                  <button
+                    className="flex items-center gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-rose-600 hover:bg-rose-50 w-full transition-colors"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-4 sm:w-5 h-4 sm:h-5" />
+                    <span className="text-sm sm:text-base">Log Out</span>
                   </button>
-                </div>
-              </div>
-              
-              {/* Quick Stats */}
-              <div className="mt-6 bg-gradient-to-br from-green-600 to-emerald-700 rounded-2xl p-6 text-white">
-                <h3 className="font-bold mb-4">Your Organic Journey</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-100/80">Orders</span>
-                    <span className="font-bold">24</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-100/80">Saved CO₂</span>
-                    <span className="font-bold">45kg</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-100/80">Member Since</span>
-                    <span className="font-bold">2023</span>
-                  </div>
                 </div>
               </div>
             </motion.div>
@@ -109,10 +108,10 @@ export const AccountLayout = ({ children, title }: AccountLayoutProps) => {
               className="lg:col-span-3"
             >
               <div className="bg-white rounded-2xl shadow-lg border border-green-200/50 overflow-hidden">
-                <div className="border-b border-green-200 p-6">
-                  <h2 className="text-2xl font-bold text-green-900">{title}</h2>
+                <div className="border-b border-green-200 p-4 sm:p-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-green-900">{title}</h2>
                 </div>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {children}
                 </div>
               </div>

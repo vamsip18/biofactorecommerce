@@ -4,8 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 // Pages
 import Index from "./pages/Index";
@@ -29,13 +31,45 @@ import DripApplications from "./pages/DripApplications";
 import CropProtection from "./pages/CropProtection";
 import Agriculture from "./pages/Agriculture";
 import Aquaculture from "./pages/Aquaculture";
-import Profile from "./pages/profile";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/orders";
 import OrderDetails from "./pages/OrderDetails";
 import path from "path/win32";
 import SearchResults from "./pages/SearchResults";
+import Profile from "./pages/profile";
+
+const ScrollManager = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const hashId = decodeURIComponent(location.hash.slice(1));
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const scrollToHash = () => {
+      const target = document.getElementById(hashId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < maxAttempts) {
+        window.setTimeout(scrollToHash, 80);
+      }
+    };
+
+    scrollToHash();
+  }, [location.pathname, location.hash]);
+
+  return null;
+};
 // Create query client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,58 +82,62 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/recipes" element={<Recipes />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/customerCare" element={<CustomerCare />} />
-              <Route path="/returns" element={<CustomerCare />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/cart" element={<Cart />} />
+    <LanguageProvider>
+      <AuthProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollManager />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/recipes" element={<Recipes />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/customerCare" element={<CustomerCare />} />
+                <Route path="/returns" element={<CustomerCare />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/cart" element={<Cart />} />
 
-              {/* Agriculture Container with Tabs */}
-              <Route path="/agriculture" element={<Agriculture />} />
+                {/* Agriculture Container with Tabs */}
+                <Route path="/agriculture" element={<Agriculture />} />
 
-              {/* Aquaculture Container with Tabs */}
-              <Route path="/aquaculture" element={<Aquaculture />} />
+                {/* Aquaculture Container with Tabs */}
+                <Route path="/aquaculture" element={<Aquaculture />} />
 
-              {/* Direct product page routes (for backwards compatibility) */}
-              <Route path="/aquaculture/probiotics" element={<ProbioticsProducts />} />
-              <Route path="/aquaculture/disease-management" element={<DiseaseManagement />} />
-              <Route path="/kitchen-gardening" element={<KitchenGardening />} />
-              <Route path="/large-animals" element={<LargeAnimalsProducts />} />
-              <Route path="/agriculture/special-products" element={<SpecialApplications />} />
-              <Route path="/agriculture/soil-applications" element={<SoilApplications />} />
-              <Route path="/agriculture/foliar-applications" element={<FoliarApplications />} />
-              <Route path="/agriculture/drip-applications" element={<DripApplications />} />
-              <Route path="/agriculture/crop-protection" element={<CropProtection />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route
-                path="/order/:id"
-                element={<OrderDetails />}
-              />
-              {/* Account Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/account" element={<Account />} />
+                {/* Direct product page routes (for backwards compatibility) */}
+                <Route path="/aquaculture/probiotics" element={<ProbioticsProducts />} />
+                <Route path="/aquaculture/disease-management" element={<DiseaseManagement />} />
+                <Route path="/kitchen-gardening" element={<KitchenGardening />} />
+                <Route path="/large-animals" element={<LargeAnimalsProducts />} />
+                <Route path="/agriculture/special-products" element={<SpecialApplications />} />
+                <Route path="/agriculture/soil-applications" element={<SoilApplications />} />
+                <Route path="/agriculture/foliar-applications" element={<FoliarApplications />} />
+                <Route path="/agriculture/drip-applications" element={<DripApplications />} />
+                <Route path="/agriculture/crop-protection" element={<CropProtection />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route
+                  path="/order/:id"
+                  element={<OrderDetails />}
+                />
+                {/* Account Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/account/orders" element={<Orders />} />
 
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </CartProvider>
-    </AuthProvider>
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </CartProvider>
+      </AuthProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 export default App;

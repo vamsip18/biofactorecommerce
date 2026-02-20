@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Types based on your database schema
 interface BlogPost {
@@ -888,6 +889,7 @@ Carbon farming represents a revolutionary approach where agriculture becomes par
   }
 ];
 const Blog = () => {
+  const t = useTranslation();
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -979,12 +981,12 @@ const Blog = () => {
   };
 
   const categories = [
-    "All",
-    "Bio-Fertilizers",
-    "Microbial Technology",
-    "Organic Composting",
-    "Precision Farming",
-    "Climate Smart Agriculture"
+    t.blog.allCategories,
+    t.blog.bioFertilizers,
+    t.blog.microbialTech,
+    t.blog.organicCompost,
+    t.blog.precisionFarming,
+    t.blog.climateSmart
   ];
 
   const popularTags = [
@@ -1070,12 +1072,12 @@ const Blog = () => {
       <div className="space-y-6">
         {/* Search */}
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">{t.blog.search}</h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search articles..."
+              placeholder={t.blog.searchPlaceholder}
               className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1089,7 +1091,7 @@ const Blog = () => {
             onClick={() => toggleSection('category')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Category</h3>
+            <h3 className="font-semibold text-gray-900">{t.blog.category}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.category ? 'rotate-180' : ''
               }`} />
           </button>
@@ -1118,7 +1120,7 @@ const Blog = () => {
             onClick={() => toggleSection('tags')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Popular Tags</h3>
+            <h3 className="font-semibold text-gray-900">{t.blog.popularTags}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.tags ? 'rotate-180' : ''
               }`} />
           </button>
@@ -1148,7 +1150,7 @@ const Blog = () => {
             className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
           >
             <X className="w-4 h-4 mr-2" />
-            Clear All Filters
+            {t.blog.clearAll}
           </button>
         )}
       </div>
@@ -1182,7 +1184,7 @@ const Blog = () => {
             {post.trending && (
               <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
-                Trending
+                {t.blog.trending}
               </span>
             )}
           </div>
@@ -1288,7 +1290,7 @@ const Blog = () => {
                 {post.trending && (
                   <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
-                    Trending
+                    {t.blog.trending}
                   </span>
                 )}
               </div>
@@ -1544,7 +1546,7 @@ const Blog = () => {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading agricultural insights...</p>
+            <p className="text-gray-600">{t.blog.loading}</p>
           </div>
         </div>
       </Layout>
@@ -1555,10 +1557,10 @@ const Blog = () => {
     <Layout>
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Agriculture Knowledge Hub</h1>
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{t.blog.title}</h1>
           <p className="text-green-100">
-            Expert insights, research, and guides on sustainable farming practices and BioFact solutions
+            {t.blog.subtitle}
           </p>
         </div>
       </div>
@@ -1572,10 +1574,10 @@ const Blog = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <FilterIcon className="w-5 h-5" />
-                    Filters
+                    {t.blog.filters}
                   </h2>
                   <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                    {filteredPosts.length} articles
+                    {filteredPosts.length} {t.blog.articles}
                   </span>
                 </div>
                 <FilterSection />
@@ -1585,59 +1587,54 @@ const Blog = () => {
 
           {/* Main Content */}
           <main className="lg:w-3/4">
-            {/* Mobile Filter Button */}
-            <div className="lg:hidden mb-6">
-              <button
-                onClick={() => setShowMobileFilters(true)}
-                className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-              >
-                <Sliders className="w-4 h-4 mr-2" />
-                Show Filters
-              </button>
-            </div>
-
             {/* Results Header */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-600">
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredPosts.length)} of {filteredPosts.length} articles
+                    {t.blog.showing} {startIndex + 1}-{Math.min(endIndex, filteredPosts.length)} {t.blog.of} {filteredPosts.length} {t.blog.articles}
                   </p>
-                  <h2 className="text-xl font-semibold text-gray-900">Latest Agricultural Insights</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">{t.blog.latestInsights}</h2>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                  <button
+                    onClick={() => setShowMobileFilters(true)}
+                    className="h-10 px-3 border border-green-200 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors inline-flex items-center justify-center whitespace-nowrap"
+                  >
+                    <Sliders className="w-4 h-4 mr-1.5" />
+                    {t.blog.showFilters}
+                  </button>
+
                   {/* Sort By */}
-                  <div className="relative w-full sm:w-auto">
+                  <div className="relative w-full">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                      className="h-10 appearance-none bg-white border border-green-200 rounded-lg px-3 pr-9 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
                     >
-                      <option value="latest">Latest</option>
+                      <option value="trending">{t.blog.trending}</option>
                       <option value="popular">Most Popular</option>
-                      <option value="trending">Trending</option>
+                      <option value="latest">{t.blog.latest}</option>
                     </select>
                     <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
 
                   {/* View Toggle */}
-                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                  <div className="flex items-center border border-green-200 rounded-lg overflow-hidden h-10">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <Grid className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                      className={`w-10 h-10 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
                         }`}
                     >
                       <List className="w-5 h-5 inline" />
-                      <span className="ml-2 text-sm hidden sm:inline">List</span>
                     </button>
                   </div>
                 </div>
@@ -1709,12 +1706,12 @@ const Blog = () => {
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500 text-lg">No articles found matching your criteria.</p>
+                  <p className="text-gray-500 text-lg">{t.blog.noArticles}</p>
                   <button
                     onClick={resetFilters}
                     className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
                   >
-                    Clear Filters
+                    {t.blog.clearFilters}
                   </button>
                 </div>
               )}
@@ -1729,7 +1726,7 @@ const Blog = () => {
                   className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
                 >
                   <ChevronLeft className="w-4 h-4 inline mr-1" />
-                  Previous
+                  {t.blog.previous}
                 </button>
 
                 {[...Array(totalPages)].map((_, index) => {
@@ -1753,7 +1750,7 @@ const Blog = () => {
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
                 >
-                  Next
+                  {t.blog.next}
                   <ChevronRight className="w-4 h-4 inline ml-1" />
                 </button>
               </div>
@@ -1782,7 +1779,7 @@ const Blog = () => {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold">Filters</h2>
+                  <h2 className="text-lg font-semibold">{t.blog.filters}</h2>
                   <button onClick={() => setShowMobileFilters(false)}>
                     <X className="w-6 h-6" />
                   </button>
@@ -1792,7 +1789,7 @@ const Blog = () => {
                   className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
                   onClick={() => setShowMobileFilters(false)}
                 >
-                  Apply Filters
+                  {t.blog.applyFilters}
                 </button>
               </div>
             </motion.div>

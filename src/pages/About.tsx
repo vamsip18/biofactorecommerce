@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
+import { useTranslation } from "@/contexts/LanguageContext";
 import {
   Headphones,
   MessageCircle,
@@ -141,6 +142,7 @@ const teamMembers = [
 ];
 
 const CustomerCare = () => {
+  const t = useTranslation();
   return (
     <Layout>
       {/* Hero Section */}
@@ -170,14 +172,14 @@ const CustomerCare = () => {
               >
                 <Headphones className="w-4 h-4 text-emerald-600" />
                 <span className="text-sm font-medium text-emerald-700">
-                  Dedicated Support
+                  {t.about.dedicatedSupport}
                 </span>
               </motion.div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                <span className="text-gray-900">Customer Care</span>
+                <span className="text-gray-900">{t.about.customerCare}</span>
                 <span className="block bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                  We're Here to Help
+                  {t.about.hereToHelp}
                 </span>
               </h1>
 
@@ -297,7 +299,7 @@ const CustomerCare = () => {
             <div className="inline-flex items-center gap-2 mb-4">
               <MessageCircle className="w-5 h-5 text-emerald-600" />
               <span className="text-emerald-700 font-semibold text-sm uppercase tracking-wider">
-                Get in Touch
+                {t.about.getInTouch}
               </span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">

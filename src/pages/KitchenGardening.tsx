@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from '@/contexts/LanguageContext';
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ import {
   Heart,
   Check
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/contexts/CartContext";
 
@@ -67,13 +68,15 @@ const priceRanges = [
 ];
 
 const KitchenGardening = () => {
+  const t = useTranslation();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState('bestSelling');
+  const [sortBy, setSortBy] = useState('nameAsc');
   const [filters, setFilters] = useState({
     availability: [] as string[],
     priceRanges: [] as string[],
@@ -81,6 +84,7 @@ const KitchenGardening = () => {
   });
   const [topSellingIds, setTopSellingIds] = useState<string[]>([]);
   const [topDealIds, setTopDealIds] = useState<string[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,27 +97,25 @@ const KitchenGardening = () => {
   // Get location for URL parameters
   const location = useLocation();
 
+  const highlightIdRef = useRef<string | null>(null);
+  const hasAppliedHighlightRef = useRef(false);
+
   // Parse URL parameters on component mount and URL changes
   useEffect(() => {
-    // Parse search query from URL
     const urlParams = new URLSearchParams(location.search);
-    const query = urlParams.get('q');
-    if (query) {
-      setSearchQuery(query);
-    }
+    const query = urlParams.get('q') || '';
+    setSearchQuery(query);
 
-    // Handle highlighting a specific product
     const highlightId = urlParams.get('highlight');
-    if (highlightId) {
-      // Find and highlight the product
-      const productToHighlight = products.find(p => p.id === highlightId);
-      if (productToHighlight) {
-        handleProductClick(productToHighlight);
-      }
+    highlightIdRef.current = highlightId;
+    if (!highlightId) {
+      hasAppliedHighlightRef.current = false;
     }
-  }, [location.search, products]);
+  }, [location.search]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
@@ -144,123 +146,134 @@ const KitchenGardening = () => {
 
         if (error) throw error;
 
-        // Filter products to only show "Kitchen Gardening" collection
         const kitchenGardeningProducts = (data || []).filter(product =>
           product.collections?.title === "Kitchen Gardening"
         );
 
+        let nextTopSellingIds: string[] = [];
+        let nextTopDealIds: string[] = [];
+
+        if (kitchenGardeningProducts.length > 0) {
+          const productIds = kitchenGardeningProducts.map(product => product.id);
+
+          try {
+            const { data: orderItems, error: orderItemsError } = await supabase
+              .from("order_items")
+              .select("product_id, quantity")
+              .in("product_id", productIds);
+
+            if (orderItemsError) {
+              throw orderItemsError;
+            }
+
+            const totals = new Map<string, number>();
+            (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
+              if (!item.product_id) return;
+              totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
+            });
+
+            nextTopSellingIds = [...totals.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 4)
+              .map(([id]) => id);
+          } catch (metaError) {
+            console.error("Error loading top selling products:", metaError);
+            nextTopSellingIds = [];
+          }
+
+          try {
+            const { data: discounts, error: discountsError } = await supabase
+              .from("discounts")
+              .select("*");
+
+            if (discountsError) {
+              throw discountsError;
+            }
+
+            const now = new Date();
+            const activeDiscounts = (discounts || []).filter((discount: {
+              status: string;
+              starts_at: string;
+              ends_at: string | null;
+            }) => {
+              const startsAt = new Date(discount.starts_at);
+              const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
+              return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
+            });
+
+            setActiveDiscounts(activeDiscounts);
+
+            const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
+            const dealIds = new Set<string>();
+
+            kitchenGardeningProducts.forEach((product) => {
+              if (appliesToAll) {
+                dealIds.add(product.id);
+                return;
+              }
+
+              const collectionId = product.collections?.id;
+              const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+              const hasDeal = activeDiscounts.some((discount: {
+                applies_to: string;
+                applies_ids: string[] | null;
+              }) => {
+                if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+                switch (discount.applies_to) {
+                  case "products":
+                    return discount.applies_ids.includes(product.id);
+                  case "collections":
+                    return collectionId ? discount.applies_ids.includes(collectionId) : false;
+                  case "variants":
+                    return variantIds.some(id => discount.applies_ids!.includes(id));
+                  default:
+                    return false;
+                }
+              });
+
+              if (hasDeal) {
+                dealIds.add(product.id);
+              }
+            });
+
+            nextTopDealIds = [...dealIds];
+          } catch (metaError) {
+            console.error("Error loading active discounts:", metaError);
+            nextTopDealIds = [];
+          }
+        }
+
+        if (!isMounted) return;
+
         setProducts(kitchenGardeningProducts);
+        setTopSellingIds(nextTopSellingIds);
+        setTopDealIds(nextTopDealIds);
+
+        const highlightId = highlightIdRef.current;
+        if (highlightId && !hasAppliedHighlightRef.current) {
+          const productToHighlight = kitchenGardeningProducts.find(p => p.id === highlightId);
+          if (productToHighlight) {
+            hasAppliedHighlightRef.current = true;
+            handleProductClick(productToHighlight);
+          }
+        }
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
-  }, []);
 
-  useEffect(() => {
-    const fetchTopMeta = async () => {
-      if (products.length === 0) {
-        setTopSellingIds([]);
-        setTopDealIds([]);
-        return;
-      }
-
-      const productIds = products.map(product => product.id);
-
-      try {
-        const { data: orderItems, error: orderItemsError } = await supabase
-          .from("order_items")
-          .select("product_id, quantity")
-          .in("product_id", productIds);
-
-        if (orderItemsError) {
-          throw orderItemsError;
-        }
-
-        const totals = new Map<string, number>();
-        (orderItems || []).forEach((item: { product_id: string | null; quantity: number | null }) => {
-          if (!item.product_id) return;
-          totals.set(item.product_id, (totals.get(item.product_id) || 0) + (item.quantity || 0));
-        });
-
-        const topIds = [...totals.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 4)
-          .map(([id]) => id);
-
-        setTopSellingIds(topIds);
-      } catch (error) {
-        console.error("Error loading top selling products:", error);
-        setTopSellingIds([]);
-      }
-
-      try {
-        const { data: discounts, error: discountsError } = await supabase
-          .from("discounts")
-          .select("id, status, applies_to, applies_ids, starts_at, ends_at");
-
-        if (discountsError) {
-          throw discountsError;
-        }
-
-        const now = new Date();
-        const activeDiscounts = (discounts || []).filter((discount: {
-          status: string;
-          starts_at: string;
-          ends_at: string | null;
-        }) => {
-          const startsAt = new Date(discount.starts_at);
-          const endsAt = discount.ends_at ? new Date(discount.ends_at) : null;
-          return discount.status === "active" && startsAt <= now && (!endsAt || endsAt >= now);
-        });
-
-        const appliesToAll = activeDiscounts.some((discount: { applies_to: string }) => discount.applies_to === "all");
-        const dealIds = new Set<string>();
-
-        products.forEach((product) => {
-          if (appliesToAll) {
-            dealIds.add(product.id);
-            return;
-          }
-
-          const collectionId = product.collections?.id;
-          const variantIds = product.product_variants?.map(variant => variant.id) || [];
-
-          const hasDeal = activeDiscounts.some((discount: {
-            applies_to: string;
-            applies_ids: string[] | null;
-          }) => {
-            if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
-
-            switch (discount.applies_to) {
-              case "products":
-                return discount.applies_ids.includes(product.id);
-              case "collections":
-                return collectionId ? discount.applies_ids.includes(collectionId) : false;
-              case "variants":
-                return variantIds.some(id => discount.applies_ids!.includes(id));
-              default:
-                return false;
-            }
-          });
-
-          if (hasDeal) {
-            dealIds.add(product.id);
-          }
-        });
-
-        setTopDealIds([...dealIds]);
-      } catch (error) {
-        console.error("Error loading active discounts:", error);
-        setTopDealIds([]);
-      }
+    return () => {
+      isMounted = false;
     };
-
-    fetchTopMeta();
-  }, [products]);
+  }, []);
 
   // Helper function to get default variant
   const getDefaultVariant = (product: Product) => {
@@ -288,6 +301,54 @@ const KitchenGardening = () => {
   const getProductPrice = (product: Product) => {
     const variant = getDefaultVariant(product);
     return variant?.price || 0;
+  };
+
+  const getDiscountValue = (discount: Record<string, any>): number => {
+    const candidates = [
+      discount.discount_percentage,
+      discount.percentage,
+      discount.percent,
+      discount.value,
+      discount.amount,
+      discount.discount_amount
+    ];
+    const numericValue = candidates.find(value => typeof value === "number" && !Number.isNaN(value));
+    return numericValue || 0;
+  };
+
+  const getDiscountedPrice = (originalPrice: number, discounts: any[], product: Product): number => {
+    if (!discounts || discounts.length === 0) return originalPrice;
+
+    const collectionId = product.collections?.id;
+    const variantIds = product.product_variants?.map(variant => variant.id) || [];
+
+    // Find applicable discount
+    const applicableDiscount = discounts.find((discount: any) => {
+      if (discount.applies_to === "all") return true;
+      if (!discount.applies_ids || discount.applies_ids.length === 0) return false;
+
+      switch (discount.applies_to) {
+        case "products":
+          return discount.applies_ids.includes(product.id);
+        case "collections":
+          return collectionId ? discount.applies_ids.includes(collectionId) : false;
+        case "variants":
+          return variantIds.some(id => discount.applies_ids!.includes(id));
+        default:
+          return false;
+      }
+    });
+
+    if (!applicableDiscount) return originalPrice;
+
+    const discountValue = getDiscountValue(applicableDiscount);
+    const valueType = String(applicableDiscount.value_type || applicableDiscount.discount_type || applicableDiscount.type || "").toLowerCase();
+
+    if (valueType.includes("percent")) {
+      return originalPrice - (originalPrice * discountValue / 100);
+    }
+
+    return Math.max(0, originalPrice - discountValue);
   };
 
   // Helper function to get variant display name
@@ -364,6 +425,10 @@ const KitchenGardening = () => {
     const priceB = variantB?.price || 0;
 
     switch (sortBy) {
+      case 'nameAsc':
+        return a.name.localeCompare(b.name);
+      case 'nameDesc':
+        return b.name.localeCompare(a.name);
       case 'priceLowHigh':
         return priceA - priceB;
       case 'priceHighLow':
@@ -457,7 +522,7 @@ const KitchenGardening = () => {
 
   const handleBuyNow = () => {
     handleModalAddToCart();
-    window.location.href = "/cart";
+    navigate("/cart");
   };
 
   const handleShare = () => {
@@ -507,6 +572,7 @@ const KitchenGardening = () => {
 
   // Filter Section Component
   const FilterSection = () => {
+    const t = useTranslation();
     const [expandedSections, setExpandedSections] = useState({
       price: true,
       availability: true,
@@ -514,8 +580,8 @@ const KitchenGardening = () => {
     });
 
     const specialOptions = [
-      { id: "top-selling", label: "Top Selling" },
-      { id: "top-deals", label: "Top Deals" }
+      { id: "top-selling", label: t.common.topSelling },
+      { id: "top-deals", label: t.common.topDeals }
     ];
 
     const toggleSection = (section: 'price' | 'availability' | 'special') => {
@@ -529,13 +595,13 @@ const KitchenGardening = () => {
       <div className="space-y-6">
         {/* Search */}
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Search</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">{t.common.search}</h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search products..."
-              className="w-full pl-10 pr-3 py-2 border border-green-200 rounded-lg focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+              className="w-full pl-10 pr-3 py-2 border border-lime-200 rounded-lg focus:border-lime-400 focus:outline-none focus:ring-1 focus:ring-lime-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -548,7 +614,7 @@ const KitchenGardening = () => {
             onClick={() => toggleSection('availability')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Availability</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.availability}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.availability ? 'rotate-180' : ''
               }`} />
           </button>
@@ -565,9 +631,9 @@ const KitchenGardening = () => {
                       : filters.availability.filter(v => v !== 'in-stock');
                     setFilters({ ...filters, availability: newAvailability });
                   }}
-                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  className="w-4 h-4 text-lime-600 border-gray-300 rounded focus:ring-lime-500"
                 />
-                <span className="text-sm text-gray-700">In Stock</span>
+                <span className="text-sm text-gray-700">{t.common.inStock}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -579,9 +645,9 @@ const KitchenGardening = () => {
                       : filters.availability.filter(v => v !== 'out-of-stock');
                     setFilters({ ...filters, availability: newAvailability });
                   }}
-                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  className="w-4 h-4 text-lime-600 border-gray-300 rounded focus:ring-lime-500"
                 />
-                <span className="text-sm text-gray-700">Out of Stock</span>
+                <span className="text-sm text-gray-700">{t.common.outOfStock}</span>
               </label>
             </div>
           )}
@@ -593,7 +659,7 @@ const KitchenGardening = () => {
             onClick={() => toggleSection('price')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Price</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.price}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.price ? 'rotate-180' : ''
               }`} />
           </button>
@@ -611,7 +677,7 @@ const KitchenGardening = () => {
                         : filters.priceRanges.filter(v => v !== range.id);
                       setFilters({ ...filters, priceRanges: newPriceRanges });
                     }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    className="w-4 h-4 text-lime-600 border-gray-300 rounded focus:ring-lime-500"
                   />
                   <span className="text-sm text-gray-700">{range.label}</span>
                 </label>
@@ -626,7 +692,7 @@ const KitchenGardening = () => {
             onClick={() => toggleSection('special')}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h3 className="font-semibold text-gray-900">Special</h3>
+            <h3 className="font-semibold text-gray-900">{t.common.special}</h3>
             <ChevronDown className={`w-4 h-4 transition-transform ${expandedSections.special ? 'rotate-180' : ''
               }`} />
           </button>
@@ -644,7 +710,7 @@ const KitchenGardening = () => {
                         : filters.special.filter(value => value !== option.id);
                       setFilters({ ...filters, special: nextSpecial });
                     }}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    className="w-4 h-4 text-lime-600 border-gray-300 rounded focus:ring-lime-500"
                   />
                   <span className="text-sm text-gray-700">{option.label}</span>
                 </label>
@@ -662,10 +728,10 @@ const KitchenGardening = () => {
               // Clear the URL parameter
               window.history.replaceState({}, document.title, window.location.pathname);
             }}
-            className="w-full py-2 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
+            className="w-full py-2 px-4 border border-lime-200 text-lime-700 rounded-lg font-medium hover:bg-lime-50 transition-colors flex items-center justify-center"
           >
             <X className="w-4 h-4 mr-2" />
-            Clear Filters
+            {t.common.clearFilters}
           </button>
         )}
       </div>
@@ -673,45 +739,46 @@ const KitchenGardening = () => {
   };
 
   // Product Card Component - Grid View
-  const ProductCard = ({ product }: { product: Product }) => {
+  const ProductCard = ({ product, activeDiscounts }: { product: Product; activeDiscounts: any[] }) => {
     const variant = getDefaultVariant(product);
     if (!variant) return null;
 
     const productImage = getProductImage(product);
     const productPrice = getProductPrice(product);
+    const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
     const productCategory = getProductCategory(product);
     const isInStock = variant.stock > 0;
     const isTopSelling = topSellingIds.includes(product.id);
     const isTopDeal = topDealIds.includes(product.id);
     const badgeItems = [
       !isInStock
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopSelling
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -5 }}
-        className="group bg-white rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col min-h-[520px]"
+        className="group bg-white rounded-lg border border-gray-200 hover:border-lime-300 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
         onClick={() => handleProductClick(product)}
       >
         <div className="relative flex-1">
           {/* Product Image */}
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-50 to-white">
+          <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-green-50 to-white">
             <img
               src={productImage}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
             />
 
             {/* Badges */}
@@ -736,40 +803,45 @@ const KitchenGardening = () => {
           </div>
 
           {/* Product Info */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors mb-2 line-clamp-2">
+          <div className="p-3 sm:p-4 flex-1 flex flex-col gap-2">
+            <h3 className="font-semibold text-gray-900 group-hover:text-lime-700 transition-colors line-clamp-2">
               {product.name}
             </h3>
 
-            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{product.description}</p>
+            <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
-            <div className="flex items-center text-sm text-gray-500 mb-2">
+            <div className="hidden sm:flex items-center text-sm text-gray-500">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
               <span className="truncate">Kitchen Gardening</span>
             </div>
 
-            <div className="flex items-center justify-between gap-4 mt-3">
-              {/* Price Section */}
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900">
-                  Rs. {productPrice.toFixed(2)}
+            <div className="mt-1 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2">
+                  <div className="text-lg font-bold text-lime-600">
+                    {(isTopDeal ? discountedPrice : productPrice).toFixed(2)}
+                  </div>
+                  {isTopDeal && (
+                    <div className="text-sm text-gray-500 line-through">
+                      {productPrice.toFixed(2)}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Quantity and Add to Cart */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg">
+              <div className={`${!isInStock ? 'hidden' : 'flex flex-col sm:flex-row'} gap-1 sm:gap-2 min-w-0`}>
+                <div className="flex items-center border border-gray-300 rounded-lg text-xs shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, -1);
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-1 py-0.5 text-gray-600 hover:text-lime-700 hover:bg-gray-50"
                     disabled={(quantities[product.id] || 1) <= 1}
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="px-2 py-1 border-x border-gray-300 min-w-8 text-center text-sm">
+                  <span className="px-1 py-0.5 border-x border-gray-300 min-w-6 text-center text-xs">
                     {quantities[product.id] || 1}
                   </span>
                   <button
@@ -777,7 +849,7 @@ const KitchenGardening = () => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, 1);
                     }}
-                    className="px-2 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-1 py-0.5 text-gray-600 hover:text-lime-700 hover:bg-gray-50"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -789,20 +861,20 @@ const KitchenGardening = () => {
                     handleAddToCart(product, e);
                   }}
                   disabled={!isInStock}
-                  className={`px-3 py-2 rounded-lg font-medium flex items-center gap-1 ${!isInStock
+                  className={`flex-1 min-w-0 w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium flex items-center justify-center gap-1 text-[11px] sm:text-xs leading-none ${!isInStock
                     ? 'bg-red-500 text-white-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-lime-600 hover:bg-lime-700 text-white'
                     }`}
                 >
                   {!isInStock ? (
                     <>
                       <Clock className="w-3 h-3" />
-                      <span className="text-xs">Sold Out</span>
+                      <span className="text-[11px] sm:text-xs whitespace-nowrap">{t.common.soldOut}</span>
                     </>
                   ) : (
                     <>
-                      <ShoppingCart className="w-3 h-3" />
-                      <span className="text-xs">Add</span>
+                      <ShoppingCart className="hidden sm:inline w-3 h-3" />
+                      <span className="sm:hidden">Add</span><span className="hidden sm:inline">{t.common.addToCart}</span>
                     </>
                   )}
                 </button>
@@ -815,34 +887,35 @@ const KitchenGardening = () => {
   };
 
   // List View Item Component
-  const ListViewItem = ({ product }: { product: Product }) => {
+  const ListViewItem = ({ product, activeDiscounts }: { product: Product; activeDiscounts: any[] }) => {
     const variant = getDefaultVariant(product);
     if (!variant) return null;
 
     const productImage = getProductImage(product);
     const productPrice = getProductPrice(product);
+    const discountedPrice = getDiscountedPrice(productPrice, activeDiscounts, product);
     const isInStock = variant.stock > 0;
     const isTopSelling = topSellingIds.includes(product.id);
     const isTopDeal = topDealIds.includes(product.id);
     const badgeItems = [
       !isInStock
-        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Sold Out", className: "bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopSelling
-        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Best Seller", className: "bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null,
       isTopDeal
-        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded" }
+        ? { label: "Top Deal", className: "bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded-full" }
         : null
     ]
       .filter((badge): badge is { label: string; className: string } => Boolean(badge))
-      .slice(0, 2);
+      .slice(0, 1);
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg border border-gray-200 hover:border-green-300 p-4 md:p-6 cursor-pointer"
+        className="bg-white rounded-lg border border-gray-200 hover:border-lime-300 p-4 md:p-6 cursor-pointer"
         onClick={() => handleProductClick(product)}
       >
         <div className="flex flex-col md:flex-row gap-4 md:gap-6">
@@ -879,9 +952,20 @@ const KitchenGardening = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
               <div className="w-full sm:w-auto flex items-center gap-4">
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-gray-900">
-                    Rs. {productPrice.toFixed(2)}
-                  </div>
+                  {isTopDeal ? (
+                    <>
+                      <div className="text-sm text-gray-500 line-through">
+                        Rs. {productPrice.toFixed(2)}
+                      </div>
+                      <div className="text-xl md:text-2xl font-bold text-lime-600">
+                        Rs. {discountedPrice.toFixed(2)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xl md:text-2xl font-bold text-gray-900">
+                      Rs. {productPrice.toFixed(2)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Quantity Selector */}
@@ -891,7 +975,7 @@ const KitchenGardening = () => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, -1);
                     }}
-                    className="px-3 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-3 py-1 text-gray-600 hover:text-lime-700 hover:bg-gray-50"
                     disabled={(quantities[product.id] || 1) <= 1}
                   >
                     <Minus className="w-3 h-3" />
@@ -904,7 +988,7 @@ const KitchenGardening = () => {
                       e.stopPropagation();
                       handleQuantityChange(product.id, 1);
                     }}
-                    className="px-3 py-1 text-gray-600 hover:text-green-700 hover:bg-gray-50"
+                    className="px-3 py-1 text-gray-600 hover:text-lime-700 hover:bg-gray-50"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -920,10 +1004,10 @@ const KitchenGardening = () => {
                   disabled={!isInStock}
                   className={`w-full sm:w-auto px-6 py-2 rounded-lg font-medium ${!isInStock
                     ? 'bg-red-500 text-white-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-lime-600 hover:bg-lime-700 text-white'
                     }`}
                 >
-                  {!isInStock ? 'Sold Out' : 'Add to Cart'}
+                  {!isInStock ? t.common.soldOut : t.common.addToCart}
                 </button>
               </div>
             </div>
@@ -938,7 +1022,7 @@ const KitchenGardening = () => {
       <Layout>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="w-16 h-16 border-4 border-lime-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Loading Kitchen Gardening products...</p>
           </div>
         </div>
@@ -950,11 +1034,11 @@ const KitchenGardening = () => {
     <Layout>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-900 to-green-900 text-white py-8">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Kitchen Gardening</h1>
-            <p className="text-green-100">
-              Grow fresh, organic vegetables right in your home with Biofactor's premium gardening solutions
+        <div className="bg-gradient-to-r from-lime-900 to-lime-900 text-white py-4 md:py-8">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-xl md:text-4xl font-bold mb-1 md:mb-2">{t.pages.kitchenGardening}</h1>
+            <p className="text-xs md:text-base text-lime-100">
+              {t.pages.kitchenDesc}
             </p>
           </div>
         </div>
@@ -962,7 +1046,7 @@ const KitchenGardening = () => {
         {/* Search Results Indicator */}
         {searchQuery && (
           <div className="container mx-auto px-4 pt-6">
-            <div className="bg-white rounded-lg border border-green-200 p-4 mb-6">
+            <div className="bg-white rounded-lg border border-lime-200 p-4 mb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900">Search Results</h3>
@@ -976,7 +1060,7 @@ const KitchenGardening = () => {
                     // Clear the URL parameter
                     window.history.replaceState({}, document.title, window.location.pathname);
                   }}
-                  className="px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 border border-lime-200 text-lime-700 rounded-lg font-medium hover:bg-lime-50 transition-colors flex items-center gap-2"
                 >
                   <X className="w-4 h-4" />
                   Clear Search
@@ -997,7 +1081,7 @@ const KitchenGardening = () => {
                       <Filter className="w-5 h-5" />
                       Filters
                     </h2>
-                    <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+                    <span className="bg-lime-100 text-lime-800 text-sm font-medium px-3 py-1 rounded-full">
                       {filteredProducts.length} products
                     </span>
                   </div>
@@ -1009,60 +1093,55 @@ const KitchenGardening = () => {
 
             {/* Main Content */}
             <main className="lg:w-3/4">
-              {/* Mobile Filter Button */}
-              <div className="lg:hidden mb-6">
-                <button
-                  onClick={() => setShowFilters(true)}
-                  className="w-full py-3 px-4 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center"
-                >
-                  <Sliders className="w-4 h-4 mr-2" />
-                  Show Filters
-                </button>
-              </div>
-
               {/* Results Header */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="sticky top-[70px] z-20 bg-white rounded-lg border border-gray-200 p-3 mb-4 lg:static lg:p-4 lg:mb-6">
+                <div>
                   <div>
                     <p className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} Kitchen Gardening products
+                      {totalProducts} {t.pages.productsFound}
                     </p>
-                    <h2 className="text-xl font-semibold text-gray-900">Kitchen Gardening Solutions</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t.pages.allKitchenGardening}</h2>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                  <div className="mt-3 grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                    <button
+                      onClick={() => setShowFilters(true)}
+                      className="h-10 px-3 border border-lime-200 text-lime-700 rounded-lg text-sm font-medium hover:bg-lime-50 transition-colors inline-flex items-center justify-center whitespace-nowrap lg:hidden"
+                    >
+                      <Sliders className="w-4 h-4 mr-1.5" />
+                      Filter
+                    </button>
+
                     {/* Sort By */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full">
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-green-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 w-full"
+                        className="h-10 appearance-none bg-white border border-lime-200 rounded-lg px-3 pr-9 text-sm text-gray-700 focus:border-lime-400 focus:outline-none focus:ring-1 focus:ring-lime-400 w-full"
                       >
-                        <option value="bestSelling">Best Selling</option>
+                        <option value="nameAsc">A-Z</option>
+                        <option value="nameDesc">a-z</option>
                         <option value="priceLowHigh">Price: Low to High</option>
                         <option value="priceHighLow">Price: High to Low</option>
-                        <option value="rating">Highest Rating</option>
                       </select>
                       <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex items-center border border-green-200 rounded-lg overflow-hidden w-full sm:w-auto">
+                    <div className="flex items-center border border-lime-200 rounded-lg overflow-hidden h-10">
                       <button
                         onClick={() => setViewMode("grid")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "grid" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`w-10 h-10 text-center ${viewMode === "grid" ? "bg-lime-50 text-lime-700" : "text-gray-500"
                           }`}
                       >
                         <Grid className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">Grid</span>
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
-                        className={`flex-1 sm:flex-none p-2 text-center ${viewMode === "list" ? "bg-green-50 text-green-700" : "text-gray-500"
+                        className={`w-10 h-10 text-center ${viewMode === "list" ? "bg-lime-50 text-lime-700" : "text-gray-500"
                           }`}
                       >
                         <List className="w-5 h-5 inline" />
-                        <span className="ml-2 text-sm hidden sm:inline">List</span>
                       </button>
                     </div>
                   </div>
@@ -1070,7 +1149,7 @@ const KitchenGardening = () => {
               </div>
 
               {/* Products Grid/List */}
-              <div className={`${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col"} gap-6 mb-8`}>
+              <div className={`${viewMode === "grid" ? "grid grid-cols-2 lg:grid-cols-4" : "flex flex-col"} gap-3 sm:gap-6 mb-8 min-h-[420px] sm:min-h-0`}>
                 {currentProducts.length > 0 ? (
                   currentProducts.map((product) => {
                     if (!product.product_variants || product.product_variants.length === 0) {
@@ -1078,9 +1157,9 @@ const KitchenGardening = () => {
                     }
 
                     return viewMode === "grid" ? (
-                      <ProductCard key={product.id} product={product} />
+                      <ProductCard key={product.id} product={product} activeDiscounts={activeDiscounts} />
                     ) : (
-                      <ListViewItem key={product.id} product={product} />
+                      <ListViewItem key={product.id} product={product} activeDiscounts={activeDiscounts} />
                     );
                   })
                 ) : (
@@ -1091,7 +1170,7 @@ const KitchenGardening = () => {
                         setFilters({ availability: [], priceRanges: [], special: [] });
                         setSearchQuery('');
                       }}
-                      className="mt-4 px-4 py-2 border border-green-200 text-green-700 rounded-lg font-medium hover:bg-green-50"
+                      className="mt-4 px-4 py-2 border border-lime-200 text-lime-700 rounded-lg font-medium hover:bg-lime-50"
                     >
                       Clear Filters
                     </button>
@@ -1105,7 +1184,7 @@ const KitchenGardening = () => {
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                    className="px-4 py-2 border border-lime-200 text-lime-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-lime-50"
                   >
                     <ChevronLeft className="w-4 h-4 inline mr-1" />
                     Previous
@@ -1118,8 +1197,8 @@ const KitchenGardening = () => {
                         key={index}
                         onClick={() => setCurrentPage(pageNum)}
                         className={`px-4 py-2 rounded-lg ${currentPage === pageNum
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "border border-green-200 text-green-700 hover:bg-green-50"
+                          ? "bg-lime-600 text-white hover:bg-lime-700"
+                          : "border border-lime-200 text-lime-700 hover:bg-lime-50"
                           }`}
                       >
                         {pageNum}
@@ -1130,7 +1209,7 @@ const KitchenGardening = () => {
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className="px-4 py-2 border border-green-200 text-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-50"
+                    className="px-4 py-2 border border-lime-200 text-lime-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-lime-50"
                   >
                     Next
                     <ChevronRight className="w-4 h-4 inline ml-1" />
@@ -1169,7 +1248,7 @@ const KitchenGardening = () => {
                   <FilterSection
                   />
                   <button
-                    className="w-full mt-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+                    className="w-full mt-6 py-3 bg-lime-600 text-white rounded-lg font-medium hover:bg-lime-700"
                     onClick={() => setShowFilters(false)}
                   >
                     Apply Filters
@@ -1201,7 +1280,7 @@ const KitchenGardening = () => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+                  className="relative bg-white rounded-2xl shadow-2xl max-w-2xl lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto"
                 >
                   <div className="p-6">
                     {/* Close Button */}
@@ -1212,7 +1291,7 @@ const KitchenGardening = () => {
                       <X className="w-8 h-8" />
                     </button>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
                       {/* Product Images */}
                       <div>
                         <div className="rounded-xl overflow-hidden mb-4 relative">
@@ -1225,7 +1304,7 @@ const KitchenGardening = () => {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.25 }}
-                              className="w-full h-96 object-cover"
+                              className="w-full h-64 sm:h-96 object-cover"
                             />
                           </AnimatePresence>
                           {selectedVariant?.stock === 0 && (
@@ -1243,8 +1322,8 @@ const KitchenGardening = () => {
                                 key={variant.id}
                                 onClick={() => setSelectedVariant(variant)}
                                 className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${selectedVariant?.id === variant.id
-                                  ? "border-green-600"
-                                  : "border-gray-200 hover:border-green-400"
+                                  ? "border-lime-600"
+                                  : "border-gray-200 hover:border-lime-400"
                                   }`}
                               >
                                 <img
@@ -1258,33 +1337,46 @@ const KitchenGardening = () => {
                         )}
 
                         {/* Gardening Icon */}
-                        <div className="flex items-center justify-center gap-2 text-green-600 mt-4">
+                        <div className="flex items-center justify-center gap-2 text-lime-600 mt-4">
                           <Leaf className="w-6 h-6" />
                           <span className="text-lg font-semibold">Kitchen Gardening Product</span>
                         </div>
                       </div>
 
                       {/* Product Details */}
-                      <div>
-                        <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                      <div className="space-y-4 sm:space-y-6">
+                        <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">
                           {selectedProduct.name}
                         </h2>
 
                         {/* Price */}
                         <div className="mb-6">
                           <div className="flex items-center gap-3">
-                            <span className="text-3xl font-bold text-gray-900">
-                              Rs. {selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
-                            </span>
+                            {topDealIds.includes(selectedProduct.id) && selectedVariant ? (
+                              <>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-lg text-gray-500 line-through">
+                                    Rs. {selectedVariant.price.toFixed(2)}
+                                  </span>
+                                  <span className="text-2xl sm:text-3xl font-bold text-lime-600">
+                                    Rs. {getDiscountedPrice(selectedVariant.price, activeDiscounts, selectedProduct).toFixed(2)}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                Rs. {selectedVariant ? selectedVariant.price.toFixed(2) : "0.00"}
+                              </span>
+                            )}
                           </div>
-                          <p className={`font-semibold mt-1 ${selectedVariant?.stock && selectedVariant.stock > 0 ? 'text-green-600' : 'text-red-600'
+                          <p className={`font-semibold mt-1 ${selectedVariant?.stock && selectedVariant.stock > 0 ? 'text-lime-600' : 'text-red-600'
                             }`}>
                             {selectedVariant?.stock && selectedVariant.stock > 0 ? 'In Stock' : 'Sold Out'}
                           </p>
                         </div>
 
                         {/* Shipping Info */}
-                        <div className="bg-green-50 rounded-xl p-4 mb-6">
+                        <div className="bg-lime-50 rounded-xl p-4 mb-6">
                           <p className="text-gray-600">
                             <Truck className="inline w-5 h-5 mr-2" />
                             {selectedVariant && selectedVariant.price > 999 ? "Free shipping" : "Shipping calculated at checkout"}
@@ -1301,8 +1393,8 @@ const KitchenGardening = () => {
                                   key={variant.id}
                                   onClick={() => setSelectedVariant(variant)}
                                   className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${selectedVariant?.id === variant.id
-                                    ? "border-green-600 bg-green-50 text-green-700"
-                                    : "border-gray-300 hover:border-green-300"
+                                    ? "border-lime-600 bg-lime-50 text-lime-700"
+                                    : "border-gray-300 hover:border-lime-300"
                                     }`}
                                 >
                                   {variant.image_url && (
@@ -1350,25 +1442,25 @@ const KitchenGardening = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                           <button
                             onClick={handleModalAddToCart}
-                            className="py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            className="py-4 bg-lime-600 text-white rounded-xl font-semibold hover:bg-lime-700 transition-colors flex items-center justify-center gap-2"
                             disabled={!selectedVariant || selectedVariant.stock === 0}
                           >
                             <ShoppingCart className="w-6 h-6" />
-                            {!selectedVariant || selectedVariant.stock === 0 ? 'Sold Out' : 'Add to Cart'}
+                            {!selectedVariant || selectedVariant.stock === 0 ? t.common.soldOut : t.common.addToCart}
                           </button>
                           <button
                             onClick={handleBuyNow}
                             className="py-4 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
                             disabled={!selectedVariant || selectedVariant.stock === 0}
                           >
-                            Buy it now
+                            {t.common.buyNow}
                           </button>
                         </div>
 
                         {/* Share Button */}
                         <button
                           onClick={handleShare}
-                          className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto"
+                          className="py-3 px-6 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 mx-auto hidden sm:flex"
                         >
                           <Share2 className="w-5 h-5" />
                           Share
@@ -1386,12 +1478,12 @@ const KitchenGardening = () => {
                     <div className="mt-12 pt-8 border-t border-gray-200">
                       <h3 className="text-2xl font-bold text-gray-900 mb-6">Specifications</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-green-50 p-6 rounded-xl">
+                        <div className="bg-lime-50 p-6 rounded-xl">
                           <h4 className="font-semibold text-gray-900 mb-2">Category</h4>
                           <p className="text-gray-600">Kitchen Gardening</p>
                         </div>
                         {selectedVariant && (
-                          <div className="bg-green-50 p-6 rounded-xl">
+                          <div className="bg-lime-50 p-6 rounded-xl">
                             <h4 className="font-semibold text-gray-900 mb-2">Available Size</h4>
                             <p className="text-gray-600">
                               {getVariantDisplay(selectedVariant)}
@@ -1440,7 +1532,7 @@ const KitchenGardening = () => {
                                           e.stopPropagation();
                                           handleAddToCart(product, e);
                                         }}
-                                        className="px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                                        className="px-4 py-1 bg-lime-600 text-white rounded-lg text-sm hover:bg-lime-700"
                                       >
                                         Add
                                       </button>
@@ -1464,7 +1556,7 @@ const KitchenGardening = () => {
           <div className="relative">
             <Link
               to="/cart"
-              className="w-16 h-16 bg-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-green-700 transition-colors"
+              className="w-16 h-16 bg-lime-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-lime-700 transition-colors"
             >
               <ShoppingCart className="w-8 h-8" />
             </Link>
