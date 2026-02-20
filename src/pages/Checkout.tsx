@@ -289,213 +289,496 @@ const Checkout = () => {
   }
 
   return (
-  <Layout>
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-white to-green-50 py-4 sm:py-8">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6">
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-b from-white to-green-50 py-3 sm:py-8">
+        <div className="container mx-auto px-2 sm:px-4">
+          {/* Back to cart */}
+          <Link to="/cart" className="inline-flex items-center text-green-700 hover:text-green-800 mb-3 sm:mb-8 text-sm sm:text-base">
+            <ArrowLeft className="w-4 h-4 mr-1.5 sm:mr-2" />
+            {t.nav.cart}
+          </Link>
 
-        {/* Back */}
-        <Link
-          to="/cart"
-          className="inline-flex items-center text-green-700 hover:text-green-800 mb-4 sm:mb-8 text-sm"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {t.nav.cart}
-        </Link>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-
-          {/* LEFT COLUMN */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-
-            {/* DELIVERY ADDRESS */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6"
-            >
-              <h2 className="text-base sm:text-2xl font-bold mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-green-600" />
-                Delivery Address
-              </h2>
-
-              <div className="border border-green-200 rounded-xl p-4 sm:p-6 bg-green-50/50 space-y-4">
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs">Full Name *</Label>
-                    <Input
-                      name="name"
-                      value={newAddress.name}
-                      onChange={handleNewAddressChange}
-                      placeholder="Rahul Sharma"
-                      className="mt-1 w-full text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Phone *</Label>
-                    <Input
-                      name="phone"
-                      value={newAddress.phone}
-                      onChange={handleNewAddressChange}
-                      placeholder="9876543210"
-                      className="mt-1 w-full text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Street *</Label>
-                  <Input
-                    name="street"
-                    value={newAddress.street}
-                    onChange={handleNewAddressChange}
-                    placeholder="Flat 302, Green Residency, MG Road"
-                    className="mt-1 w-full text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Input
-                    name="city"
-                    value={newAddress.city}
-                    onChange={handleNewAddressChange}
-                    placeholder="Hyderabad"
-                    className="w-full text-sm"
-                  />
-                  <Input
-                    name="state"
-                    value={newAddress.state}
-                    onChange={handleNewAddressChange}
-                    placeholder="Telangana"
-                    className="w-full text-sm"
-                  />
-                  <Input
-                    name="postalCode"
-                    value={newAddress.postalCode}
-                    onChange={handleNewAddressChange}
-                    placeholder="500081"
-                    className="w-full text-sm"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">Country</Label>
-                  <Input
-                    value={newAddress.country}
-                    disabled
-                    className="mt-1 w-full text-sm"
-                  />
-                </div>
-              </div>
-            </motion.div>
-
-            {/* PAYMENT METHOD */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6"
-            >
-              <h2 className="text-base sm:text-2xl font-bold mb-4 flex items-center">
-                <CreditCard className="w-5 h-5 mr-2 text-green-600" />
-                Payment Method
-              </h2>
-
-              <RadioGroup
-                value={selectedPaymentMethod}
-                onValueChange={setSelectedPaymentMethod}
-                className="space-y-3"
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-6">
+            {/* Left Column - Forms */}
+            <div className="lg:col-span-2 space-y-2 sm:space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg p-2.5 sm:p-6"
               >
-                {paymentMethods.map((method) => (
-                  <Label
-                    key={method.id}
-                    htmlFor={method.id}
-                    className={`flex items-center justify-between border rounded-xl p-4 cursor-pointer transition
-                    ${selectedPaymentMethod === method.id
-                      ? "border-green-600 bg-green-50"
-                      : "border-gray-200 hover:border-green-400"}`}
+                <h2 className="text-sm sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-6 flex items-center">
+                  <User className="w-4 sm:w-6 h-4 sm:h-6 mr-1.5 sm:mr-3 text-green-600" />
+                  Delivery Address
+                </h2>
+
+                {/* Address Form - Always Visible */}
+                <div className="border border-green-200 rounded-lg sm:rounded-xl p-2.5 sm:p-4 bg-green-50/50">
+                  <h3 className="font-semibold text-xs sm:text-base text-gray-700 mb-2 sm:mb-3">Shipping Address</h3>
+                  <div className="space-y-1.5 sm:space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-3">
+                      <div>
+                        <Label htmlFor="name" className="text-xs font-medium">Full Name *</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={newAddress.name}
+                          onChange={handleNewAddressChange}
+                          placeholder="John Doe"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone" className="text-xs font-medium">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          value={newAddress.phone}
+                          onChange={handleNewAddressChange}
+                          placeholder="+91 9876543210"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="street" className="text-xs font-medium">Street Address *</Label>
+                      <Input
+                        id="street"
+                        name="street"
+                        value={newAddress.street}
+                        onChange={handleNewAddressChange}
+                        placeholder="123 Main Street, Apt 4B"
+                        className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-3">
+                      <div>
+                        <Label htmlFor="city" className="text-xs font-medium">City *</Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          value={newAddress.city}
+                          onChange={handleNewAddressChange}
+                          placeholder="Mumbai"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state" className="text-xs font-medium">State *</Label>
+                        <Input
+                          id="state"
+                          name="state"
+                          value={newAddress.state}
+                          onChange={handleNewAddressChange}
+                          placeholder="Maharashtra"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <Label htmlFor="postalCode" className="text-xs font-medium">Postal Code *</Label>
+                        <Input
+                          id="postalCode"
+                          name="postalCode"
+                          value={newAddress.postalCode}
+                          onChange={handleNewAddressChange}
+                          placeholder="400001"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="country" className="text-xs font-medium">Country</Label>
+                      <Input
+                        id="country"
+                        name="country"
+                        value={newAddress.country}
+                        onChange={handleNewAddressChange}
+                        className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                        disabled
+                      />
+                    </div>
+
+                    {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-x-0 sm:space-x-4">
+                        <div className="flex flex-wrap items-center space-x-2 sm:space-x-4 gap-1">
+                          <RadioGroup
+                            value={newAddress.type}
+                            onValueChange={(value: 'home' | 'work' | 'other') =>
+                              setNewAddress(prev => ({ ...prev, type: value }))
+                            }
+                            className="flex flex-wrap gap-2 sm:gap-4"
+                          >
+                            <div className="flex items-center space-x-1 sm:space-x-2">
+                              <RadioGroupItem value="home" id="home" />
+
+                              <Label htmlFor="home" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Home className="w-3 sm:w-4 h-3 sm:h-4" />
+                                Home
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-1 sm:space-x-2">
+                              <RadioGroupItem value="work" id="work" />
+                              <Label htmlFor="work" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Building className="w-3 sm:w-4 h-3 sm:h-4" />
+                                Work
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-1 sm:space-x-2">
+                              <RadioGroupItem value="other" id="other" />
+                              <Label htmlFor="other" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <MapPin className="w-3 sm:w-4 h-3 sm:h-4" />
+                                Other
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="isDefault"
+                          checked={newAddress.isDefault}
+                          onCheckedChange={(checked) =>
+                            setNewAddress(prev => ({ ...prev, isDefault: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="isDefault" className="text-xs sm:text-sm">
+                          Save for future
+                        </Label>
+                      </div>
+                    </div> */}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Payment Method */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg p-2.5 sm:p-6"
+              >
+                <h2 className="text-sm sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4 flex items-center">
+                  <CreditCard className="w-4 sm:w-6 h-4 sm:h-6 mr-1.5 sm:mr-3 text-green-600" />
+                  Payment Method
+                </h2>
+
+                <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                  <div className="space-y-1.5 sm:space-y-3">
+                    {paymentMethods.map((method) => (
+                      <div key={method.id} className="flex items-start space-x-1.5 sm:space-x-2">
+                        <RadioGroupItem value={method.id} id={method.id} className="mt-1 sm:mt-0.5" />
+                        <Label htmlFor={method.id} className="flex-1 cursor-pointer">
+                          <div className={`p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all ${selectedPaymentMethod === method.id
+                            ? 'border-green-600 bg-green-50'
+                            : 'border-gray-200 hover:border-green-300'
+                            }`}>
+                            <div className="flex items-start gap-1.5 sm:gap-3">
+                              <div className={`p-1.5 sm:p-2 rounded-md text-xs sm:text-lg flex-shrink-0 ${method.id === 'card' ? 'bg-blue-100 text-blue-600' :
+                                method.id === 'upi' ? 'bg-purple-100 text-purple-600' :
+                                  method.id === 'cod' ? 'bg-green-100 text-green-600' :
+                                    'bg-indigo-100 text-indigo-600'
+                                }`}>
+                                {method.icon}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-xs sm:text-base leading-tight">{method.name}</div>
+                                <div className="text-xs sm:text-sm text-gray-600 leading-tight">{method.description}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+
+                {/* Payment Details */}
+                {selectedPaymentMethod === 'card' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-2 sm:mt-4 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-4"
                   >
-                    <div className="flex items-center gap-3">
-                      {method.icon}
-                      <span className="text-sm font-medium">
-                        {method.name}
-                      </span>
+                    <h3 className="font-semibold text-xs sm:text-base text-gray-700 mb-1.5 sm:mb-3">Card Details</h3>
+                    <div className="space-y-1.5 sm:space-y-3">
+                      <div>
+                        <Label htmlFor="cardNumber" className="text-xs font-medium">Card Number</Label>
+                        <Input
+                          id="cardNumber"
+                          value={paymentDetails.cardNumber}
+                          onChange={(e) => setPaymentDetails(prev => ({ ...prev, cardNumber: e.target.value }))}
+                          placeholder="1234 5678 9012 3456"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                          maxLength={19}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cardName" className="text-xs font-medium">Name on Card</Label>
+                        <Input
+                          id="cardName"
+                          value={paymentDetails.cardName}
+                          onChange={(e) => setPaymentDetails(prev => ({ ...prev, cardName: e.target.value }))}
+                          placeholder="John Doe"
+                          className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
+                        <div>
+                          <Label htmlFor="expiry" className="text-xs font-medium">Expiry Date</Label>
+                          <Input
+                            id="expiry"
+                            value={paymentDetails.expiry}
+                            onChange={(e) => setPaymentDetails(prev => ({ ...prev, expiry: e.target.value }))}
+                            placeholder="MM/YY"
+                            className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                            maxLength={5}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cvv" className="text-xs font-medium">CVV</Label>
+                          <Input
+                            id="cvv"
+                            value={paymentDetails.cvv}
+                            onChange={(e) => setPaymentDetails(prev => ({ ...prev, cvv: e.target.value }))}
+                            placeholder="123"
+                            className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                            type="password"
+                            maxLength={4}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <RadioGroupItem value={method.id} id={method.id} />
-                  </Label>
-                ))}
-              </RadioGroup>
-            </motion.div>
-          </div>
+                  </motion.div>
+                )}
 
-          {/* RIGHT COLUMN */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-6"
-            >
-              <h2 className="text-base sm:text-2xl font-bold mb-4">
-                Order Summary
-              </h2>
-
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-3">
-                    <img
-                      src={item.image || "/placeholder.jpg"}
-                      className="w-14 h-14 rounded-md object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Qty: {item.quantity}
+                {selectedPaymentMethod === 'upi' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-2 sm:mt-4 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-4"
+                  >
+                    <h3 className="font-semibold text-xs sm:text-base text-gray-700 mb-1.5 sm:mb-3">UPI Details</h3>
+                    <div>
+                      <Label htmlFor="upiId" className="text-xs font-medium">UPI ID</Label>
+                      <Input
+                        id="upiId"
+                        value={paymentDetails.upiId}
+                        onChange={(e) => setPaymentDetails(prev => ({ ...prev, upiId: e.target.value }))}
+                        placeholder="username@bank"
+                        className="mt-1 text-xs sm:text-sm h-9 sm:h-10"
+                      />
+                      <p className="text-xs text-gray-500 mt-1.5 sm:mt-2">
+                        You'll be redirected to your UPI app for payment
                       </p>
                     </div>
-                    <div className="text-sm font-semibold">
-                      ₹{(item.price * item.quantity).toFixed(2)}
+                  </motion.div>
+                )}
+
+                {selectedPaymentMethod === 'cod' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-2 sm:mt-4 border border-yellow-200 rounded-lg sm:rounded-xl p-2 sm:p-4 bg-yellow-50"
+                  >
+                    <div className="flex items-start gap-1.5 sm:gap-3">
+                      <AlertCircle className="w-3.5 sm:w-5 h-3.5 sm:h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-xs sm:text-base text-yellow-800 leading-tight">Cash on Delivery</h4>
+                        <p className="text-xs sm:text-sm text-yellow-700 mt-1 leading-tight">
+                          Please keep exact change ready. A small additional fee may apply.
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+
+              {/* Order Notes */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg p-2.5 sm:p-6"
+              >
+                <h2 className="text-sm sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Additional Information</h2>
+                <div>
+                  <Label htmlFor="orderNotes" className="text-xs sm:text-sm font-medium">Order Notes (Optional)</Label>
+                  <textarea
+                    id="orderNotes"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    placeholder="Special instructions for delivery, gift wrapping requests, etc."
+                    className="w-full mt-1 sm:mt-2 p-2 sm:p-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent min-h-20 sm:min-h-24"
+                    rows={3}
+                  />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Column - Order Summary */}
+            <div className="lg:col-span-1">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg p-2.5 sm:p-6 lg:sticky lg:top-4"
+              >
+                <h2 className="text-sm sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">Order Summary</h2>
+
+                {/* Order Items */}
+                <div className="space-y-1 sm:space-y-3 mb-2 sm:mb-4">
+                  <h3 className="font-semibold text-xs sm:text-base text-gray-700">Items ({cartItems.length})</h3>
+                  <div className="space-y-1 sm:space-y-2 max-h-48 sm:max-h-64 overflow-y-auto pr-1 sm:pr-2">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-gray-50 rounded-lg">
+                        <div className="w-8 sm:w-12 h-8 sm:h-12 rounded-md overflow-hidden flex-shrink-0">
+                          <img
+                            src={item.image || "/placeholder.jpg"}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs sm:text-sm text-gray-900 truncate leading-tight">{item.name}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 leading-tight">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="font-semibold text-xs sm:text-sm text-gray-900 flex-shrink-0">
+                          ₹{(item.price * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Breakdown */}
+                <div className="space-y-0.5 sm:space-y-2 mb-2 sm:mb-4 text-xs sm:text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tax (18%)</span>
+                    <span className="font-medium">₹{tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="font-medium">
+                      {shipping === 0 ? "Free" : `₹${shipping}`}
+                    </span>
+                  </div>
+                  <hr className="my-1 sm:my-2" />
+                  <div className="flex justify-between font-bold text-sm sm:text-lg">
+                    <span>Total</span>
+                    <span>₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Security Info */}
+                <div className="mb-2 sm:mb-4 p-1.5 sm:p-3 bg-green-50 rounded-lg sm:rounded-xl border border-green-100">
+                  <div className="flex items-start gap-1.5 sm:gap-2">
+                    <Shield className="w-3.5 sm:w-5 h-3.5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div>
+                      <span className="font-semibold text-xs sm:text-base text-green-700 block leading-tight">Secure Payment</span>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-tight">
+                        Your payment information is encrypted and secure.
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>₹{tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
                 </div>
 
-                <div className="border-t pt-3 flex justify-between font-bold text-base sm:text-lg">
-                  <span>Total</span>
-                  <span>₹{total.toFixed(2)}</span>
+                {/* Delivery Info */}
+                <div className="mb-2 sm:mb-4 p-1.5 sm:p-3 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-100">
+                  <div className="flex items-start gap-1.5 sm:gap-2">
+                    <Truck className="w-3.5 sm:w-5 h-3.5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div>
+                      <span className="font-semibold text-xs sm:text-base text-blue-700 block leading-tight">Est. Delivery</span>
+                      <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-1 leading-tight mt-0.5">
+                        <Calendar className="w-3 sm:w-4 h-3 sm:h-4" />
+                        {new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <Button
-                onClick={handleCheckout}
-                disabled={loading || !termsAccepted}
-                className="w-full mt-6 h-11 sm:h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
-              >
-                {loading ? "Processing..." : `Place Order · ₹${total.toFixed(2)}`}
-              </Button>
-            </motion.div>
+                {/* Terms and Conditions */}
+                <div className="mb-2 sm:mb-4">
+                  <div className="flex items-start space-x-1.5 sm:space-x-2">
+                    <Checkbox
+                      id="terms"
+                      checked={termsAccepted}
+                      onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="terms" className="text-xs sm:text-sm leading-tight text-gray-700">
+                      I agree to the{" "}
+                      <Link to="/terms" className="text-green-600 hover:underline font-medium">
+                        Terms and Conditions
+                      </Link>{" "}
+                      and{" "}
+                      <Link to="/privacy" className="text-green-600 hover:underline font-medium">
+                        Privacy Policy
+                      </Link>
+                    </Label>
+                  </div>
+                </div>
+
+                {/* Place Order Button */}
+                <Button
+                  onClick={handleCheckout}
+                  disabled={loading || !termsAccepted}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white h-10 sm:h-12 text-xs sm:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 sm:w-5 h-4 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1 sm:mr-2"></div>
+                      <span className="hidden sm:inline">Processing...</span>
+                      <span className="sm:hidden">Processing</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2" />
+                      <span>Place Order</span>
+                      <span className="hidden sm:inline"> · ₹{total.toFixed(2)}</span>
+                    </>
+                  )}
+                </Button>
+
+                {/* Secure Payment Icons */}
+                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 text-center mb-1.5">We accept</p>
+                  <div className="flex justify-center gap-2 sm:gap-3">
+                    <div className="w-8 sm:w-9 h-5 sm:h-5 bg-gray-100 rounded flex items-center justify-center">
+                      <CreditCard className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600" />
+                    </div>
+                    <div className="w-8 sm:w-9 h-5 sm:h-5 bg-gray-100 rounded flex items-center justify-center">
+                      <Wallet className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600" />
+                    </div>
+                    <div className="w-8 sm:w-9 h-5 sm:h-5 bg-gray-100 rounded flex items-center justify-center">
+                      <Building className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
-
         </div>
       </div>
-    </div>
-  </Layout>
-);
+    </Layout>
+  );
 };
 
 export default Checkout;

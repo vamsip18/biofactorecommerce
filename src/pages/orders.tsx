@@ -698,10 +698,10 @@ const Orders = () => {
                                       <Download className="w-4 h-4 mr-2" />
                                       {t.orders.downloadInvoice}
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
+                                    {/* <DropdownMenuItem onClick={() => handleOrderAction(order.id, "track")}>
                                       <Truck className="w-4 h-4 mr-2" />
                                       {t.orders.trackOrder}
-                                    </DropdownMenuItem>
+                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem onClick={() => handleOrderAction(order.id, "reorder")}>
                                       <ShoppingBag className="w-4 h-4 mr-2" />
                                       {t.account.reorder}
