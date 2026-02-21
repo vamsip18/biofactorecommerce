@@ -151,7 +151,7 @@ const CustomerCare = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Your Orders Card */}
             <motion.a
-              href="/orders"
+              href="/account/orders"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -189,7 +189,7 @@ const CustomerCare = () => {
 
             {/* Returns and Refunds Card */}
             <motion.a
-              href="/orders"
+              href="/account/orders"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
