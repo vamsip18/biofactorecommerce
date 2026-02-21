@@ -808,9 +808,9 @@ const KitchenGardening = () => {
               {product.name}
             </h3>
 
-            <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
+            <p className="hidden text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
-            <div className="hidden sm:flex items-center text-sm text-gray-500">
+            <div className="hidden items-center text-sm text-gray-500">
               <Package className="w-4 h-4 mr-1 flex-shrink-0" />
               <span className="truncate">Kitchen Gardening</span>
             </div>

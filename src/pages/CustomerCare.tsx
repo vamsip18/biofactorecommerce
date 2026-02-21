@@ -189,7 +189,7 @@ const CustomerCare = () => {
 
             {/* Returns and Refunds Card */}
             <motion.a
-              href="/returns"
+              href="/orders"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}

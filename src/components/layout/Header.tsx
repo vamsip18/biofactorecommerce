@@ -464,7 +464,7 @@ export const Header = ({ theme = 'green' }: { theme?: 'green' | 'cyan' | 'amber'
   return (
     <>
       {/* TOP HEADER BAR */}
-      <div className={`sticky top-0 z-50 bg-white transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
+      <div className={`md:sticky md:top-0 z-50 bg-white transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
         <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-4">
           <div className="md:hidden w-full flex items-center gap-2">
             <Link to="/" className="flex items-center flex-shrink-0">
@@ -848,7 +848,7 @@ export const Header = ({ theme = 'green' }: { theme?: 'green' | 'cyan' | 'amber'
       </div>
 
       {/* MAIN NAV HEADER */}
-      <header className={`sticky top-[68px] md:top-[88px] z-40 shadow-lg ${theme === 'cyan' ? 'bg-cyan-900' : theme === 'amber' ? 'bg-amber-900' : theme === 'lime' ? 'bg-lime-900' : 'bg-green-900'
+      <header className={`md:sticky md:top-[88px] z-40 shadow-lg ${theme === 'cyan' ? 'bg-cyan-900' : theme === 'amber' ? 'bg-amber-900' : theme === 'lime' ? 'bg-lime-900' : 'bg-green-900'
         }`}>
         <div className="container mx-auto px-4">
           <nav className="flex items-center justify-end">

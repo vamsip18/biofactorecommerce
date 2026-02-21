@@ -20,6 +20,7 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,25 @@ const getProductCategory = (product: Product) => {
 const isProductInStock = (product: Product) => {
   const variant = getDefaultVariant(product);
   return variant?.stock > 0;
+};
+
+const getRatingDisplay = () => {
+  const defaultRating = 4.5;
+  const stars = [];
+  const fullStars = Math.floor(defaultRating);
+  const hasHalfStar = defaultRating % 1 >= 0.5;
+
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+    } else {
+      stars.push(<Star key={i} className="w-4 h-4 fill-gray-300 text-gray-300" />);
+    }
+  }
+
+  return stars;
 };
 
 const getProductImage = (product: Product) => {
@@ -442,7 +462,13 @@ const ProductCard = ({
             <span className="truncate">Large Animals</span>
           </div>
 
-          <div className="mt-1 space-y-2">
+          {/* Rating */}
+          <div className="hidden sm:flex items-center gap-1">
+            {getRatingDisplay()}
+            <span className="text-sm text-gray-600 ml-1">(4.5)</span>
+          </div>
+
+          <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-baseline gap-2">
                 <div className="text-lg font-bold text-amber-600">

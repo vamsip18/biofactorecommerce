@@ -571,10 +571,10 @@ const ProductCard = ({
             {product.name}
           </h3>
 
-          <p className="hidden sm:block text-sm text-gray-500 line-clamp-1">{product.description}</p>
+          <p className="hidden text-sm text-gray-500 line-clamp-1">{product.description}</p>
 
           {/* Rating */}
-          <div className="hidden sm:flex items-center">
+          <div className="hidden items-center">
             <div className="flex">
               {getRatingDisplay(product.rating)}
             </div>
